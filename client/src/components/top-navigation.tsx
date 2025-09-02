@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Compass, Play, Rocket, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Compass, Play, Rocket, User, Shield, Command } from "lucide-react";
+import PermissionManager from "./permission-manager";
+import CommandPalette from "./command-palette";
 
 interface TopNavigationProps {
   currentProjectId: string;
@@ -17,6 +21,10 @@ export default function TopNavigation({
   autonomyLevel, 
   setAutonomyLevel 
 }: TopNavigationProps) {
+  const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [activePermissions] = useState(["Browse", "Extract", "Observe"]);
+  
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
@@ -56,6 +64,27 @@ export default function TopNavigation({
         </div>
         
         <div className="flex items-center space-x-4">
+          {/* Permission Chips */}
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setPermissionDialogOpen(true)}
+              className="text-xs"
+              data-testid="button-permissions"
+            >
+              <Shield className="w-4 h-4 mr-1" />
+              Permissions:
+            </Button>
+            {activePermissions.map((permission) => (
+              <Badge key={permission} variant="secondary" className="text-xs">
+                {permission}
+              </Badge>
+            ))}
+          </div>
+          
+          <div className="border-l border-border h-6" />
+          
           <div className="flex items-center space-x-2">
             <span className="text-sm text-muted-foreground">Autonomy:</span>
             <Select value={autonomyLevel.toString()} onValueChange={(value) => setAutonomyLevel(parseInt(value))}>
@@ -73,6 +102,15 @@ export default function TopNavigation({
           </div>
           
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setCommandPaletteOpen(true)}
+              title="Command Palette (Ctrl+K)"
+              data-testid="button-command-palette"
+            >
+              <Command className="w-4 h-4" />
+            </Button>
             <Button variant="secondary" size="sm" data-testid="button-dry-run">
               <Play className="w-4 h-4 mr-1" />
               Dry Run
@@ -88,6 +126,18 @@ export default function TopNavigation({
           </div>
         </div>
       </div>
+      
+      <PermissionManager 
+        open={permissionDialogOpen}
+        onOpenChange={setPermissionDialogOpen}
+        currentDomain="google.com"
+      />
+      
+      <CommandPalette 
+        open={commandPaletteOpen}
+        setOpen={setCommandPaletteOpen}
+        onCommand={(cmd) => console.log('Command:', cmd)}
+      />
     </header>
   );
 }

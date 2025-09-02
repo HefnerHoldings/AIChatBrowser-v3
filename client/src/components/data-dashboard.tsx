@@ -1,16 +1,21 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExtractedLead } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, FileSpreadsheet, Filter } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, FileSpreadsheet, Filter, Database, Shield } from "lucide-react";
+import LeadValidator from "./lead-validator";
 
 interface DataDashboardProps {
   currentTaskId: string;
 }
 
 export default function DataDashboard({ currentTaskId }: DataDashboardProps) {
+  const [activeTab, setActiveTab] = useState("overview");
+  
   const { data: extractedLeads = [] } = useQuery<ExtractedLead[]>({
     queryKey: ["/api/extracted-leads", { taskId: currentTaskId }],
     enabled: !!currentTaskId,
@@ -35,13 +40,18 @@ export default function DataDashboard({ currentTaskId }: DataDashboardProps) {
 
   return (
     <div className="p-6 h-full overflow-y-auto">
-      <div className="space-y-6">
-        {/* Header */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Data Dashboard</h2>
-            <p className="text-muted-foreground">Extracted leads and analytics</p>
-          </div>
+          <TabsList>
+            <TabsTrigger value="overview" data-testid="tab-overview">
+              <Database className="w-4 h-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="validation" data-testid="tab-validation">
+              <Shield className="w-4 h-4 mr-2" />
+              Validation
+            </TabsTrigger>
+          </TabsList>
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" data-testid="button-filter">
               <Filter className="w-4 h-4 mr-1" />
@@ -57,6 +67,13 @@ export default function DataDashboard({ currentTaskId }: DataDashboardProps) {
             </Button>
           </div>
         </div>
+        
+        <TabsContent value="overview" className="space-y-6">
+          {/* Header */}
+          <div>
+            <h2 className="text-2xl font-bold">Data Dashboard</h2>
+            <p className="text-muted-foreground">Extracted leads and analytics</p>
+          </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-5 gap-4">
@@ -179,7 +196,15 @@ export default function DataDashboard({ currentTaskId }: DataDashboardProps) {
             )}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+        
+        <TabsContent value="validation" className="space-y-6">
+          <LeadValidator 
+            leads={extractedLeads}
+            onValidationComplete={(validated) => console.log('Validated:', validated)}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
