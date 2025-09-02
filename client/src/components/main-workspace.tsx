@@ -2,6 +2,11 @@ import { Button } from "@/components/ui/button";
 import BrowserViewport from "./browser-viewport";
 import WorkflowBuilder from "./workflow-builder";
 import DataDashboard from "./data-dashboard";
+import { SessionReplayPanel } from "./session-replay-panel";
+import { DevBridgePanel } from "./devbridge-panel";
+import { WorkOrdersPanel } from "./work-orders-panel";
+import { PrivacyLedgerPanel } from "./privacy-ledger-panel";
+import { AdrPanel } from "./adr-panel";
 
 interface MainWorkspaceProps {
   activeTab: string;
@@ -14,7 +19,11 @@ export default function MainWorkspace({ activeTab, setActiveTab, currentTaskId }
     { id: "browser", label: "Browser View" },
     { id: "workflow", label: "Workflow Editor" },
     { id: "data", label: "Data Dashboard" },
-    { id: "dev", label: "Dev Console" },
+    { id: "session-replay", label: "Session Replay" },
+    { id: "devbridge", label: "DevBridge" },
+    { id: "work-orders", label: "Work Orders" },
+    { id: "privacy", label: "Privacy" },
+    { id: "adr", label: "ADR & Risk" },
   ];
 
   return (
@@ -41,18 +50,15 @@ export default function MainWorkspace({ activeTab, setActiveTab, currentTaskId }
       </div>
       
       {/* Tab Content */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-auto">
         {activeTab === "browser" && <BrowserViewport currentTaskId={currentTaskId} />}
         {activeTab === "workflow" && <WorkflowBuilder />}
         {activeTab === "data" && <DataDashboard currentTaskId={currentTaskId} />}
-        {activeTab === "dev" && (
-          <div className="p-4 h-full flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <h3 className="text-lg font-medium mb-2">Dev Console</h3>
-              <p>Development tools and debugging interface coming soon...</p>
-            </div>
-          </div>
-        )}
+        {activeTab === "session-replay" && <SessionReplayPanel projectId="project-1" />}
+        {activeTab === "devbridge" && <DevBridgePanel />}
+        {activeTab === "work-orders" && <WorkOrdersPanel projectId="project-1" />}
+        {activeTab === "privacy" && <PrivacyLedgerPanel sessionId="session-1" />}
+        {activeTab === "adr" && <AdrPanel projectId="project-1" />}
       </div>
     </div>
   );

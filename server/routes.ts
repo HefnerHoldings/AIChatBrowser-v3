@@ -1,7 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertWorkflowSchema, insertAutomationTaskSchema, insertActivityLogSchema } from "@shared/schema";
+import { 
+  insertProjectSchema, 
+  insertWorkflowSchema, 
+  insertAutomationTaskSchema, 
+  insertActivityLogSchema,
+  insertSessionReplaySchema,
+  insertWorkOrderSchema,
+  insertPrivacyLedgerSchema,
+  insertAdrRecordSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -249,6 +258,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Automation paused" });
     } catch (error) {
       res.status(500).json({ message: "Failed to pause automation" });
+    }
+  });
+
+  // Session Replays
+  app.get("/api/session-replays", async (req, res) => {
+    try {
+      const { projectId } = req.query;
+      const replays = await storage.getSessionReplays(projectId as string);
+      res.json(replays);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch session replays" });
+    }
+  });
+
+  app.get("/api/session-replays/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const replay = await storage.getSessionReplay(id);
+      if (!replay) {
+        res.status(404).json({ message: "Session replay not found" });
+        return;
+      }
+      res.json(replay);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch session replay" });
+    }
+  });
+
+  app.post("/api/session-replays", async (req, res) => {
+    try {
+      const data = insertSessionReplaySchema.parse(req.body);
+      const replay = await storage.createSessionReplay(data);
+      res.json(replay);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid session replay data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create session replay" });
+      }
+    }
+  });
+
+  app.patch("/api/session-replays/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertSessionReplaySchema.partial().parse(req.body);
+      const replay = await storage.updateSessionReplay(id, updates);
+      if (!replay) {
+        res.status(404).json({ message: "Session replay not found" });
+        return;
+      }
+      res.json(replay);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid session replay data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update session replay" });
+      }
+    }
+  });
+
+  // Work Orders
+  app.get("/api/work-orders", async (req, res) => {
+    try {
+      const { projectId } = req.query;
+      const orders = await storage.getWorkOrders(projectId as string);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch work orders" });
+    }
+  });
+
+  app.get("/api/work-orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const order = await storage.getWorkOrder(id);
+      if (!order) {
+        res.status(404).json({ message: "Work order not found" });
+        return;
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch work order" });
+    }
+  });
+
+  app.post("/api/work-orders", async (req, res) => {
+    try {
+      const data = insertWorkOrderSchema.parse(req.body);
+      const order = await storage.createWorkOrder(data);
+      res.json(order);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid work order data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create work order" });
+      }
+    }
+  });
+
+  app.patch("/api/work-orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertWorkOrderSchema.partial().parse(req.body);
+      const order = await storage.updateWorkOrder(id, updates);
+      if (!order) {
+        res.status(404).json({ message: "Work order not found" });
+        return;
+      }
+      res.json(order);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid work order data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update work order" });
+      }
+    }
+  });
+
+  // Privacy Ledger
+  app.get("/api/privacy-ledger", async (req, res) => {
+    try {
+      const { sessionId } = req.query;
+      const logs = await storage.getPrivacyLedger(sessionId as string);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch privacy ledger" });
+    }
+  });
+
+  app.post("/api/privacy-ledger", async (req, res) => {
+    try {
+      const data = insertPrivacyLedgerSchema.parse(req.body);
+      const log = await storage.createPrivacyLog(data);
+      res.json(log);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid privacy log data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create privacy log" });
+      }
+    }
+  });
+
+  // ADR Records
+  app.get("/api/adr-records", async (req, res) => {
+    try {
+      const { projectId } = req.query;
+      const records = await storage.getAdrRecords(projectId as string);
+      res.json(records);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch ADR records" });
+    }
+  });
+
+  app.get("/api/adr-records/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const record = await storage.getAdrRecord(id);
+      if (!record) {
+        res.status(404).json({ message: "ADR record not found" });
+        return;
+      }
+      res.json(record);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch ADR record" });
+    }
+  });
+
+  app.post("/api/adr-records", async (req, res) => {
+    try {
+      const data = insertAdrRecordSchema.parse(req.body);
+      const record = await storage.createAdrRecord(data);
+      res.json(record);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid ADR record data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create ADR record" });
+      }
+    }
+  });
+
+  app.patch("/api/adr-records/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertAdrRecordSchema.partial().parse(req.body);
+      const record = await storage.updateAdrRecord(id, updates);
+      if (!record) {
+        res.status(404).json({ message: "ADR record not found" });
+        return;
+      }
+      res.json(record);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid ADR record data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update ADR record" });
+      }
     }
   });
 

@@ -4,11 +4,19 @@ import {
   type AutomationTask, 
   type ActivityLog, 
   type ExtractedLead,
+  type SessionReplay,
+  type WorkOrder,
+  type PrivacyLedger,
+  type AdrRecord,
   type InsertProject, 
   type InsertWorkflow, 
   type InsertAutomationTask, 
   type InsertActivityLog, 
-  type InsertExtractedLead 
+  type InsertExtractedLead,
+  type InsertSessionReplay,
+  type InsertWorkOrder,
+  type InsertPrivacyLedger,
+  type InsertAdrRecord
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -39,6 +47,28 @@ export interface IStorage {
   getExtractedLeads(taskId?: string): Promise<ExtractedLead[]>;
   createExtractedLead(lead: InsertExtractedLead): Promise<ExtractedLead>;
   bulkCreateExtractedLeads(leads: InsertExtractedLead[]): Promise<ExtractedLead[]>;
+  
+  // Session Replays
+  getSessionReplays(projectId?: string): Promise<SessionReplay[]>;
+  getSessionReplay(id: string): Promise<SessionReplay | undefined>;
+  createSessionReplay(replay: InsertSessionReplay): Promise<SessionReplay>;
+  updateSessionReplay(id: string, updates: Partial<InsertSessionReplay>): Promise<SessionReplay | undefined>;
+  
+  // Work Orders
+  getWorkOrders(projectId?: string): Promise<WorkOrder[]>;
+  getWorkOrder(id: string): Promise<WorkOrder | undefined>;
+  createWorkOrder(order: InsertWorkOrder): Promise<WorkOrder>;
+  updateWorkOrder(id: string, updates: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined>;
+  
+  // Privacy Ledger
+  getPrivacyLedger(sessionId?: string): Promise<PrivacyLedger[]>;
+  createPrivacyLog(log: InsertPrivacyLedger): Promise<PrivacyLedger>;
+  
+  // ADR Records
+  getAdrRecords(projectId?: string): Promise<AdrRecord[]>;
+  getAdrRecord(id: string): Promise<AdrRecord | undefined>;
+  createAdrRecord(record: InsertAdrRecord): Promise<AdrRecord>;
+  updateAdrRecord(id: string, updates: Partial<InsertAdrRecord>): Promise<AdrRecord | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -47,6 +77,10 @@ export class MemStorage implements IStorage {
   private automationTasks: Map<string, AutomationTask> = new Map();
   private activityLogs: Map<string, ActivityLog> = new Map();
   private extractedLeads: Map<string, ExtractedLead> = new Map();
+  private sessionReplays: Map<string, SessionReplay> = new Map();
+  private workOrders: Map<string, WorkOrder> = new Map();
+  private privacyLedger: Map<string, PrivacyLedger> = new Map();
+  private adrRecords: Map<string, AdrRecord> = new Map();
 
   constructor() {
     this.seedData();
@@ -324,6 +358,114 @@ export class MemStorage implements IStorage {
       return lead;
     });
     return leads;
+  }
+
+  // Session Replays
+  async getSessionReplays(projectId?: string): Promise<SessionReplay[]> {
+    const replays = Array.from(this.sessionReplays.values());
+    return projectId ? replays.filter(r => r.projectId === projectId) : replays;
+  }
+
+  async getSessionReplay(id: string): Promise<SessionReplay | undefined> {
+    return this.sessionReplays.get(id);
+  }
+
+  async createSessionReplay(insertReplay: InsertSessionReplay): Promise<SessionReplay> {
+    const id = randomUUID();
+    const replay: SessionReplay = { 
+      ...insertReplay, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.sessionReplays.set(id, replay);
+    return replay;
+  }
+
+  async updateSessionReplay(id: string, updates: Partial<InsertSessionReplay>): Promise<SessionReplay | undefined> {
+    const replay = this.sessionReplays.get(id);
+    if (!replay) return undefined;
+    
+    const updatedReplay = { ...replay, ...updates };
+    this.sessionReplays.set(id, updatedReplay);
+    return updatedReplay;
+  }
+
+  // Work Orders
+  async getWorkOrders(projectId?: string): Promise<WorkOrder[]> {
+    const orders = Array.from(this.workOrders.values());
+    return projectId ? orders.filter(o => o.projectId === projectId) : orders;
+  }
+
+  async getWorkOrder(id: string): Promise<WorkOrder | undefined> {
+    return this.workOrders.get(id);
+  }
+
+  async createWorkOrder(insertOrder: InsertWorkOrder): Promise<WorkOrder> {
+    const id = randomUUID();
+    const order: WorkOrder = { 
+      ...insertOrder, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.workOrders.set(id, order);
+    return order;
+  }
+
+  async updateWorkOrder(id: string, updates: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined> {
+    const order = this.workOrders.get(id);
+    if (!order) return undefined;
+    
+    const updatedOrder = { ...order, ...updates };
+    this.workOrders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+
+  // Privacy Ledger
+  async getPrivacyLedger(sessionId?: string): Promise<PrivacyLedger[]> {
+    const logs = Array.from(this.privacyLedger.values());
+    return sessionId ? logs.filter(l => l.sessionId === sessionId) : logs;
+  }
+
+  async createPrivacyLog(insertLog: InsertPrivacyLedger): Promise<PrivacyLedger> {
+    const id = randomUUID();
+    const log: PrivacyLedger = { 
+      ...insertLog, 
+      id, 
+      timestamp: new Date() 
+    };
+    this.privacyLedger.set(id, log);
+    return log;
+  }
+
+  // ADR Records
+  async getAdrRecords(projectId?: string): Promise<AdrRecord[]> {
+    const records = Array.from(this.adrRecords.values());
+    return projectId ? records.filter(r => r.projectId === projectId) : records;
+  }
+
+  async getAdrRecord(id: string): Promise<AdrRecord | undefined> {
+    return this.adrRecords.get(id);
+  }
+
+  async createAdrRecord(insertRecord: InsertAdrRecord): Promise<AdrRecord> {
+    const id = randomUUID();
+    const record: AdrRecord = { 
+      ...insertRecord, 
+      id, 
+      createdAt: new Date(),
+      updatedAt: new Date() 
+    };
+    this.adrRecords.set(id, record);
+    return record;
+  }
+
+  async updateAdrRecord(id: string, updates: Partial<InsertAdrRecord>): Promise<AdrRecord | undefined> {
+    const record = this.adrRecords.get(id);
+    if (!record) return undefined;
+    
+    const updatedRecord = { ...record, ...updates, updatedAt: new Date() };
+    this.adrRecords.set(id, updatedRecord);
+    return updatedRecord;
   }
 }
 

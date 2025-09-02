@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Camera, Crosshair, Download, FileText, Pause } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ReportGenerator } from "./report-generator";
 
 interface RightPanelProps {
   currentTaskId: string;
@@ -74,6 +75,7 @@ export default function RightPanel({ currentTaskId }: RightPanelProps) {
     { id: "activity", label: "Activity" },
     { id: "data", label: "Data" },
     { id: "logs", label: "Logs" },
+    { id: "reports", label: "Reports" },
   ];
 
   return (
@@ -226,6 +228,12 @@ export default function RightPanel({ currentTaskId }: RightPanelProps) {
                 <div className="text-muted-foreground">No logs available</div>
               )}
             </div>
+          </div>
+        )}
+        
+        {activeTab === "reports" && (
+          <div className="h-full overflow-y-auto">
+            <ReportGenerator projectId="project-1" />
           </div>
         )}
       </div>

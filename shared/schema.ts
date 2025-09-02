@@ -108,3 +108,103 @@ export type InsertWorkflow = z.infer<typeof insertWorkflowSchema>;
 export type InsertAutomationTask = z.infer<typeof insertAutomationTaskSchema>;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type InsertExtractedLead = z.infer<typeof insertExtractedLeadSchema>;
+
+// Session Replay table
+export const sessionReplays = pgTable("session_replays", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => projects.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  startUrl: text("start_url").notNull(),
+  endUrl: text("end_url"),
+  duration: integer("duration"), // in milliseconds
+  status: text("status").notNull().default("recording"), // recording, paused, completed, error
+  recordingData: jsonb("recording_data"), // DOM snapshots, events, network requests
+  metadata: jsonb("metadata"), // browser info, viewport size, etc.
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+});
+
+// Work Orders table
+export const workOrders = pgTable("work_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => projects.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // scraping, data-extraction, form-filling, workflow-automation
+  priority: text("priority").notNull().default("normal"), // low, normal, high, urgent
+  status: text("status").notNull().default("pending"),
+  assignee: text("assignee"), // AI agent or user
+  requirements: jsonb("requirements"), // specific requirements for the task
+  deliverables: jsonb("deliverables"), // expected outputs
+  estimatedHours: integer("estimated_hours"),
+  actualHours: integer("actual_hours"),
+  deadline: timestamp("deadline"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+});
+
+// Privacy Ledger table
+export const privacyLedger = pgTable("privacy_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  eventType: text("event_type").notNull(), // cookie-set, data-collected, permission-granted, etc.
+  domain: text("domain").notNull(),
+  dataType: text("data_type"), // cookie, localStorage, form-data, etc.
+  dataValue: text("data_value"), // encrypted/hashed sensitive data
+  purpose: text("purpose"), // analytics, authentication, preferences, etc.
+  consentStatus: text("consent_status"), // granted, denied, pending
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+  metadata: jsonb("metadata"),
+});
+
+// ADR (Architecture Decision Records) table
+export const adrRecords = pgTable("adr_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => projects.id),
+  title: text("title").notNull(),
+  status: text("status").notNull().default("proposed"), // proposed, accepted, rejected, deprecated, superseded
+  decisionDate: timestamp("decision_date"),
+  context: text("context").notNull(),
+  decision: text("decision").notNull(),
+  consequences: text("consequences"),
+  alternatives: jsonb("alternatives"), // other options considered
+  relatedRecords: text().array(), // IDs of related ADRs
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Insert schemas for new tables
+export const insertSessionReplaySchema = createInsertSchema(sessionReplays).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertPrivacyLedgerSchema = createInsertSchema(privacyLedger).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertAdrRecordSchema = createInsertSchema(adrRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for new tables
+export type SessionReplay = typeof sessionReplays.$inferSelect;
+export type WorkOrder = typeof workOrders.$inferSelect;
+export type PrivacyLedger = typeof privacyLedger.$inferSelect;
+export type AdrRecord = typeof adrRecords.$inferSelect;
+
+export type InsertSessionReplay = z.infer<typeof insertSessionReplaySchema>;
+export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;
+export type InsertPrivacyLedger = z.infer<typeof insertPrivacyLedgerSchema>;
+export type InsertAdrRecord = z.infer<typeof insertAdrRecordSchema>;
