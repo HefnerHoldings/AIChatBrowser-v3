@@ -51,19 +51,12 @@ export function AdrPanel({ projectId }: { projectId?: string }) {
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const { data: adrRecords = [], isLoading } = useQuery<AdrRecord[]>({
-    queryKey: ["/api/adr-records", projectId],
-    queryFn: async () => {
-      const params = projectId ? `?projectId=${projectId}` : "";
-      return apiRequest(`/api/adr-records${params}`);
-    }
+    queryKey: projectId ? ["/api/adr-records", { projectId }] : ["/api/adr-records"],
   });
 
   const createAdrMutation = useMutation({
     mutationFn: async (data: Partial<AdrRecord>) => {
-      return apiRequest("/api/adr-records", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("POST", "/api/adr-records", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/adr-records"] });
@@ -77,10 +70,7 @@ export function AdrPanel({ projectId }: { projectId?: string }) {
 
   const updateAdrMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<AdrRecord> & { id: string }) => {
-      return apiRequest(`/api/adr-records/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("PATCH", `/api/adr-records/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/adr-records"] });
