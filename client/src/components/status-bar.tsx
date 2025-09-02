@@ -45,7 +45,7 @@ export default function StatusBar({ currentTaskId }: StatusBarProps) {
           )}
         </div>
         <div className="flex items-center space-x-4">
-          <span className="text-muted-foreground">Atlas v1.2.0</span>
+          <span className="text-muted-foreground">MadEasy v1.2.0</span>
           <span className="text-muted-foreground">Connected</span>
         </div>
       </div>

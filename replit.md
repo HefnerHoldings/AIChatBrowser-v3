@@ -1,8 +1,8 @@
-# Atlas Browser - AI-Powered Autonomous Web Browser
+# MadEasy Browser - AI-Powered Autonomous Web Browser
 
 ## Overview
 
-Atlas Browser is a standalone AI-powered web browser designed to autonomously perform web-based tasks including research, data extraction, form filling, and complex workflow automation. Built as a full-stack application with React frontend and Express backend, it features a chat-first interface where users describe goals and the system creates actionable plans with autonomous execution capabilities at multiple autonomy levels (Manual, Co-pilot, Autopilot, and PM Mode).
+MadEasy Browser is a standalone AI-powered web browser designed to autonomously perform web-based tasks including research, data extraction, form filling, and complex workflow automation. Built as a full-stack application with React frontend and Express backend, it features a chat-first interface where users describe goals and the system creates actionable plans with autonomous execution capabilities at multiple autonomy levels (Manual, Co-pilot, Autopilot, and PM Mode).
 
 ## User Preferences
 

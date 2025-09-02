@@ -127,7 +127,7 @@ export default function LeftSidebar({ currentProjectId, currentTaskId, setCurren
           </div>
           <div className="text-sm">
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
-              <strong>Atlas:</strong> I'll create a plan to search for cookware wholesalers across EU markets, extract contact information, validate data quality, and export results. This will require browser automation and data collection permissions.
+              <strong>MadEasy:</strong> I'll create a plan to search for cookware wholesalers across EU markets, extract contact information, validate data quality, and export results. This will require browser automation and data collection permissions.
             </div>
           </div>
         </div>

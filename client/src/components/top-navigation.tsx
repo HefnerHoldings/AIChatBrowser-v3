@@ -36,7 +36,7 @@ export default function TopNavigation({
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Compass className="text-primary-foreground w-4 h-4" />
             </div>
-            <span className="font-semibold text-lg">Atlas Browser</span>
+            <span className="font-semibold text-lg">MadEasy Browser</span>
           </div>
           
           <div className="flex items-center space-x-2 ml-8">
