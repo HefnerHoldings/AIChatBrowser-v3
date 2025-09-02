@@ -41,19 +41,12 @@ export function WorkOrdersPanel({ projectId }: { projectId?: string }) {
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
   const { data: workOrders = [], isLoading } = useQuery<WorkOrder[]>({
-    queryKey: ["/api/work-orders", projectId],
-    queryFn: async () => {
-      const params = projectId ? `?projectId=${projectId}` : "";
-      return apiRequest(`/api/work-orders${params}`);
-    }
+    queryKey: projectId ? ["/api/work-orders", { projectId }] : ["/api/work-orders"],
   });
 
   const createOrderMutation = useMutation({
     mutationFn: async (data: Partial<WorkOrder>) => {
-      return apiRequest("/api/work-orders", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("POST", "/api/work-orders", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
@@ -74,10 +67,7 @@ export function WorkOrdersPanel({ projectId }: { projectId?: string }) {
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<WorkOrder> & { id: string }) => {
-      return apiRequest(`/api/work-orders/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("PATCH", `/api/work-orders/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });

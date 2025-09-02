@@ -70,19 +70,12 @@ export function PrivacyLedgerPanel({ sessionId }: { sessionId?: string }) {
   });
 
   const { data: privacyLogs = [], isLoading } = useQuery<PrivacyLedger[]>({
-    queryKey: ["/api/privacy-ledger", sessionId],
-    queryFn: async () => {
-      const params = sessionId ? `?sessionId=${sessionId}` : "";
-      return apiRequest(`/api/privacy-ledger${params}`);
-    }
+    queryKey: sessionId ? ["/api/privacy-ledger", { sessionId }] : ["/api/privacy-ledger"],
   });
 
   const createPrivacyLogMutation = useMutation({
     mutationFn: async (data: Partial<PrivacyLedger>) => {
-      return apiRequest("/api/privacy-ledger", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("POST", "/api/privacy-ledger", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/privacy-ledger"] });

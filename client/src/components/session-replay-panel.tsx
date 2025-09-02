@@ -47,19 +47,12 @@ export function SessionReplayPanel({ projectId }: { projectId?: string }) {
   const [selectedReplay, setSelectedReplay] = useState<SessionReplay | null>(null);
 
   const { data: replays = [], isLoading } = useQuery<SessionReplay[]>({
-    queryKey: ["/api/session-replays", projectId],
-    queryFn: async () => {
-      const params = projectId ? `?projectId=${projectId}` : "";
-      return apiRequest(`/api/session-replays${params}`);
-    }
+    queryKey: projectId ? ["/api/session-replays", { projectId }] : ["/api/session-replays"],
   });
 
   const createReplayMutation = useMutation({
     mutationFn: async (data: Partial<SessionReplay>) => {
-      return apiRequest("/api/session-replays", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("POST", "/api/session-replays", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/session-replays"] });
@@ -69,10 +62,7 @@ export function SessionReplayPanel({ projectId }: { projectId?: string }) {
 
   const updateReplayMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<SessionReplay> & { id: string }) => {
-      return apiRequest(`/api/session-replays/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data)
-      });
+      return apiRequest("PATCH", `/api/session-replays/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/session-replays"] });
