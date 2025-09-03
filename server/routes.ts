@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { windowsAPI } from "./windows-api";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -649,6 +650,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Windows API endpoints
+  app.get("/api/windows/system-info", async (req, res) => {
+    try {
+      const info = await windowsAPI.getSystemInfo();
+      res.json(info);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/notification", async (req, res) => {
+    try {
+      const { title, message, icon, sound, wait } = req.body;
+      await windowsAPI.showNotification({ title, message, icon, sound, wait });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/windows/clipboard", async (req, res) => {
+    try {
+      const content = await windowsAPI.getClipboard();
+      res.json({ content });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/clipboard", async (req, res) => {
+    try {
+      const { text } = req.body;
+      await windowsAPI.setClipboard(text);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/screenshot", async (req, res) => {
+    try {
+      const { outputPath } = req.body;
+      const path = await windowsAPI.takeScreenshot(outputPath);
+      res.json({ success: true, path });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/windows/processes", async (req, res) => {
+    try {
+      const processes = await windowsAPI.getProcesses();
+      res.json({ processes });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/kill-process", async (req, res) => {
+    try {
+      const { pid } = req.body;
+      await windowsAPI.killProcess(pid);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/open-file", async (req, res) => {
+    try {
+      const { filePath } = req.body;
+      await windowsAPI.openFile(filePath);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/windows/registry/read", async (req, res) => {
+    try {
+      const { keyPath, valueName } = req.query;
+      const value = await windowsAPI.readRegistry(keyPath as string, valueName as string);
+      res.json({ value });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/registry/write", async (req, res) => {
+    try {
+      const { keyPath, valueName, value, type } = req.body;
+      await windowsAPI.writeRegistry(keyPath, valueName, value, type);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/shortcut", async (req, res) => {
+    try {
+      const options = req.body;
+      await windowsAPI.createShortcut(options);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/windows/installed-programs", async (req, res) => {
+    try {
+      const programs = await windowsAPI.getInstalledPrograms();
+      res.json({ programs });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/windows/auth-info", async (req, res) => {
+    try {
+      const info = await windowsAPI.getUserAuthInfo();
+      res.json(info);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/windows/powershell", async (req, res) => {
+    try {
+      const { command } = req.body;
+      const output = await windowsAPI.executePowerShell(command);
+      res.json({ output });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/windows/network-shares", async (req, res) => {
+    try {
+      const shares = await windowsAPI.getNetworkShares();
+      res.json({ shares });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  })
 
   const httpServer = createServer(app);
   return httpServer;
