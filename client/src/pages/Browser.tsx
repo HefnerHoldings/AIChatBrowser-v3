@@ -27,7 +27,9 @@ import {
   ChevronDown,
   Bookmark as BookmarkIcon,
   History,
-  Settings
+  Settings,
+  EyeOff,
+  Eye
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -82,6 +84,7 @@ export default function Browser() {
   const [showBookmarks, setShowBookmarks] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isIncognito, setIsIncognito] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -103,7 +106,7 @@ export default function Browser() {
         '/api/browser-engine/instance',
         {
           type: 'chromium',
-          isIncognito: false
+          isIncognito: isIncognito
         }
       );
       return response.json();
@@ -241,16 +244,16 @@ export default function Browser() {
     }
   }, [activeTab, bookmarks]);
   
-  // Add to history when navigating
+  // Add to history when navigating (not in incognito mode)
   useEffect(() => {
-    if (activeTab && activeTab.url && activeTab.url !== 'about:blank') {
+    if (activeTab && activeTab.url && activeTab.url !== 'about:blank' && !isIncognito) {
       apiRequest('POST', '/api/browser-history', {
         title: activeTab.title || activeTab.url,
         url: activeTab.url,
         favicon: activeTab.favicon
       }).catch(console.error);
     }
-  }, [activeTab?.url]);
+  }, [activeTab?.url, isIncognito]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -274,6 +277,9 @@ export default function Browser() {
         } else if (e.key === 'b' && e.shiftKey) {
           e.preventDefault();
           setShowBookmarks(!showBookmarks);
+        } else if (e.key === 'n' && e.shiftKey) {
+          e.preventDefault();
+          handleToggleIncognito();
         }
       }
     };
@@ -413,13 +419,46 @@ export default function Browser() {
       navigateMutation.mutate({ tabId: activeTab.id, url: 'https://www.google.com' });
     }
   };
+  
+  const handleToggleIncognito = async () => {
+    const newIncognitoState = !isIncognito;
+    setIsIncognito(newIncognitoState);
+    
+    // Re-initialize browser with new incognito state
+    if (browserInstance) {
+      // Close current instance
+      await apiRequest('DELETE', `/api/browser-engine/instance/${browserInstance.id}`);
+      setBrowserInstance(null);
+      setActiveTab(null);
+      
+      // Create new instance with incognito mode
+      setTimeout(() => {
+        initBrowser.mutate();
+      }, 100);
+    }
+    
+    toast({
+      title: newIncognitoState ? 'Inkognitomodus aktivert' : 'Inkognitomodus deaktivert',
+      description: newIncognitoState 
+        ? 'Nettleserhistorikk vil ikke bli lagret' 
+        : 'Normal nettlesing gjenopptatt'
+    });
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className={`flex flex-col h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+      {/* Incognito Indicator */}
+      {isIncognito && (
+        <div className="bg-purple-900 text-white px-3 py-1 text-xs flex items-center gap-2">
+          <EyeOff className="w-3 h-3" />
+          <span>Du er i inkognitomodus - Historikk og cookies vil ikke bli lagret</span>
+        </div>
+      )}
+      
       {/* Browser Header */}
-      <div className="border-b bg-card">
+      <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
         {/* Tab Bar */}
-        <div className="flex items-center gap-1 p-1 bg-muted/50 min-h-[40px]">
+        <div className={`flex items-center gap-1 p-1 min-h-[40px] ${isIncognito ? 'bg-zinc-700' : 'bg-muted/50'}`}>
           {browserInstance?.tabs.map((tab) => (
             <div
               key={tab.id}
@@ -427,8 +466,12 @@ export default function Browser() {
                 flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer
                 max-w-[200px] group relative
                 ${tab.id === activeTab?.id 
-                  ? 'bg-card border-t border-l border-r' 
-                  : 'bg-muted hover:bg-muted/80'
+                  ? isIncognito 
+                    ? 'bg-zinc-800 border-t border-l border-r border-zinc-600 text-white' 
+                    : 'bg-card border-t border-l border-r' 
+                  : isIncognito 
+                    ? 'bg-zinc-700 hover:bg-zinc-600 text-gray-300'
+                    : 'bg-muted hover:bg-muted/80'
                 }
               `}
               onClick={() => handleTabSwitch(tab.id)}
@@ -466,7 +509,7 @@ export default function Browser() {
         </div>
 
         {/* Navigation Bar */}
-        <div className="flex items-center gap-2 p-2">
+        <div className={`flex items-center gap-2 p-2 ${isIncognito ? 'bg-zinc-800' : ''}`}>
           {/* Navigation Buttons */}
           <div className="flex items-center gap-1">
             <Button
@@ -623,6 +666,19 @@ export default function Browser() {
                 Åpne i nytt vindu
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleToggleIncognito}>
+                {isIncognito ? (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Avslutt inkognito
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Ny inkognito-vindu
+                  </>
+                )}
+              </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => window.location.href = '/settings'}
               >
