@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { Search, Clock, Globe, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { BrowserHistory } from '@shared/schema';
@@ -18,7 +18,7 @@ interface Suggestion {
   favicon?: string;
 }
 
-export function SearchSuggestions({ 
+export const SearchSuggestions = memo(function SearchSuggestions({ 
   query, 
   isOpen, 
   onSelect, 
@@ -29,12 +29,14 @@ export function SearchSuggestions({
   const containerRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(false);
 
-  // Hent historikk for forslag
+  // Hent historikk for forslag med optimalisering
   const { data: history = [] } = useQuery<BrowserHistory[]>({
     queryKey: ['/api/browser-history'],
     enabled: isOpen && query.length > 0,
-    staleTime: 30000, // Cache i 30 sekunder
-    refetchOnWindowFocus: false
+    staleTime: 60000, // Cache i 60 sekunder
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchInterval: false
   });
 
   // Generer forslag basert på søk
@@ -86,10 +88,10 @@ export function SearchSuggestions({
     return newSuggestions;
   }, [query, history, isOpen]);
 
-  // Reset selected index når forslag endres
+  // Reset selected index når query endres
   useEffect(() => {
     setSelectedIndex(-1);
-  }, [suggestions.length, query]);
+  }, [query]);
 
   // Håndter tastatursnarveier
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -247,4 +249,4 @@ export function SearchSuggestions({
       )}
     </div>
   );
-}
+});
