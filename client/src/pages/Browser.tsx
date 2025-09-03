@@ -11,6 +11,7 @@ import { DownloadsManager } from '@/components/DownloadsManager';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { TabPreview } from '@/components/TabPreview';
+import { FindBar } from '@/components/FindBar';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -35,7 +36,10 @@ import {
   Code2,
   Maximize2,
   Minimize2,
-  Printer
+  Printer,
+  ZoomIn,
+  ZoomOut,
+  Search as SearchIcon
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -95,6 +99,8 @@ export default function Browser() {
   const [showDevTools, setShowDevTools] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFullscreenBar, setShowFullscreenBar] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [showFindBar, setShowFindBar] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -306,12 +312,24 @@ export default function Browser() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
         handlePrint();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        handleZoomIn();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault();
+        handleZoomOut();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        handleZoomReset();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowFindBar(!showFindBar);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools, isFullscreen]);
+  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools, isFullscreen, zoomLevel, showFindBar]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -532,6 +550,45 @@ export default function Browser() {
       clearTimeout(timeout);
     };
   }, [isFullscreen]);
+  
+  const handleZoomIn = () => {
+    setZoomLevel(prev => {
+      const newZoom = Math.min(prev + 10, 200);
+      toast({
+        title: `Zoom ${newZoom}%`,
+        description: 'Trykk Ctrl+0 for å tilbakestille',
+      });
+      return newZoom;
+    });
+  };
+  
+  const handleZoomOut = () => {
+    setZoomLevel(prev => {
+      const newZoom = Math.max(prev - 10, 50);
+      toast({
+        title: `Zoom ${newZoom}%`,
+        description: 'Trykk Ctrl+0 for å tilbakestille',
+      });
+      return newZoom;
+    });
+  };
+  
+  const handleZoomReset = () => {
+    setZoomLevel(100);
+    toast({
+      title: 'Zoom tilbakestilt',
+      description: 'Zoom er satt til 100%',
+    });
+  };
+  
+  const handleFind = (query: string, direction?: 'next' | 'prev') => {
+    // In a real implementation, this would search the iframe content
+    // For now, we'll just show a toast
+    toast({
+      title: 'Søker...',
+      description: `Søker etter "${query}"${direction ? ` (${direction === 'next' ? 'neste' : 'forrige'})` : ''}`,
+    });
+  };
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
@@ -845,6 +902,23 @@ export default function Browser() {
                 <Printer className="mr-2 h-4 w-4" />
                 Skriv ut (Ctrl+P)
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowFindBar(true)}>
+                <SearchIcon className="mr-2 h-4 w-4" />
+                Finn på siden (Ctrl+F)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleZoomIn}>
+                <ZoomIn className="mr-2 h-4 w-4" />
+                Zoom inn (Ctrl++)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleZoomOut}>
+                <ZoomOut className="mr-2 h-4 w-4" />
+                Zoom ut (Ctrl+-)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleZoomReset}>
+                <span className="mr-2 text-xs font-mono w-4 text-center">100</span>
+                Tilbakestill zoom (Ctrl+0)
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Åpne i nytt vindu
@@ -946,7 +1020,12 @@ export default function Browser() {
               <iframe
                 ref={iframeRef}
                 src={activeTab.url}
-                className="w-full h-full border-0"
+                className="w-full h-full border-0 origin-top-left"
+                style={{ 
+                  transform: `scale(${zoomLevel / 100})`,
+                  width: `${100 * (100 / zoomLevel)}%`,
+                  height: `${100 * (100 / zoomLevel)}%`
+                }}
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 title="Browser viewport"
               />
@@ -1045,9 +1124,20 @@ export default function Browser() {
               'Ingen fane åpen'
             )}
           </span>
-          <span>
-            {browserInstance?.tabs.length || 0} {browserInstance?.tabs.length === 1 ? 'fane' : 'faner'}
-          </span>
+          <div className="flex items-center gap-3">
+            {zoomLevel !== 100 && (
+              <button 
+                onClick={handleZoomReset}
+                className="hover:text-foreground cursor-pointer"
+                title="Klikk for å tilbakestille zoom"
+              >
+                Zoom: {zoomLevel}%
+              </button>
+            )}
+            <span>
+              {browserInstance?.tabs.length || 0} {browserInstance?.tabs.length === 1 ? 'fane' : 'faner'}
+            </span>
+          </div>
         </div>
       </div>
       
@@ -1071,6 +1161,13 @@ export default function Browser() {
           position={hoverPosition}
         />
       )}
+      
+      {/* Find Bar */}
+      <FindBar
+        isOpen={showFindBar}
+        onClose={() => setShowFindBar(false)}
+        onFind={handleFind}
+      />
     </div>
   );
 }
