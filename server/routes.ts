@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { windowsAPI } from "./windows-api";
 import { browserManager } from "./browser-manager";
 import { BrowserEngineType } from "./browser-engine";
+import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -17,6 +18,8 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize AI Agent Orchestrator
+  const agentOrchestrator = createAgentOrchestrator(browserManager);
   
   // Projects
   app.get("/api/projects", async (req, res) => {
@@ -950,6 +953,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { maxAge } = req.body;
       await browserManager.cleanup(maxAge);
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // AI Agent Orchestration endpoints
+  app.post("/api/agents/task", async (req, res) => {
+    try {
+      const { description, type, priority, context } = req.body;
+      const task = {
+        id: `task-${Date.now()}`,
+        type: type || 'generic',
+        description,
+        priority: priority || TaskPriority.MEDIUM,
+        context: context || {},
+        status: 'pending' as const,
+        createdAt: new Date()
+      };
+      
+      const result = await agentOrchestrator.executeTask(task);
+      res.json({ task, result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/agents/status", async (req, res) => {
+    try {
+      const agentStatus = Array.from(agentOrchestrator.getAgentStatus().entries()).map(([type, status]) => ({
+        agent: type,
+        status
+      }));
+      
+      const metrics = Array.from(agentOrchestrator.getAgentMetrics().entries()).map(([type, metrics]) => ({
+        agent: type,
+        metrics
+      }));
+      
+      res.json({
+        agents: agentStatus,
+        metrics,
+        taskQueue: agentOrchestrator.getTaskQueue(),
+        mode: agentOrchestrator.getMode()
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/mode", async (req, res) => {
+    try {
+      const { mode } = req.body;
+      if (!['manual', 'copilot', 'autopilot', 'pm'].includes(mode)) {
+        return res.status(400).json({ error: 'Invalid mode' });
+      }
+      
+      agentOrchestrator.setMode(mode);
+      res.json({ mode, success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/web-scraping", async (req, res) => {
+    try {
+      const { url, selectors, options } = req.body;
+      
+      // Create browser instance for scraping
+      const instanceId = await browserManager.createInstance({
+        type: BrowserEngineType.CHROMIUM,
+        isIncognito: true
+      });
+      
+      const tab = await browserManager.createTab(instanceId, url);
+      
+      const task = {
+        id: `scraping-${Date.now()}`,
+        type: 'web-scraping',
+        description: `Extract data from ${url}`,
+        priority: TaskPriority.HIGH,
+        context: {
+          url,
+          selectors,
+          instanceId,
+          tabId: tab.id,
+          options
+        },
+        status: 'pending' as const,
+        createdAt: new Date()
+      };
+      
+      const result = await agentOrchestrator.executeTask(task);
+      
+      // Cleanup browser instance
+      await browserManager.closeInstance(instanceId);
+      
+      res.json({ result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/form-automation", async (req, res) => {
+    try {
+      const { url, formData, submitSelector } = req.body;
+      
+      // Create browser instance
+      const instanceId = await browserManager.createInstance({
+        type: BrowserEngineType.CHROMIUM
+      });
+      
+      const tab = await browserManager.createTab(instanceId, url);
+      
+      const task = {
+        id: `form-${Date.now()}`,
+        type: 'form-automation',
+        description: `Fill and submit form at ${url}`,
+        priority: TaskPriority.HIGH,
+        context: {
+          url,
+          fields: formData,
+          submitSelector,
+          instanceId,
+          tabId: tab.id
+        },
+        status: 'pending' as const,
+        createdAt: new Date()
+      };
+      
+      const result = await agentOrchestrator.executeTask(task);
+      
+      // Take screenshot of result
+      const screenshot = await browserManager.screenshot(instanceId, tab.id);
+      
+      // Cleanup
+      await browserManager.closeInstance(instanceId);
+      
+      res.json({ 
+        result,
+        screenshot: screenshot.toString('base64')
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/research", async (req, res) => {
+    try {
+      const { query, sources } = req.body;
+      
+      const task = {
+        id: `research-${Date.now()}`,
+        type: 'research',
+        description: query,
+        priority: TaskPriority.MEDIUM,
+        context: { sources },
+        status: 'pending' as const,
+        createdAt: new Date()
+      };
+      
+      const result = await agentOrchestrator.executeTask(task);
+      res.json({ result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/agents/capabilities", async (req, res) => {
+    try {
+      const capabilities = {
+        agents: [
+          {
+            type: AgentType.PLANNER,
+            name: 'Planner Agent',
+            description: 'Decomposes complex tasks into manageable subtasks',
+            capabilities: ['task-decomposition', 'dependency-analysis', 'resource-planning', 'timeline-estimation']
+          },
+          {
+            type: AgentType.CRITIC,
+            name: 'Critic Agent',
+            description: 'Validates results and ensures quality control',
+            capabilities: ['data-validation', 'quality-assessment', 'error-detection', 'compliance-checking']
+          },
+          {
+            type: AgentType.EXECUTOR,
+            name: 'Executor Agent',
+            description: 'Performs browser automation and web interactions',
+            capabilities: ['browser-automation', 'data-extraction', 'form-filling', 'navigation', 'screenshot-capture']
+          },
+          {
+            type: AgentType.RESEARCHER,
+            name: 'Researcher Agent',
+            description: 'Gathers and analyzes information from multiple sources',
+            capabilities: ['web-search', 'data-analysis', 'pattern-recognition', 'information-synthesis']
+          },
+          {
+            type: AgentType.FIXER,
+            name: 'Fixer Agent',
+            description: 'Handles errors and implements recovery strategies',
+            capabilities: ['error-recovery', 'retry-logic', 'fallback-execution', 'state-restoration']
+          }
+        ],
+        modes: [
+          {
+            name: 'manual',
+            description: 'User confirms each action before execution'
+          },
+          {
+            name: 'copilot',
+            description: 'AI assists but waits for user approval on critical decisions'
+          },
+          {
+            name: 'autopilot',
+            description: 'AI executes tasks autonomously with minimal supervision'
+          },
+          {
+            name: 'pm',
+            description: 'AI acts as project manager, coordinating complex workflows'
+          }
+        ],
+        currentMode: agentOrchestrator.getMode()
+      };
+      
+      res.json(capabilities);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
