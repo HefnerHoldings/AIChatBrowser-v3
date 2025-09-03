@@ -452,10 +452,11 @@ export default function Browser() {
           ))}
           <button
             onClick={handleNewTab}
-            className="p-1.5 hover:bg-muted rounded"
-            title="Ny fane (Ctrl+T)"
+            className="flex items-center justify-center w-8 h-8 hover:bg-accent rounded-lg transition-colors ml-1"
+            title="Åpne ny fane (Ctrl+T)"
+            data-testid="button-new-tab"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-muted-foreground hover:text-foreground" />
           </button>
         </div>
 
