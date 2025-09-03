@@ -23,6 +23,7 @@ import { WebView } from '@/components/WebView';
 import { NetworkLayer } from '@/components/NetworkLayer';
 import { SecuritySandbox } from '@/components/SecuritySandbox';
 import { WebAPIs } from '@/components/WebAPIs';
+import { RenderingEngine } from '@/components/RenderingEngine';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -58,7 +59,8 @@ import {
   Puzzle,
   Activity,
   Wifi,
-  Code
+  Code,
+  Monitor
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -124,6 +126,7 @@ export default function Browser() {
   const [showNetworkLayer, setShowNetworkLayer] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
   const [showWebAPIs, setShowWebAPIs] = useState(false);
+  const [showRenderingEngine, setShowRenderingEngine] = useState(false);
   const [showTabGroups, setShowTabGroups] = useState(false);
   const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
@@ -987,6 +990,14 @@ export default function Browser() {
             >
               <Code className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowRenderingEngine(true)}
+              title="Rendering"
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
             <SessionRestore
               currentTabs={browserInstance?.tabs.map(tab => ({
                 id: tab.id,
@@ -1564,6 +1575,14 @@ export default function Browser() {
       <WebAPIs
         isOpen={showWebAPIs}
         onClose={() => setShowWebAPIs(false)}
+        tabId={activeTab?.id}
+        url={activeTab?.url}
+      />
+      
+      {/* Rendering Engine */}
+      <RenderingEngine
+        isOpen={showRenderingEngine}
+        onClose={() => setShowRenderingEngine(false)}
         tabId={activeTab?.id}
         url={activeTab?.url}
       />
