@@ -7,6 +7,14 @@ import { DevBridgePanel } from "./devbridge-panel";
 import { WorkOrdersPanel } from "./work-orders-panel";
 import { PrivacyLedgerPanel } from "./privacy-ledger-panel";
 import { AdrPanel } from "./adr-panel";
+import { MultiAgentOrchestrator } from "./multi-agent-orchestrator";
+import { QASuitePro } from "./qa-suite-pro";
+import { SelectorStudioV2 } from "./selector-studio-v2";
+import { WatchedWorkflows } from "./watched-workflows";
+import { LeadDataVault } from "./lead-data-vault";
+import { Marketplace } from "./marketplace";
+import { PolicyGuard } from "./policy-guard";
+import { CollaborativeMode } from "./collaborative-mode";
 
 interface MainWorkspaceProps {
   activeTab: string;
@@ -24,6 +32,14 @@ export default function MainWorkspace({ activeTab, setActiveTab, currentTaskId }
     { id: "work-orders", label: "Work Orders" },
     { id: "privacy", label: "Privacy" },
     { id: "adr", label: "ADR & Risk" },
+    { id: "orchestrator", label: "Multi-Agent" },
+    { id: "qa-suite", label: "QA Suite Pro" },
+    { id: "selector", label: "Selector Studio" },
+    { id: "watched", label: "Watched Workflows" },
+    { id: "vault", label: "Lead Vault" },
+    { id: "marketplace", label: "Marketplace" },
+    { id: "policy", label: "Policy Guard" },
+    { id: "collab", label: "Collaborative" },
   ];
 
   return (
@@ -59,6 +75,14 @@ export default function MainWorkspace({ activeTab, setActiveTab, currentTaskId }
         {activeTab === "work-orders" && <WorkOrdersPanel projectId="project-1" />}
         {activeTab === "privacy" && <PrivacyLedgerPanel sessionId="session-1" />}
         {activeTab === "adr" && <AdrPanel projectId="project-1" />}
+        {activeTab === "orchestrator" && <MultiAgentOrchestrator workOrderId="wo-1" />}
+        {activeTab === "qa-suite" && <QASuitePro previewUrl="https://example.com" />}
+        {activeTab === "selector" && <SelectorStudioV2 domain="example.com" />}
+        {activeTab === "watched" && <WatchedWorkflows />}
+        {activeTab === "vault" && <LeadDataVault />}
+        {activeTab === "marketplace" && <Marketplace />}
+        {activeTab === "policy" && <PolicyGuard />}
+        {activeTab === "collab" && <CollaborativeMode sessionId="session-1" />}
       </div>
     </div>
   );

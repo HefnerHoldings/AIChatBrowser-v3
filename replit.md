@@ -4,6 +4,16 @@
 
 MadEasy Browser is a standalone AI-powered web browser designed to autonomously perform web-based tasks including research, data extraction, form filling, and complex workflow automation. Built as a full-stack application with React frontend and Express backend, it features a chat-first interface where users describe goals and the system creates actionable plans with autonomous execution capabilities at multiple autonomy levels (Manual, Co-pilot, Autopilot, and PM Mode).
 
+### V2 Features (January 2025)
+- **Multi-Agent Orchestration 2.0**: Specialized AI agents (Planner, Critic, Executor, Researcher, Fixer) working together with consensus protocols
+- **QA Suite Pro**: Lighthouse integration, visual regression testing, accessibility checks with axe-core
+- **Selector Studio v2**: Intelligent selector analysis with stability scoring (0-100) and domain-specific learning profiles
+- **Watched Workflows**: Scheduled automation with RRULE support and content change detection
+- **Lead Data Vault**: Admin-only centralized lead storage with enrichment, deduplication, and GDPR compliance modes
+- **Marketplace**: Community playbooks and plugins with sandboxed execution and security verification
+- **Policy Guard**: Rule engine for evaluating actions against security policies with simulation mode
+- **Collaborative Mode**: Real-time shared sessions with live cursors, comments, @mentions, and review rules
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
