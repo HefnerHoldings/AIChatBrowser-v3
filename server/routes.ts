@@ -6,6 +6,7 @@ import { browserManager } from "./browser-manager";
 import { BrowserEngineType } from "./browser-engine";
 import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
 import { createQASuite, TestType, TestStatus } from "./qa-suite";
+import { createSelectorStudio, SelectorType, DomainProfile } from "./selector-studio";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -24,6 +25,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Initialize QA Suite Pro
   const qaSuite = createQASuite(browserManager);
+  
+  // Initialize Selector Studio v2
+  const selectorStudio = createSelectorStudio(browserManager);
   
   // Projects
   app.get("/api/projects", async (req, res) => {
@@ -1259,6 +1263,248 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const report = qaSuite.generateReport(results);
       res.json(report);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Selector Studio v2 endpoints
+  app.post("/api/selector/analyze", async (req, res) => {
+    try {
+      const { selector, url } = req.body;
+      
+      if (!selector || !url) {
+        return res.status(400).json({ error: 'Selector and URL are required' });
+      }
+      
+      const analysis = await selectorStudio.analyzeSelector(selector, url);
+      res.json(analysis);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/optimize", async (req, res) => {
+    try {
+      const { selector, url } = req.body;
+      
+      if (!selector || !url) {
+        return res.status(400).json({ error: 'Selector and URL are required' });
+      }
+      
+      const optimized = await selectorStudio.optimizeSelector(selector, url);
+      res.json({ 
+        original: selector,
+        optimized,
+        improved: selector !== optimized 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/test", async (req, res) => {
+    try {
+      const { selector, urls } = req.body;
+      
+      if (!selector || !urls || urls.length === 0) {
+        return res.status(400).json({ error: 'Selector and URLs are required' });
+      }
+      
+      const results = await selectorStudio.testSelector(selector, urls);
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/generate", async (req, res) => {
+    try {
+      const { url, description, domain } = req.body;
+      
+      if (!url || !description) {
+        return res.status(400).json({ error: 'URL and description are required' });
+      }
+      
+      const suggestions = await selectorStudio.generateSelector(
+        url, 
+        description, 
+        domain as DomainProfile
+      );
+      res.json({ suggestions });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/repair", async (req, res) => {
+    try {
+      const { selector, url } = req.body;
+      
+      if (!selector || !url) {
+        return res.status(400).json({ error: 'Selector and URL are required' });
+      }
+      
+      const repaired = await selectorStudio.repairSelector(selector, url);
+      res.json({ 
+        broken: selector,
+        repaired,
+        fixed: selector !== repaired 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/learn", async (req, res) => {
+    try {
+      const { selector, domain, score } = req.body;
+      
+      if (!selector || !domain || score === undefined) {
+        return res.status(400).json({ error: 'Selector, domain, and score are required' });
+      }
+      
+      selectorStudio.learnFromUsage(selector, domain as DomainProfile, score);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/save", async (req, res) => {
+    try {
+      const { name, selector } = req.body;
+      
+      if (!name || !selector) {
+        return res.status(400).json({ error: 'Name and selector are required' });
+      }
+      
+      selectorStudio.saveSelector(name, selector);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/selector/saved", async (req, res) => {
+    try {
+      const selectors = Array.from(selectorStudio.getSavedSelectors().entries())
+        .map(([name, selector]) => ({ name, selector }));
+      res.json(selectors);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/selector/history", async (req, res) => {
+    try {
+      const { url } = req.query;
+      const history = selectorStudio.getHistory(url as string);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/selector/stability-report", async (req, res) => {
+    try {
+      const { url } = req.query;
+      
+      if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+      
+      const report = selectorStudio.getStabilityReport(url as string);
+      res.json(report);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/selector/export", async (req, res) => {
+    try {
+      const data = selectorStudio.exportSelectors();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/selector/import", async (req, res) => {
+    try {
+      const data = req.body;
+      
+      if (!data || !data.selectors) {
+        return res.status(400).json({ error: 'Invalid import data' });
+      }
+      
+      selectorStudio.importSelectors(data);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/selector/domain-profiles", async (req, res) => {
+    try {
+      const profiles = [
+        {
+          domain: DomainProfile.ECOMMERCE,
+          name: 'E-commerce',
+          description: 'Optimized for online shopping sites',
+          patterns: ['product cards', 'add to cart', 'price', 'checkout']
+        },
+        {
+          domain: DomainProfile.SOCIAL_MEDIA,
+          name: 'Social Media',
+          description: 'Optimized for social platforms',
+          patterns: ['posts', 'likes', 'comments', 'share']
+        },
+        {
+          domain: DomainProfile.NEWS,
+          name: 'News & Media',
+          description: 'Optimized for news websites',
+          patterns: ['articles', 'headlines', 'authors', 'publish date']
+        },
+        {
+          domain: DomainProfile.SAAS,
+          name: 'SaaS Applications',
+          description: 'Optimized for software applications',
+          patterns: ['dashboard', 'forms', 'tables', 'modals']
+        },
+        {
+          domain: DomainProfile.BANKING,
+          name: 'Banking & Finance',
+          description: 'Secure selectors for financial sites',
+          patterns: ['account balance', 'transactions', 'transfers']
+        },
+        {
+          domain: DomainProfile.GOVERNMENT,
+          name: 'Government',
+          description: 'Stable selectors for government sites',
+          patterns: ['forms', 'documents', 'services']
+        },
+        {
+          domain: DomainProfile.EDUCATIONAL,
+          name: 'Educational',
+          description: 'Optimized for educational platforms',
+          patterns: ['courses', 'assignments', 'grades']
+        },
+        {
+          domain: DomainProfile.HEALTHCARE,
+          name: 'Healthcare',
+          description: 'Reliable selectors for healthcare sites',
+          patterns: ['appointments', 'records', 'prescriptions']
+        },
+        {
+          domain: DomainProfile.CUSTOM,
+          name: 'Custom',
+          description: 'Custom domain profile',
+          patterns: []
+        }
+      ];
+      
+      res.json(profiles);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
