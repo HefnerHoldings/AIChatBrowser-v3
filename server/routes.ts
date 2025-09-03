@@ -223,8 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update task to running status
       await storage.updateAutomationTask(id, { 
-        status: "running", 
-        startedAt: new Date() 
+        status: "running"
       });
 
       // Create activity log for execution start
@@ -457,6 +456,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to update ADR record" });
       }
+    }
+  });
+
+  // Puppeteer Automation Endpoints
+  let puppeteerBrowser: any = null;
+  let activePage: any = null;
+
+  // Initialize Puppeteer browser
+  app.post("/api/browser/init", async (req, res) => {
+    try {
+      const puppeteer = await import('puppeteer');
+      puppeteerBrowser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      const pages = await puppeteerBrowser.pages();
+      activePage = pages[0] || await puppeteerBrowser.newPage();
+      res.json({ success: true, message: "Browser initialized" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Navigate to URL
+  app.post("/api/browser/navigate", async (req, res) => {
+    if (!activePage) {
+      res.status(400).json({ error: "Browser not initialized" });
+      return;
+    }
+    
+    try {
+      const { url } = req.body;
+      await activePage.goto(url, { waitUntil: 'networkidle2' });
+      const title = await activePage.title();
+      const currentUrl = activePage.url();
+      const screenshot = await activePage.screenshot({ encoding: 'base64' });
+      
+      res.json({
+        success: true,
+        url: currentUrl,
+        title,
+        screenshot: `data:image/png;base64,${screenshot}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Extract data from page
+  app.post("/api/browser/extract", async (req, res) => {
+    if (!activePage) {
+      res.status(400).json({ error: "Browser not initialized" });
+      return;
+    }
+    
+    try {
+      const { selector, fields } = req.body;
+      const data = await activePage.evaluate((sel: string, flds: any) => {
+        const elements = document.querySelectorAll(sel);
+        return Array.from(elements).map(el => {
+          const result: any = {};
+          if (typeof flds === 'object') {
+            Object.entries(flds).forEach(([key, fieldSelector]) => {
+              const fieldEl = el.querySelector(fieldSelector as string);
+              result[key] = fieldEl ? fieldEl.textContent : null;
+            });
+          } else {
+            result.text = el.textContent;
+          }
+          return result;
+        });
+      }, selector, fields);
+      
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Fill form
+  app.post("/api/browser/fill-form", async (req, res) => {
+    if (!activePage) {
+      res.status(400).json({ error: "Browser not initialized" });
+      return;
+    }
+    
+    try {
+      const { formData } = req.body;
+      for (const [selector, value] of Object.entries(formData)) {
+        await activePage.type(selector, value as string);
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Click element
+  app.post("/api/browser/click", async (req, res) => {
+    if (!activePage) {
+      res.status(400).json({ error: "Browser not initialized" });
+      return;
+    }
+    
+    try {
+      const { selector } = req.body;
+      await activePage.click(selector);
+      await activePage.waitForNavigation({ waitUntil: 'networkidle2' }).catch(() => {});
+      res.json({ success: true, url: activePage.url() });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Execute workflow
+  app.post("/api/browser/execute-workflow", async (req, res) => {
+    if (!activePage) {
+      res.status(400).json({ error: "Browser not initialized" });
+      return;
+    }
+    
+    const { workflow } = req.body;
+    const results = [];
+    
+    try {
+      for (const step of workflow.steps) {
+        let stepResult: any;
+        
+        switch (step.type) {
+          case 'navigate':
+            await activePage.goto(step.url, { waitUntil: 'networkidle2' });
+            stepResult = { success: true, url: activePage.url() };
+            break;
+            
+          case 'click':
+            await activePage.click(step.selector);
+            stepResult = { success: true };
+            break;
+            
+          case 'type':
+            await activePage.type(step.selector, step.value);
+            stepResult = { success: true };
+            break;
+            
+          case 'extract':
+            const data = await activePage.evaluate((sel: string) => {
+              const elements = document.querySelectorAll(sel);
+              return Array.from(elements).map(el => el.textContent);
+            }, step.selector);
+            stepResult = { success: true, data };
+            break;
+            
+          case 'wait':
+            await new Promise(resolve => setTimeout(resolve, step.duration || 1000));
+            stepResult = { success: true };
+            break;
+            
+          case 'screenshot':
+            const screenshot = await activePage.screenshot({ encoding: 'base64' });
+            stepResult = {
+              success: true,
+              screenshot: `data:image/png;base64,${screenshot}`
+            };
+            break;
+            
+          default:
+            stepResult = { error: `Unknown step type: ${step.type}` };
+        }
+        
+        results.push({ step: step.name || step.type, ...stepResult });
+        
+        if (stepResult.error) break;
+      }
+      
+      res.json({ success: true, results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message, results });
+    }
+  });
+
+  // Close browser
+  app.post("/api/browser/close", async (req, res) => {
+    try {
+      if (puppeteerBrowser) {
+        await puppeteerBrowser.close();
+        puppeteerBrowser = null;
+        activePage = null;
+      }
+      res.json({ success: true, message: "Browser closed" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

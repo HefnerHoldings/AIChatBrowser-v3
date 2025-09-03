@@ -110,7 +110,7 @@ export function BrowserNavigation() {
 
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
 
-  const handleNavigate = () => {
+  const handleNavigate = async () => {
     if (!urlInput.trim()) return;
     
     // Add https:// if not present
@@ -119,9 +119,59 @@ export function BrowserNavigation() {
       url = "https://" + url;
     }
     
+    // Check if running in Electron
+    if (window.electronAPI) {
+      // Use Electron API for real browser navigation
+      const result = await window.electronAPI.navigate(url);
+      if (result.success && result.url) {
+        setTabs(prev => prev.map(tab => 
+          tab.id === activeTabId 
+            ? { ...tab, url: result.url || url, title: result.title || "Untitled", isLoading: false, isSecure: result.url?.startsWith("https") || false }
+            : tab
+        ));
+        setUrlInput(result.url || url);
+      }
+    } else {
+      // Use Puppeteer API for headless browser
+      try {
+        // Initialize browser if needed
+        await fetch('/api/browser/init', { method: 'POST' });
+        
+        // Navigate to URL
+        const response = await fetch('/api/browser/navigate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          setTabs(prev => prev.map(tab => 
+            tab.id === activeTabId 
+              ? { ...tab, url: result.url, title: result.title, isLoading: false, isSecure: result.url.startsWith("https") }
+              : tab
+          ));
+          setUrlInput(result.url);
+          
+          // Display screenshot if available
+          if (result.screenshot) {
+            // We could display this in the viewport
+            console.log('Screenshot available:', result.screenshot.substring(0, 50) + '...');
+          }
+        }
+      } catch (error) {
+        console.error('Navigation error:', error);
+        toast({
+          title: "Navigation failed",
+          description: "Could not navigate to the URL",
+          variant: "destructive"
+        });
+      }
+    }
+    
     setTabs(prev => prev.map(tab => 
       tab.id === activeTabId 
-        ? { ...tab, url, isLoading: true, title: "Loading..." }
+        ? { ...tab, url, isLoading: false, title: url }
         : tab
     ));
     
