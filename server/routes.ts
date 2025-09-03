@@ -5,6 +5,7 @@ import { windowsAPI } from "./windows-api";
 import { browserManager } from "./browser-manager";
 import { BrowserEngineType } from "./browser-engine";
 import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
+import { createQASuite, TestType, TestStatus } from "./qa-suite";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -20,6 +21,9 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize AI Agent Orchestrator
   const agentOrchestrator = createAgentOrchestrator(browserManager);
+  
+  // Initialize QA Suite Pro
+  const qaSuite = createQASuite(browserManager);
   
   // Projects
   app.get("/api/projects", async (req, res) => {
@@ -1115,6 +1119,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const result = await agentOrchestrator.executeTask(task);
       res.json({ result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // QA Suite Pro endpoints
+  app.post("/api/qa/test", async (req, res) => {
+    try {
+      const { url, testType, config } = req.body;
+      
+      if (!url || !testType) {
+        return res.status(400).json({ error: 'URL and test type are required' });
+      }
+      
+      const result = await qaSuite.runTest(url, testType as TestType, config);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/qa/suite", async (req, res) => {
+    try {
+      const suiteConfig = req.body;
+      
+      if (!suiteConfig.urls || suiteConfig.urls.length === 0) {
+        return res.status(400).json({ error: 'URLs are required' });
+      }
+      
+      const result = await qaSuite.runTestSuite(suiteConfig);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/qa/schedule", async (req, res) => {
+    try {
+      const { config, rrule } = req.body;
+      
+      if (!config || !rrule) {
+        return res.status(400).json({ error: 'Config and RRULE are required' });
+      }
+      
+      const scheduleId = qaSuite.scheduleTestSuite(config, rrule);
+      res.json({ scheduleId, success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/qa/schedule/:scheduleId", async (req, res) => {
+    try {
+      const success = qaSuite.cancelScheduledTest(req.params.scheduleId);
+      
+      if (!success) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/qa/schedules", async (req, res) => {
+    try {
+      const schedules = qaSuite.getScheduledTests();
+      res.json(schedules);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/qa/history", async (req, res) => {
+    try {
+      const { url } = req.query;
+      const history = qaSuite.getTestHistory(url as string);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/qa/compare", async (req, res) => {
+    try {
+      const { resultId1, resultId2 } = req.body;
+      
+      if (!resultId1 || !resultId2) {
+        return res.status(400).json({ error: 'Two result IDs are required' });
+      }
+      
+      const comparison = qaSuite.compareTestResults(resultId1, resultId2);
+      res.json(comparison);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/qa/cicd", async (req, res) => {
+    try {
+      const { platform, config } = req.body;
+      
+      if (!platform || !config) {
+        return res.status(400).json({ error: 'Platform and config are required' });
+      }
+      
+      qaSuite.setupCICDIntegration(platform, config);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/qa/cicd", async (req, res) => {
+    try {
+      const integrations = qaSuite.getCICDIntegrations();
+      res.json(integrations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/qa/report", async (req, res) => {
+    try {
+      const { resultIds } = req.body;
+      
+      if (!resultIds || resultIds.length === 0) {
+        return res.status(400).json({ error: 'Result IDs are required' });
+      }
+      
+      const history = qaSuite.getTestHistory();
+      const results = history.filter(r => resultIds.includes(r.id));
+      
+      if (results.length === 0) {
+        return res.status(404).json({ error: 'No results found' });
+      }
+      
+      const report = qaSuite.generateReport(results);
+      res.json(report);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/qa/test-types", async (req, res) => {
+    try {
+      const testTypes = [
+        {
+          type: TestType.LIGHTHOUSE,
+          name: 'Lighthouse Audit',
+          description: 'Performance, accessibility, best practices, and SEO audits',
+          categories: ['performance', 'accessibility', 'best-practices', 'seo', 'pwa']
+        },
+        {
+          type: TestType.VISUAL_REGRESSION,
+          name: 'Visual Regression',
+          description: 'Compare screenshots to detect visual changes',
+          features: ['baseline comparison', 'pixel diff detection', 'ignore regions']
+        },
+        {
+          type: TestType.ACCESSIBILITY,
+          name: 'Accessibility Check',
+          description: 'WCAG compliance and accessibility testing',
+          standards: ['wcag2a', 'wcag2aa', 'wcag21aa']
+        },
+        {
+          type: TestType.FUNCTIONAL,
+          name: 'Functional Testing',
+          description: 'Test user flows and interactions'
+        },
+        {
+          type: TestType.PERFORMANCE,
+          name: 'Performance Testing',
+          description: 'Load times, resource usage, and optimization'
+        },
+        {
+          type: TestType.SECURITY,
+          name: 'Security Testing',
+          description: 'Basic security checks and vulnerability scanning'
+        }
+      ];
+      
+      res.json(testTypes);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
