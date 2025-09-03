@@ -19,6 +19,7 @@ import { TabGroups } from '@/components/TabGroups';
 import { MediaControls } from '@/components/MediaControls';
 import { Extensions } from '@/components/Extensions';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+import { WebView } from '@/components/WebView';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -1166,18 +1167,57 @@ export default function Browser() {
                   </div>
                 </div>
               )}
-              <iframe
-                ref={iframeRef}
-                src={activeTab.url}
-                className="w-full h-full border-0 origin-top-left"
+              <div
+                className="w-full h-full origin-top-left"
                 style={{ 
                   transform: `scale(${zoomLevel / 100})`,
                   width: `${100 * (100 / zoomLevel)}%`,
                   height: `${100 * (100 / zoomLevel)}%`
                 }}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                title="Browser viewport"
-              />
+              >
+                <WebView
+                  url={activeTab.url}
+                  onUrlChange={(newUrl) => {
+                    setUrlInput(newUrl);
+                    if (browserInstance) {
+                      const updatedTabs = browserInstance.tabs.map(tab => 
+                        tab.id === activeTab.id ? { ...tab, url: newUrl } : tab
+                      );
+                      setBrowserInstance({
+                        ...browserInstance,
+                        tabs: updatedTabs
+                      });
+                    }
+                  }}
+                  onTitleChange={(newTitle) => {
+                    if (browserInstance) {
+                      const updatedTabs = browserInstance.tabs.map(tab => 
+                        tab.id === activeTab.id ? { ...tab, title: newTitle } : tab
+                      );
+                      setBrowserInstance({
+                        ...browserInstance,
+                        tabs: updatedTabs
+                      });
+                      setActiveTab(prev => prev ? { ...prev, title: newTitle } : null);
+                    }
+                  }}
+                  onLoadStart={() => {
+                    setIsNavigating(true);
+                  }}
+                  onLoadEnd={() => {
+                    setIsNavigating(false);
+                  }}
+                  onError={(error) => {
+                    toast({
+                      title: 'Innlastingsfeil',
+                      description: error,
+                      variant: 'destructive'
+                    });
+                  }}
+                  isActive={true}
+                  tabId={activeTab.id}
+                />
+              </div>
             </>
           ) : (
             <div className="flex items-center justify-center h-full">

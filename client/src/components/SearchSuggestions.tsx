@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Clock, Globe, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { BrowserHistory } from '@shared/schema';
@@ -36,11 +36,9 @@ export function SearchSuggestions({
   });
 
   // Generer forslag basert på søk
-  useEffect(() => {
+  const generatedSuggestions = useMemo(() => {
     if (!query || !isOpen) {
-      setSuggestions([]);
-      setSelectedIndex(-1);
-      return;
+      return [];
     }
 
     const newSuggestions: Suggestion[] = [];
@@ -58,20 +56,22 @@ export function SearchSuggestions({
     }
 
     // Historikk-baserte forslag
-    const matchingHistory = history
-      .filter(item => 
-        item.title.toLowerCase().includes(lowerQuery) || 
-        item.url.toLowerCase().includes(lowerQuery)
-      )
-      .slice(0, 5)
-      .map(item => ({
-        type: 'history' as const,
-        text: item.title,
-        url: item.url,
-        favicon: item.favicon || undefined
-      }));
-    
-    newSuggestions.push(...matchingHistory);
+    if (history && history.length > 0) {
+      const matchingHistory = history
+        .filter(item => 
+          item.title.toLowerCase().includes(lowerQuery) || 
+          item.url.toLowerCase().includes(lowerQuery)
+        )
+        .slice(0, 5)
+        .map(item => ({
+          type: 'history' as const,
+          text: item.title,
+          url: item.url,
+          favicon: item.favicon || undefined
+        }));
+      
+      newSuggestions.push(...matchingHistory);
+    }
 
     // Google søkeforslag (hvis ikke URL)
     if (!query.includes('.') && !query.startsWith('http')) {
@@ -82,9 +82,14 @@ export function SearchSuggestions({
       });
     }
 
-    setSuggestions(newSuggestions);
-    setSelectedIndex(-1);
+    return newSuggestions;
   }, [query, history, isOpen]);
+  
+  // Update suggestions when generated suggestions change
+  useEffect(() => {
+    setSuggestions(generatedSuggestions);
+    setSelectedIndex(-1);
+  }, [generatedSuggestions]);
 
   // Håndter tastatursnarveier
   useEffect(() => {
