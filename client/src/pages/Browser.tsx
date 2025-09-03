@@ -15,6 +15,7 @@ import { FindBar } from '@/components/FindBar';
 import { PasswordManager } from '@/components/PasswordManager';
 import { ReaderMode } from '@/components/ReaderMode';
 import { SessionRestore } from '@/components/SessionRestore';
+import { TabGroups } from '@/components/TabGroups';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -34,6 +35,7 @@ import {
   Bookmark as BookmarkIcon,
   Key,
   BookOpen,
+  Folder,
   History,
   Settings,
   EyeOff,
@@ -104,6 +106,8 @@ export default function Browser() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [detectedFormData, setDetectedFormData] = useState<{username: string, password: string, domain: string} | null>(null);
   const [showReaderMode, setShowReaderMode] = useState(false);
+  const [showTabGroups, setShowTabGroups] = useState(false);
+  const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFullscreenBar, setShowFullscreenBar] = useState(false);
@@ -613,7 +617,44 @@ export default function Browser() {
   };
 
   return (
-    <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+    <div className={`flex ${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+      {/* Tab Groups Panel */}
+      {showTabGroups && browserInstance && !isFullscreen && (
+        <TabGroups
+          tabs={browserInstance.tabs.map(tab => ({
+            ...tab,
+            groupId: undefined
+          }))}
+          groups={tabGroups}
+          activeTabId={activeTab?.id}
+          onGroupCreate={(group) => {
+            const newGroup = {
+              ...group,
+              id: `group-${Date.now()}`,
+              tabs: []
+            };
+            setTabGroups(prev => [...prev, newGroup]);
+          }}
+          onGroupUpdate={(groupId, updates) => {
+            setTabGroups(prev => prev.map(g => 
+              g.id === groupId ? { ...g, ...updates } : g
+            ));
+          }}
+          onGroupDelete={(groupId) => {
+            setTabGroups(prev => prev.filter(g => g.id !== groupId));
+          }}
+          onTabMove={(tabId, groupId) => {
+            toast({
+              title: 'Fane flyttet',
+              description: groupId ? 'Fane lagt til gruppe' : 'Fane fjernet fra gruppe',
+            });
+          }}
+          onTabSwitch={handleTabSwitch}
+          onTabClose={handleCloseTab}
+        />
+      )}
+      
+      <div className="flex-1 flex flex-col">
       {/* Fullscreen Navigation Bar */}
       {isFullscreen && showFullscreenBar && (
         <div className="absolute top-0 left-0 right-0 bg-card/95 backdrop-blur border-b z-50 animate-in slide-in-from-top duration-200">
@@ -861,6 +902,14 @@ export default function Browser() {
               title="Vis/skjul bokmerker (Ctrl+Shift+B)"
             >
               <BookmarkIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowTabGroups(!showTabGroups)}
+              title="Fanegrupper"
+            >
+              <Folder className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -1369,6 +1418,7 @@ export default function Browser() {
         url={activeTab?.url || ''}
         title={activeTab?.title || ''}
       />
+      </div>
     </div>
   );
 }
