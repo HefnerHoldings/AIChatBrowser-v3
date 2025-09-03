@@ -966,6 +966,524 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced Tab Management endpoints
+  app.post("/api/browser-engine/tab/new", async (req, res) => {
+    try {
+      const { instanceId, url, background } = req.body;
+      
+      if (!instanceId) {
+        return res.status(400).json({ error: 'Instance ID required' });
+      }
+      
+      // Create new tab
+      const tab = await browserManager.createTab(instanceId, url || 'about:blank');
+      
+      // If not background, switch to the new tab
+      if (!background) {
+        const instance = browserManager.getAllInstances()
+          .find(inst => inst.id === instanceId);
+        
+        if (instance) {
+          browserManager.setActiveInstance(instanceId);
+        }
+      }
+      
+      res.json({ 
+        tab,
+        totalTabs: browserManager.getMemoryUsage().tabs,
+        message: `Ny fane åpnet${url ? ` med ${url}` : ''}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/duplicate", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      // Get current tab info
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      const sourceTab = instance.tabs.get(tabId);
+      if (!sourceTab) {
+        return res.status(404).json({ error: 'Tab not found' });
+      }
+      
+      // Create duplicate tab with same URL
+      const newTab = await browserManager.createTab(instanceId, sourceTab.url);
+      
+      res.json({ 
+        tab: newTab,
+        duplicatedFrom: tabId,
+        message: 'Fane duplisert'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/browser-engine/tabs/:instanceId", async (req, res) => {
+    try {
+      const { instanceId } = req.params;
+      
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      const tabs = Array.from(instance.tabs.values());
+      
+      res.json({ 
+        tabs,
+        count: tabs.length,
+        activeTabId: tabs[0]?.id // First tab as active for now
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/switch", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      const tab = instance.tabs.get(tabId);
+      if (!tab) {
+        return res.status(404).json({ error: 'Tab not found' });
+      }
+      
+      // Set this tab as the active one in the browser engine
+      browserManager.setActiveInstance(instanceId);
+      
+      res.json({ 
+        success: true,
+        activeTab: tab,
+        message: 'Byttet til fane'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tabs/close-all", async (req, res) => {
+    try {
+      const { instanceId, keepActive } = req.body;
+      
+      if (!instanceId) {
+        return res.status(400).json({ error: 'Instance ID required' });
+      }
+      
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      // Get first tab as active (for now)
+      const activeTabId = Array.from(instance.tabs.values())[0]?.id;
+      
+      const tabsToClose: string[] = [];
+      
+      for (const [tabId] of Array.from(instance.tabs)) {
+        if (!keepActive || tabId !== activeTabId) {
+          tabsToClose.push(tabId);
+        }
+      }
+      
+      // Close all tabs except active if requested
+      for (const tabId of tabsToClose) {
+        await browserManager.closeTab(instanceId, tabId);
+      }
+      
+      res.json({ 
+        success: true,
+        closedCount: tabsToClose.length,
+        remainingTabs: instance.tabs.size,
+        message: `${tabsToClose.length} faner lukket`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/reload", async (req, res) => {
+    try {
+      const { instanceId, tabId, hard } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      // Execute reload script
+      const script = hard ? 
+        'location.reload(true);' : 
+        'location.reload();';
+      
+      await browserManager.executeScript(instanceId, tabId, script);
+      
+      res.json({ 
+        success: true,
+        message: `Fane lastet på nytt ${hard ? '(hard reload)' : ''}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/stop", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      // Execute stop script
+      await browserManager.executeScript(instanceId, tabId, 'window.stop();');
+      
+      res.json({ 
+        success: true,
+        message: 'Lasting stoppet'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/navigate-back", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      await browserManager.executeScript(instanceId, tabId, 'history.back();');
+      
+      res.json({ 
+        success: true,
+        message: 'Navigerte tilbake'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/navigate-forward", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      await browserManager.executeScript(instanceId, tabId, 'history.forward();');
+      
+      res.json({ 
+        success: true,
+        message: 'Navigerte fremover'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/open-multiple", async (req, res) => {
+    try {
+      const { instanceId, urls } = req.body;
+      
+      if (!instanceId || !urls || !Array.isArray(urls)) {
+        return res.status(400).json({ error: 'Instance ID and URLs array required' });
+      }
+      
+      const tabs = [];
+      
+      // Open each URL in a new tab
+      for (const url of urls) {
+        const tab = await browserManager.createTab(instanceId, url);
+        tabs.push(tab);
+      }
+      
+      res.json({ 
+        success: true,
+        tabs,
+        count: tabs.length,
+        message: `${tabs.length} nye faner åpnet`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/tab/close-others", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.body;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      const tabsToClose: string[] = [];
+      
+      for (const [tid] of Array.from(instance.tabs)) {
+        if (tid !== tabId) {
+          tabsToClose.push(tid);
+        }
+      }
+      
+      // Close all other tabs
+      for (const tid of tabsToClose) {
+        await browserManager.closeTab(instanceId, tid);
+      }
+      
+      res.json({ 
+        success: true,
+        closedCount: tabsToClose.length,
+        message: `${tabsToClose.length} andre faner lukket`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Keyboard shortcuts handler
+  app.post("/api/browser-engine/keyboard-shortcut", async (req, res) => {
+    try {
+      const { instanceId, shortcut, tabId } = req.body;
+      
+      if (!instanceId || !shortcut) {
+        return res.status(400).json({ error: 'Instance ID and shortcut required' });
+      }
+      
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      let result: any = { success: true };
+      
+      switch (shortcut) {
+        case 'Ctrl+T':
+        case 'Cmd+T':
+          // Open new tab
+          const newTab = await browserManager.createTab(instanceId, 'about:blank');
+          result.tab = newTab;
+          result.action = 'new_tab';
+          result.message = 'Ny fane åpnet';
+          break;
+          
+        case 'Ctrl+W':
+        case 'Cmd+W':
+          // Close current tab
+          if (tabId) {
+            await browserManager.closeTab(instanceId, tabId);
+            result.action = 'close_tab';
+            result.message = 'Fane lukket';
+          }
+          break;
+          
+        case 'Ctrl+Shift+T':
+        case 'Cmd+Shift+T':
+          // Reopen closed tab (would need history tracking)
+          result.action = 'reopen_tab';
+          result.message = 'Gjenåpne lukket fane (ikke implementert enda)';
+          break;
+          
+        case 'Ctrl+Tab':
+        case 'Cmd+Tab':
+          // Switch to next tab
+          const tabsArray = Array.from(instance.tabs.keys());
+          const currentIndex = tabId ? tabsArray.indexOf(tabId) : 0;
+          const nextIndex = (currentIndex + 1) % tabsArray.length;
+          const nextTabId = tabsArray[nextIndex];
+          result.action = 'switch_tab';
+          result.tabId = nextTabId;
+          result.message = 'Byttet til neste fane';
+          break;
+          
+        case 'Ctrl+Shift+Tab':
+        case 'Cmd+Shift+Tab':
+          // Switch to previous tab
+          const tabsArr = Array.from(instance.tabs.keys());
+          const currIndex = tabId ? tabsArr.indexOf(tabId) : 0;
+          const prevIndex = (currIndex - 1 + tabsArr.length) % tabsArr.length;
+          const prevTabId = tabsArr[prevIndex];
+          result.action = 'switch_tab';
+          result.tabId = prevTabId;
+          result.message = 'Byttet til forrige fane';
+          break;
+          
+        case 'Ctrl+1':
+        case 'Cmd+1':
+        case 'Ctrl+2':
+        case 'Cmd+2':
+        case 'Ctrl+3':
+        case 'Cmd+3':
+        case 'Ctrl+4':
+        case 'Cmd+4':
+        case 'Ctrl+5':
+        case 'Cmd+5':
+        case 'Ctrl+6':
+        case 'Cmd+6':
+        case 'Ctrl+7':
+        case 'Cmd+7':
+        case 'Ctrl+8':
+        case 'Cmd+8':
+          // Switch to specific tab number
+          const tabNumber = parseInt(shortcut.slice(-1)) - 1;
+          const tabsList = Array.from(instance.tabs.keys());
+          if (tabNumber < tabsList.length) {
+            result.action = 'switch_tab';
+            result.tabId = tabsList[tabNumber];
+            result.message = `Byttet til fane ${tabNumber + 1}`;
+          }
+          break;
+          
+        case 'Ctrl+9':
+        case 'Cmd+9':
+          // Switch to last tab
+          const lastTabsList = Array.from(instance.tabs.keys());
+          const lastTabId = lastTabsList[lastTabsList.length - 1];
+          result.action = 'switch_tab';
+          result.tabId = lastTabId;
+          result.message = 'Byttet til siste fane';
+          break;
+          
+        case 'Ctrl+D':
+        case 'Cmd+D':
+          // Bookmark current page (would need bookmark system)
+          result.action = 'bookmark';
+          result.message = 'Bokmerke funksjon (ikke implementert enda)';
+          break;
+          
+        case 'Ctrl+R':
+        case 'Cmd+R':
+        case 'F5':
+          // Reload current tab
+          if (tabId) {
+            await browserManager.executeScript(instanceId, tabId, 'location.reload();');
+            result.action = 'reload';
+            result.message = 'Side lastet på nytt';
+          }
+          break;
+          
+        case 'Ctrl+Shift+R':
+        case 'Cmd+Shift+R':
+        case 'Ctrl+F5':
+        case 'Cmd+Shift+F5':
+          // Hard reload
+          if (tabId) {
+            await browserManager.executeScript(instanceId, tabId, 'location.reload(true);');
+            result.action = 'hard_reload';
+            result.message = 'Hard reload utført';
+          }
+          break;
+          
+        case 'Alt+Left':
+        case 'Alt+←':
+          // Go back
+          if (tabId) {
+            await browserManager.executeScript(instanceId, tabId, 'history.back();');
+            result.action = 'navigate_back';
+            result.message = 'Navigerte tilbake';
+          }
+          break;
+          
+        case 'Alt+Right':
+        case 'Alt+→':
+          // Go forward
+          if (tabId) {
+            await browserManager.executeScript(instanceId, tabId, 'history.forward();');
+            result.action = 'navigate_forward';
+            result.message = 'Navigerte fremover';
+          }
+          break;
+          
+        case 'Ctrl+L':
+        case 'Cmd+L':
+          // Focus address bar
+          result.action = 'focus_address_bar';
+          result.message = 'Adressefelt fokusert';
+          break;
+          
+        case 'Escape':
+          // Stop loading
+          if (tabId) {
+            await browserManager.executeScript(instanceId, tabId, 'window.stop();');
+            result.action = 'stop_loading';
+            result.message = 'Lasting stoppet';
+          }
+          break;
+          
+        default:
+          result.success = false;
+          result.message = `Ukjent snarvei: ${shortcut}`;
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/browser-engine/keyboard-shortcuts", async (req, res) => {
+    try {
+      const shortcuts = [
+        { key: 'Ctrl+T / Cmd+T', action: 'Åpne ny fane' },
+        { key: 'Ctrl+W / Cmd+W', action: 'Lukk fane' },
+        { key: 'Ctrl+Shift+T / Cmd+Shift+T', action: 'Gjenåpne lukket fane' },
+        { key: 'Ctrl+Tab / Cmd+Tab', action: 'Neste fane' },
+        { key: 'Ctrl+Shift+Tab / Cmd+Shift+Tab', action: 'Forrige fane' },
+        { key: 'Ctrl+1-8 / Cmd+1-8', action: 'Gå til fane 1-8' },
+        { key: 'Ctrl+9 / Cmd+9', action: 'Gå til siste fane' },
+        { key: 'Ctrl+R / Cmd+R / F5', action: 'Last siden på nytt' },
+        { key: 'Ctrl+Shift+R / Cmd+Shift+R', action: 'Hard reload' },
+        { key: 'Alt+← / Alt+Left', action: 'Gå tilbake' },
+        { key: 'Alt+→ / Alt+Right', action: 'Gå fremover' },
+        { key: 'Ctrl+D / Cmd+D', action: 'Bokmerke side' },
+        { key: 'Ctrl+L / Cmd+L', action: 'Fokuser adressefelt' },
+        { key: 'Escape', action: 'Stopp lasting' }
+      ];
+      
+      res.json({ shortcuts });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // AI Agent Orchestration endpoints
   app.post("/api/agents/task", async (req, res) => {
     try {
