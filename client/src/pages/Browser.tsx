@@ -26,7 +26,8 @@ import {
   ExternalLink,
   ChevronDown,
   Bookmark as BookmarkIcon,
-  History
+  History,
+  Settings
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -620,6 +621,13 @@ export default function Browser() {
               <DropdownMenuItem>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Åpne i nytt vindu
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => window.location.href = '/settings'}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Innstillinger
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
