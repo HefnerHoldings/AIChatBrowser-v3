@@ -18,6 +18,7 @@ import { SessionRestore } from '@/components/SessionRestore';
 import { TabGroups } from '@/components/TabGroups';
 import { MediaControls } from '@/components/MediaControls';
 import { Extensions } from '@/components/Extensions';
+import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -50,7 +51,8 @@ import {
   ZoomOut,
   Search as SearchIcon,
   Volume2,
-  Puzzle
+  Puzzle,
+  Activity
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -112,6 +114,7 @@ export default function Browser() {
   const [showReaderMode, setShowReaderMode] = useState(false);
   const [showMediaControls, setShowMediaControls] = useState(false);
   const [showExtensions, setShowExtensions] = useState(false);
+  const [showPerformance, setShowPerformance] = useState(false);
   const [showTabGroups, setShowTabGroups] = useState(false);
   const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
@@ -943,6 +946,14 @@ export default function Browser() {
             >
               <Puzzle className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowPerformance(true)}
+              title="Ytelsesovervåking"
+            >
+              <Activity className="h-4 w-4" />
+            </Button>
             <SessionRestore
               currentTabs={browserInstance?.tabs.map(tab => ({
                 id: tab.id,
@@ -1453,6 +1464,13 @@ export default function Browser() {
       <Extensions
         isOpen={showExtensions}
         onClose={() => setShowExtensions(false)}
+      />
+      
+      {/* Performance Monitor */}
+      <PerformanceMonitor
+        isOpen={showPerformance}
+        onClose={() => setShowPerformance(false)}
+        currentTab={activeTab ? { id: activeTab.id, title: activeTab.title, url: activeTab.url } : undefined}
       />
       </div>
     </div>
