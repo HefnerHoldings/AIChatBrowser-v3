@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import { NativeBrowserEngine, BrowserEngineType, BrowserTab, BrowserContextOptions } from './browser-engine';
 import { randomUUID } from 'crypto';
+import { storage } from './storage';
+import type { InsertDownload } from '@shared/schema';
 
 // Browser instance configuration
 export interface BrowserInstance {
@@ -97,6 +99,33 @@ export class BrowserManager extends EventEmitter {
     engine.on('disconnected', () => {
       this.emit('disconnected', { instanceId });
       this.instances.delete(instanceId);
+    });
+
+    // Set up download handling
+    engine.on('download', async (data: any) => {
+      this.emit('download', { instanceId, ...data });
+      
+      // Create download entry in storage
+      try {
+        const downloadData: InsertDownload = {
+          filename: data.filename || 'unknown',
+          url: data.url,
+          mimeType: data.mimeType,
+          size: data.size,
+          status: 'downloading'
+        };
+        
+        const download = await storage.createDownload(downloadData);
+        
+        // Simulate download progress (in real app, track actual progress)
+        setTimeout(async () => {
+          await storage.updateDownload(download.id, {
+            status: 'completed'
+          });
+        }, 5000);
+      } catch (error) {
+        console.error('Failed to create download entry:', error);
+      }
     });
 
     // Create browser instance

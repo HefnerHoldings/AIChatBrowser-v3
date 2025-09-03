@@ -17,7 +17,8 @@ import {
   insertPrivacyLedgerSchema,
   insertAdrRecordSchema,
   insertBookmarkSchema,
-  insertBrowserHistorySchema
+  insertBrowserHistorySchema,
+  insertDownloadSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1549,6 +1550,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/browser-history", async (req, res) => {
     try {
       await storage.clearHistory();
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Downloads endpoints
+  app.get("/api/downloads", async (req, res) => {
+    try {
+      const downloads = await storage.getDownloads();
+      res.json(downloads);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.get("/api/downloads/:id", async (req, res) => {
+    try {
+      const download = await storage.getDownload(req.params.id);
+      if (!download) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json(download);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/downloads", async (req, res) => {
+    try {
+      const data = insertDownloadSchema.parse(req.body);
+      const download = await storage.createDownload(data);
+      res.json(download);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid download data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+  
+  app.patch("/api/downloads/:id", async (req, res) => {
+    try {
+      const updates = insertDownloadSchema.partial().parse(req.body);
+      const download = await storage.updateDownload(req.params.id, updates);
+      if (!download) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json(download);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid download data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+  
+  app.delete("/api/downloads/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteDownload(req.params.id);
+      if (!success) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

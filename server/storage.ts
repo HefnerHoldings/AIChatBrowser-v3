@@ -10,6 +10,7 @@ import {
   type AdrRecord,
   type Bookmark,
   type BrowserHistory,
+  type Download,
   type InsertProject, 
   type InsertWorkflow, 
   type InsertAutomationTask, 
@@ -20,7 +21,8 @@ import {
   type InsertPrivacyLedger,
   type InsertAdrRecord,
   type InsertBookmark,
-  type InsertBrowserHistory
+  type InsertBrowserHistory,
+  type InsertDownload
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -83,6 +85,13 @@ export interface IStorage {
   getBrowserHistory(): Promise<BrowserHistory[]>;
   addToHistory(history: InsertBrowserHistory): Promise<BrowserHistory>;
   clearHistory(): Promise<void>;
+  
+  // Downloads
+  getDownloads(): Promise<Download[]>;
+  getDownload(id: string): Promise<Download | undefined>;
+  createDownload(download: InsertDownload): Promise<Download>;
+  updateDownload(id: string, updates: Partial<InsertDownload>): Promise<Download | undefined>;
+  deleteDownload(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -97,6 +106,7 @@ export class MemStorage implements IStorage {
   private adrRecords: Map<string, AdrRecord> = new Map();
   private bookmarks: Map<string, Bookmark> = new Map();
   private browserHistory: Map<string, BrowserHistory> = new Map();
+  private downloads: Map<string, Download> = new Map();
 
   constructor() {
     this.seedData();
@@ -658,6 +668,54 @@ export class MemStorage implements IStorage {
   
   async clearHistory(): Promise<void> {
     this.browserHistory.clear();
+  }
+  
+  // Downloads
+  async getDownloads(): Promise<Download[]> {
+    return Array.from(this.downloads.values()).sort((a, b) => 
+      (b.startedAt?.getTime() || 0) - (a.startedAt?.getTime() || 0)
+    );
+  }
+
+  async getDownload(id: string): Promise<Download | undefined> {
+    return this.downloads.get(id);
+  }
+
+  async createDownload(insertDownload: InsertDownload): Promise<Download> {
+    const id = randomUUID();
+    const download: Download = {
+      id,
+      filename: insertDownload.filename,
+      url: insertDownload.url,
+      path: insertDownload.path || null,
+      size: insertDownload.size || null,
+      mimeType: insertDownload.mimeType || null,
+      status: insertDownload.status || 'pending',
+      progress: 0,
+      error: insertDownload.error || null,
+      startedAt: new Date(),
+      completedAt: null,
+    };
+    this.downloads.set(id, download);
+    return download;
+  }
+
+  async updateDownload(id: string, updates: Partial<InsertDownload>): Promise<Download | undefined> {
+    const download = this.downloads.get(id);
+    if (!download) return undefined;
+
+    const updated: Download = {
+      ...download,
+      ...updates,
+      progress: updates.status === 'completed' ? 100 : (download.progress || 0),
+      completedAt: updates.status === 'completed' ? new Date() : download.completedAt,
+    };
+    this.downloads.set(id, updated);
+    return updated;
+  }
+
+  async deleteDownload(id: string): Promise<boolean> {
+    return this.downloads.delete(id);
   }
 }
 

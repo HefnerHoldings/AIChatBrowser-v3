@@ -245,9 +245,34 @@ export const insertBrowserHistorySchema = createInsertSchema(browserHistory).omi
   visitCount: true,
 });
 
+// Downloads table
+export const downloads = pgTable("downloads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  filename: text("filename").notNull(),
+  url: text("url").notNull(),
+  path: text("path"), // Local file path
+  size: integer("size"), // File size in bytes
+  mimeType: text("mime_type"),
+  status: text("status").notNull().default("pending"), // pending, downloading, completed, failed, cancelled
+  progress: integer("progress").default(0), // 0-100
+  error: text("error"),
+  startedAt: timestamp("started_at").default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+});
+
+// Insert schema for downloads
+export const insertDownloadSchema = createInsertSchema(downloads).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+  progress: true,
+});
+
 // Types for browser tables
 export type Bookmark = typeof bookmarks.$inferSelect;
 export type BrowserHistory = typeof browserHistory.$inferSelect;
+export type Download = typeof downloads.$inferSelect;
 
 export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
 export type InsertBrowserHistory = z.infer<typeof insertBrowserHistorySchema>;
+export type InsertDownload = z.infer<typeof insertDownloadSchema>;

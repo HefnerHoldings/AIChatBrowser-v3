@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { DownloadsManager } from '@/components/DownloadsManager';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -557,6 +558,7 @@ export default function Browser() {
             >
               <BookmarkIcon className="h-4 w-4" />
             </Button>
+            <DownloadsManager />
           </div>
 
           {/* Browser Menu */}
@@ -596,6 +598,39 @@ export default function Browser() {
               <DropdownMenuItem>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Åpne i nytt vindu
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={async () => {
+                  // Simuler nedlasting for testing
+                  await apiRequest('/api/downloads', 'POST', {
+                    filename: 'test-dokument.pdf',
+                    url: activeTab?.url || 'https://example.com/test.pdf',
+                    size: 1024 * 1024 * 2, // 2MB
+                    mimeType: 'application/pdf',
+                    status: 'downloading'
+                  });
+                  toast({
+                    title: 'Nedlasting startet',
+                    description: 'test-dokument.pdf laster ned...'
+                  });
+                  
+                  // Simuler fullført nedlasting etter 3 sekunder
+                  setTimeout(async () => {
+                    const downloads = await queryClient.fetchQuery<any[]>({
+                      queryKey: ['/api/downloads']
+                    });
+                    const testDownload = downloads?.find(d => d.filename === 'test-dokument.pdf');
+                    if (testDownload) {
+                      await apiRequest(`/api/downloads/${testDownload.id}`, 'PATCH', {
+                        status: 'completed'
+                      });
+                    }
+                  }, 3000);
+                }}
+              >
+                <Loader2 className="mr-2 h-4 w-4" />
+                Test nedlasting
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
