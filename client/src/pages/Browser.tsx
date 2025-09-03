@@ -16,6 +16,7 @@ import { PasswordManager } from '@/components/PasswordManager';
 import { ReaderMode } from '@/components/ReaderMode';
 import { SessionRestore } from '@/components/SessionRestore';
 import { TabGroups } from '@/components/TabGroups';
+import { MediaControls } from '@/components/MediaControls';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -46,7 +47,8 @@ import {
   Printer,
   ZoomIn,
   ZoomOut,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Volume2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -106,6 +108,7 @@ export default function Browser() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [detectedFormData, setDetectedFormData] = useState<{username: string, password: string, domain: string} | null>(null);
   const [showReaderMode, setShowReaderMode] = useState(false);
+  const [showMediaControls, setShowMediaControls] = useState(false);
   const [showTabGroups, setShowTabGroups] = useState(false);
   const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
@@ -920,6 +923,15 @@ export default function Browser() {
             >
               <BookOpen className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMediaControls(true)}
+              title="Mediakontroller"
+              disabled={!activeTab?.url || activeTab.url === 'about:blank'}
+            >
+              <Volume2 className="h-4 w-4" />
+            </Button>
             <SessionRestore
               currentTabs={browserInstance?.tabs.map(tab => ({
                 id: tab.id,
@@ -1417,6 +1429,13 @@ export default function Browser() {
         onClose={() => setShowReaderMode(false)}
         url={activeTab?.url || ''}
         title={activeTab?.title || ''}
+      />
+      
+      {/* Media Controls */}
+      <MediaControls
+        isOpen={showMediaControls}
+        onClose={() => setShowMediaControls(false)}
+        currentTab={activeTab ? { url: activeTab.url, title: activeTab.title } : undefined}
       />
       </div>
     </div>
