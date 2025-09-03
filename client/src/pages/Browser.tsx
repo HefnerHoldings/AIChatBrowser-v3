@@ -20,6 +20,7 @@ import { MediaControls } from '@/components/MediaControls';
 import { Extensions } from '@/components/Extensions';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 import { WebView } from '@/components/WebView';
+import { NetworkLayer } from '@/components/NetworkLayer';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -53,7 +54,8 @@ import {
   Search as SearchIcon,
   Volume2,
   Puzzle,
-  Activity
+  Activity,
+  Wifi
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -116,6 +118,7 @@ export default function Browser() {
   const [showMediaControls, setShowMediaControls] = useState(false);
   const [showExtensions, setShowExtensions] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
+  const [showNetworkLayer, setShowNetworkLayer] = useState(false);
   const [showTabGroups, setShowTabGroups] = useState(false);
   const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
@@ -955,6 +958,14 @@ export default function Browser() {
             >
               <Activity className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowNetworkLayer(true)}
+              title="Nettverkslag"
+            >
+              <Wifi className="h-4 w-4" />
+            </Button>
             <SessionRestore
               currentTabs={browserInstance?.tabs.map(tab => ({
                 id: tab.id,
@@ -1511,6 +1522,13 @@ export default function Browser() {
         isOpen={showPerformance}
         onClose={() => setShowPerformance(false)}
         currentTab={activeTab ? { id: activeTab.id, title: activeTab.title, url: activeTab.url } : undefined}
+      />
+      
+      {/* Network Layer */}
+      <NetworkLayer
+        isOpen={showNetworkLayer}
+        onClose={() => setShowNetworkLayer(false)}
+        tabId={activeTab?.id}
       />
       </div>
     </div>
