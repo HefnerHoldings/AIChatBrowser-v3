@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { windowsAPI } from "./windows-api";
+import { browserManager } from "./browser-manager";
+import { BrowserEngineType } from "./browser-engine";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -794,7 +796,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
-  })
+  });
+
+  // Native Browser Engine endpoints
+  app.post("/api/browser-engine/instance", async (req, res) => {
+    try {
+      const { type, profile, isIncognito, contextOptions } = req.body;
+      const instanceId = await browserManager.createInstance({
+        type: type || BrowserEngineType.CHROMIUM,
+        profile,
+        isIncognito,
+        contextOptions
+      });
+      res.json({ instanceId });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/browser-engine/instance/:instanceId", async (req, res) => {
+    try {
+      await browserManager.closeInstance(req.params.instanceId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/browser-engine/instances", async (req, res) => {
+    try {
+      const instances = browserManager.getAllInstances();
+      res.json({ instances: instances.map(i => ({
+        id: i.id,
+        type: i.type,
+        tabCount: i.tabs.size,
+        isIncognito: i.isIncognito,
+        createdAt: i.createdAt,
+        lastActiveAt: i.lastActiveAt
+      })) });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/instance/:instanceId/tab", async (req, res) => {
+    try {
+      const { url, options } = req.body;
+      const tab = await browserManager.createTab(req.params.instanceId, url, options);
+      res.json({ tab });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/browser-engine/instance/:instanceId/tab/:tabId", async (req, res) => {
+    try {
+      await browserManager.closeTab(req.params.instanceId, req.params.tabId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/instance/:instanceId/tab/:tabId/navigate", async (req, res) => {
+    try {
+      const { url } = req.body;
+      await browserManager.navigate(req.params.instanceId, req.params.tabId, url);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/instance/:instanceId/tab/:tabId/execute", async (req, res) => {
+    try {
+      const { script } = req.body;
+      const result = await browserManager.executeScript(req.params.instanceId, req.params.tabId, script);
+      res.json({ result });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/instance/:instanceId/tab/:tabId/screenshot", async (req, res) => {
+    try {
+      const { options } = req.body;
+      const screenshot = await browserManager.screenshot(req.params.instanceId, req.params.tabId, options);
+      res.json({ screenshot: screenshot.toString('base64') });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/browser-engine/instance/:instanceId/tab/:tabId/metrics", async (req, res) => {
+    try {
+      const metrics = await browserManager.getPerformanceMetrics(req.params.instanceId, req.params.tabId);
+      res.json({ metrics });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/profile", async (req, res) => {
+    try {
+      const profile = req.body;
+      browserManager.createProfile(profile);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/browser-engine/profiles", async (req, res) => {
+    try {
+      const profiles = browserManager.getAllProfiles();
+      res.json({ profiles });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/instance/:instanceId/tab/:tabId/emulate", async (req, res) => {
+    try {
+      const { device } = req.body;
+      await browserManager.emulateDevice(req.params.instanceId, req.params.tabId, device);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/instance/:instanceId/extensions", async (req, res) => {
+    try {
+      const { extensions } = req.body;
+      await browserManager.enableExtensions(req.params.instanceId, extensions);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/browser-engine/memory", async (req, res) => {
+    try {
+      const usage = browserManager.getMemoryUsage();
+      res.json({ usage });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/browser-engine/cleanup", async (req, res) => {
+    try {
+      const { maxAge } = req.body;
+      await browserManager.cleanup(maxAge);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

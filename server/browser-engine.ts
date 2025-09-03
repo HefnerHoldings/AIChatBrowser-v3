@@ -1,0 +1,535 @@
+import { EventEmitter } from 'events';
+import puppeteer, { Browser, Page } from 'puppeteer';
+import { Protocol } from 'puppeteer';
+import { spawn, ChildProcess } from 'child_process';
+import path from 'path';
+import fs from 'fs/promises';
+
+// Browser engine types
+export enum BrowserEngineType {
+  CHROMIUM = 'chromium',
+  FIREFOX = 'firefox',
+  WEBKIT = 'webkit',
+  WEBVIEW2 = 'webview2',
+  ELECTRON = 'electron'
+}
+
+// Browser capabilities
+export interface BrowserCapabilities {
+  javascript: boolean;
+  cookies: boolean;
+  localStorage: boolean;
+  webGL: boolean;
+  webRTC: boolean;
+  canvas: boolean;
+  audio: boolean;
+  video: boolean;
+  plugins: boolean;
+}
+
+// Browser context options
+export interface BrowserContextOptions {
+  userAgent?: string;
+  viewport?: { width: number; height: number };
+  locale?: string;
+  timezone?: string;
+  geolocation?: { latitude: number; longitude: number };
+  permissions?: string[];
+  extraHTTPHeaders?: Record<string, string>;
+  httpCredentials?: { username: string; password: string };
+  offline?: boolean;
+  cacheEnabled?: boolean;
+  javaScriptEnabled?: boolean;
+  bypassCSP?: boolean;
+  ignoreHTTPSErrors?: boolean;
+  deviceScaleFactor?: number;
+  userDataDir?: string;
+  proxy?: {
+    server: string;
+    username?: string;
+    password?: string;
+    bypass?: string[];
+  };
+}
+
+// Browser tab interface
+export interface BrowserTab {
+  id: string;
+  url: string;
+  title: string;
+  favicon?: string;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  processId?: number;
+  memoryUsage?: number;
+  cpuUsage?: number;
+}
+
+// Native browser engine implementation
+export class NativeBrowserEngine extends EventEmitter {
+  private engineType: BrowserEngineType;
+  private browser?: Browser;
+  private pages: Map<string, Page> = new Map();
+  private processes: Map<string, ChildProcess> = new Map();
+  private contexts: Map<string, any> = new Map();
+  private performance: Map<string, any> = new Map();
+  
+  constructor(engineType: BrowserEngineType = BrowserEngineType.CHROMIUM) {
+    super();
+    this.engineType = engineType;
+  }
+
+  // Initialize browser engine
+  async initialize(options: BrowserContextOptions = {}): Promise<void> {
+    switch (this.engineType) {
+      case BrowserEngineType.CHROMIUM:
+        await this.initializeChromium(options);
+        break;
+      case BrowserEngineType.FIREFOX:
+        await this.initializeFirefox(options);
+        break;
+      case BrowserEngineType.WEBKIT:
+        await this.initializeWebKit(options);
+        break;
+      case BrowserEngineType.WEBVIEW2:
+        await this.initializeWebView2(options);
+        break;
+      case BrowserEngineType.ELECTRON:
+        await this.initializeElectron(options);
+        break;
+    }
+  }
+
+  // Initialize Chromium engine
+  private async initializeChromium(options: BrowserContextOptions): Promise<void> {
+    const launchOptions: any = {
+      headless: false,
+      defaultViewport: options.viewport || { width: 1280, height: 720 },
+      ignoreHTTPSErrors: options.ignoreHTTPSErrors || false,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    };
+
+    if (options.userDataDir) {
+      launchOptions.userDataDir = options.userDataDir;
+    }
+
+    if (options.proxy) {
+      launchOptions.args.push(`--proxy-server=${options.proxy.server}`);
+    }
+
+    this.browser = await puppeteer.launch(launchOptions);
+    
+    // Set up browser event listeners
+    this.browser.on('disconnected', () => {
+      this.emit('disconnected');
+    });
+
+    this.browser.on('targetcreated', async (target) => {
+      if (target.type() === 'page') {
+        const page = await target.page();
+        if (page) {
+          await this.setupPage(page, options);
+        }
+      }
+    });
+  }
+
+  // Initialize Firefox engine
+  private async initializeFirefox(options: BrowserContextOptions): Promise<void> {
+    // Firefox support through Puppeteer
+    const launchOptions: any = {
+      product: 'firefox',
+      headless: false,
+      defaultViewport: options.viewport || { width: 1280, height: 720 },
+      ignoreHTTPSErrors: options.ignoreHTTPSErrors || false
+    };
+
+    if (options.userDataDir) {
+      launchOptions.userDataDir = options.userDataDir;
+    }
+
+    this.browser = await puppeteer.launch(launchOptions);
+  }
+
+  // Initialize WebKit engine
+  private async initializeWebKit(options: BrowserContextOptions): Promise<void> {
+    // WebKit support would require playwright or similar
+    // For now, fallback to Chromium
+    await this.initializeChromium(options);
+  }
+
+  // Initialize WebView2 engine (Windows only)
+  private async initializeWebView2(options: BrowserContextOptions): Promise<void> {
+    // WebView2 requires native Windows integration
+    // This would use Edge WebView2 runtime
+    if (process.platform === 'win32') {
+      // Spawn WebView2 process
+      const webview2Path = 'C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\msedgewebview2.exe';
+      const webview2Process = spawn(webview2Path, [
+        '--user-data-dir=' + (options.userDataDir || path.join(process.env.TEMP || '', 'webview2')),
+        '--enable-features=NetworkService'
+      ]);
+      
+      this.processes.set('webview2-main', webview2Process);
+      
+      // Fallback to Chromium for now
+      await this.initializeChromium(options);
+    } else {
+      // Fallback to Chromium on non-Windows
+      await this.initializeChromium(options);
+    }
+  }
+
+  // Initialize Electron engine
+  private async initializeElectron(options: BrowserContextOptions): Promise<void> {
+    // Electron requires special initialization
+    // For now, fallback to Chromium
+    await this.initializeChromium(options);
+  }
+
+  // Setup page with options
+  private async setupPage(page: Page, options: BrowserContextOptions): Promise<void> {
+    // Set user agent
+    if (options.userAgent) {
+      await page.setUserAgent(options.userAgent);
+    }
+
+    // Set viewport
+    if (options.viewport) {
+      await page.setViewport(options.viewport);
+    }
+
+    // Set geolocation
+    if (options.geolocation) {
+      await page.setGeolocation(options.geolocation);
+    }
+
+    // Set extra headers
+    if (options.extraHTTPHeaders) {
+      await page.setExtraHTTPHeaders(options.extraHTTPHeaders);
+    }
+
+    // Set JavaScript enabled
+    if (options.javaScriptEnabled !== undefined) {
+      await page.setJavaScriptEnabled(options.javaScriptEnabled);
+    }
+
+    // Set offline mode
+    if (options.offline) {
+      await page.setOfflineMode(true);
+    }
+
+    // Set cache enabled
+    if (options.cacheEnabled !== undefined) {
+      await page.setCacheEnabled(options.cacheEnabled);
+    }
+
+    // Set bypass CSP
+    if (options.bypassCSP) {
+      await page.setBypassCSP(true);
+    }
+
+    // Set up performance monitoring
+    await this.setupPerformanceMonitoring(page);
+
+    // Set up request interception
+    await this.setupRequestInterception(page);
+  }
+
+  // Setup performance monitoring
+  private async setupPerformanceMonitoring(page: Page): Promise<void> {
+    const client = await page.target().createCDPSession();
+    
+    // Enable performance monitoring
+    await client.send('Performance.enable');
+    
+    // Monitor performance metrics
+    client.on('Performance.metrics', (data) => {
+      const pageUrl = page.url();
+      this.performance.set(pageUrl, data.metrics);
+      this.emit('performance', { url: pageUrl, metrics: data.metrics });
+    });
+
+    // Enable network monitoring
+    await client.send('Network.enable');
+    
+    // Monitor network activity
+    client.on('Network.loadingFinished', (data) => {
+      this.emit('network', { type: 'finished', data });
+    });
+
+    client.on('Network.loadingFailed', (data) => {
+      this.emit('network', { type: 'failed', data });
+    });
+
+    // Enable runtime monitoring
+    await client.send('Runtime.enable');
+    
+    // Monitor console messages
+    client.on('Runtime.consoleAPICalled', (data) => {
+      this.emit('console', data);
+    });
+
+    // Monitor JavaScript exceptions
+    client.on('Runtime.exceptionThrown', (data) => {
+      this.emit('exception', data);
+    });
+  }
+
+  // Setup request interception
+  private async setupRequestInterception(page: Page): Promise<void> {
+    await page.setRequestInterception(true);
+    
+    page.on('request', (request) => {
+      // Emit request event
+      this.emit('request', {
+        url: request.url(),
+        method: request.method(),
+        headers: request.headers(),
+        postData: request.postData()
+      });
+
+      // Allow customization of requests
+      if (this.listenerCount('intercept') > 0) {
+        this.emit('intercept', request, (action: string, options?: any) => {
+          if (action === 'abort') {
+            request.abort();
+          } else if (action === 'respond') {
+            request.respond(options);
+          } else {
+            request.continue(options);
+          }
+        });
+      } else {
+        request.continue();
+      }
+    });
+
+    page.on('response', (response) => {
+      this.emit('response', {
+        url: response.url(),
+        status: response.status(),
+        headers: response.headers()
+      });
+    });
+  }
+
+  // Create new tab
+  async createTab(url?: string, options?: BrowserContextOptions): Promise<BrowserTab> {
+    if (!this.browser) {
+      throw new Error('Browser not initialized');
+    }
+
+    const page = await this.browser.newPage();
+    const tabId = `tab-${Date.now()}`;
+    
+    this.pages.set(tabId, page);
+    
+    if (options) {
+      await this.setupPage(page, options);
+    }
+
+    if (url) {
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+    }
+
+    return {
+      id: tabId,
+      url: page.url(),
+      title: await page.title(),
+      isLoading: false,
+      canGoBack: false,
+      canGoForward: false
+    };
+  }
+
+  // Close tab
+  async closeTab(tabId: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      await page.close();
+      this.pages.delete(tabId);
+    }
+  }
+
+  // Navigate to URL
+  async navigate(tabId: string, url: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+    }
+  }
+
+  // Go back
+  async goBack(tabId: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      await page.goBack();
+    }
+  }
+
+  // Go forward
+  async goForward(tabId: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      await page.goForward();
+    }
+  }
+
+  // Refresh page
+  async refresh(tabId: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      await page.reload();
+    }
+  }
+
+  // Execute JavaScript
+  async executeScript(tabId: string, script: string): Promise<any> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      return await page.evaluate(script);
+    }
+  }
+
+  // Take screenshot
+  async screenshot(tabId: string, options?: any): Promise<Buffer> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      const screenshot = await page.screenshot(options);
+      return Buffer.isBuffer(screenshot) ? screenshot : Buffer.from(screenshot);
+    }
+    throw new Error('Tab not found');
+  }
+
+  // Get page metrics
+  async getMetrics(tabId: string): Promise<any> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      return await page.metrics();
+    }
+    return null;
+  }
+
+  // Get browser capabilities
+  async getCapabilities(): Promise<BrowserCapabilities> {
+    return {
+      javascript: true,
+      cookies: true,
+      localStorage: true,
+      webGL: true,
+      webRTC: true,
+      canvas: true,
+      audio: true,
+      video: true,
+      plugins: true
+    };
+  }
+
+  // Set cookies
+  async setCookies(tabId: string, cookies: any[]): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      await page.setCookie(...cookies);
+    }
+  }
+
+  // Get cookies
+  async getCookies(tabId: string): Promise<any[]> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      return await page.cookies();
+    }
+    return [];
+  }
+
+  // Clear cookies
+  async clearCookies(tabId: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      const client = await page.target().createCDPSession();
+      await client.send('Network.clearBrowserCookies');
+    }
+  }
+
+  // Clear cache
+  async clearCache(tabId: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      const client = await page.target().createCDPSession();
+      await client.send('Network.clearBrowserCache');
+    }
+  }
+
+  // Get performance stats
+  getPerformanceStats(url: string): any {
+    return this.performance.get(url);
+  }
+
+  // Enable extensions
+  async enableExtensions(extensions: string[]): Promise<void> {
+    // Extension support would require browser restart with extension flags
+    // This is a placeholder for extension management
+    console.log('Extension support enabled for:', extensions);
+  }
+
+  // Set download behavior
+  async setDownloadBehavior(tabId: string, downloadPath: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      const client = await page.target().createCDPSession();
+      await client.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath
+      });
+    }
+  }
+
+  // Emulate device
+  async emulateDevice(tabId: string, deviceName: string): Promise<void> {
+    const page = this.pages.get(tabId);
+    if (page) {
+      // Device emulation - would need to import KnownDevices from puppeteer
+      // For now, just set viewport and user agent based on device name
+      const devicePresets: any = {
+        'iPhone 12': { width: 390, height: 844, isMobile: true, hasTouch: true },
+        'iPad': { width: 768, height: 1024, isMobile: true, hasTouch: true },
+        'Desktop': { width: 1920, height: 1080, isMobile: false, hasTouch: false }
+      };
+      
+      const preset = devicePresets[deviceName];
+      if (preset) {
+        await page.setViewport(preset);
+      }
+    }
+  }
+
+  // Close browser
+  async close(): Promise<void> {
+    if (this.browser) {
+      await this.browser.close();
+    }
+    
+    // Close any spawned processes
+    for (const [, process] of Array.from(this.processes.entries())) {
+      process.kill();
+    }
+    
+    this.pages.clear();
+    this.processes.clear();
+    this.contexts.clear();
+    this.performance.clear();
+  }
+}
+
+// Export singleton instance
+export const browserEngine = new NativeBrowserEngine();
