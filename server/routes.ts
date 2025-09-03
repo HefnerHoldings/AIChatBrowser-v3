@@ -15,7 +15,9 @@ import {
   insertSessionReplaySchema,
   insertWorkOrderSchema,
   insertPrivacyLedgerSchema,
-  insertAdrRecordSchema
+  insertAdrRecordSchema,
+  insertBookmarkSchema,
+  insertBrowserHistorySchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1479,6 +1481,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       
       res.json({ shortcuts });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bookmarks endpoints
+  app.get("/api/bookmarks", async (req, res) => {
+    try {
+      const bookmarks = await storage.getBookmarks();
+      res.json(bookmarks);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/bookmarks", async (req, res) => {
+    try {
+      const data = insertBookmarkSchema.parse(req.body);
+      const bookmark = await storage.createBookmark(data);
+      res.json(bookmark);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid bookmark data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+  
+  app.delete("/api/bookmarks/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteBookmark(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: 'Bookmark not found' });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Browser History endpoints
+  app.get("/api/browser-history", async (req, res) => {
+    try {
+      const history = await storage.getBrowserHistory();
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/browser-history", async (req, res) => {
+    try {
+      const data = insertBrowserHistorySchema.parse(req.body);
+      const historyEntry = await storage.addToHistory(data);
+      res.json(historyEntry);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid history data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+  
+  app.delete("/api/browser-history", async (req, res) => {
+    try {
+      await storage.clearHistory();
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

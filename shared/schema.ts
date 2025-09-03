@@ -208,3 +208,46 @@ export type InsertSessionReplay = z.infer<typeof insertSessionReplaySchema>;
 export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;
 export type InsertPrivacyLedger = z.infer<typeof insertPrivacyLedgerSchema>;
 export type InsertAdrRecord = z.infer<typeof insertAdrRecordSchema>;
+
+// Browser bookmarks table
+export const bookmarks = pgTable("bookmarks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  favicon: text("favicon"),
+  folder: text("folder"), // For organizing bookmarks
+  position: integer("position").default(0), // For ordering
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Browser history table
+export const browserHistory = pgTable("browser_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  favicon: text("favicon"),
+  visitCount: integer("visit_count").default(1),
+  lastVisited: timestamp("last_visited").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Insert schemas for browser tables
+export const insertBookmarkSchema = createInsertSchema(bookmarks).omit({
+  id: true,
+  createdAt: true,
+  position: true,
+});
+
+export const insertBrowserHistorySchema = createInsertSchema(browserHistory).omit({
+  id: true,
+  createdAt: true,
+  lastVisited: true,
+  visitCount: true,
+});
+
+// Types for browser tables
+export type Bookmark = typeof bookmarks.$inferSelect;
+export type BrowserHistory = typeof browserHistory.$inferSelect;
+
+export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
+export type InsertBrowserHistory = z.infer<typeof insertBrowserHistorySchema>;

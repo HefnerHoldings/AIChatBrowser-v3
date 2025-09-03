@@ -8,6 +8,8 @@ import {
   type WorkOrder,
   type PrivacyLedger,
   type AdrRecord,
+  type Bookmark,
+  type BrowserHistory,
   type InsertProject, 
   type InsertWorkflow, 
   type InsertAutomationTask, 
@@ -16,7 +18,9 @@ import {
   type InsertSessionReplay,
   type InsertWorkOrder,
   type InsertPrivacyLedger,
-  type InsertAdrRecord
+  type InsertAdrRecord,
+  type InsertBookmark,
+  type InsertBrowserHistory
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -69,6 +73,16 @@ export interface IStorage {
   getAdrRecord(id: string): Promise<AdrRecord | undefined>;
   createAdrRecord(record: InsertAdrRecord): Promise<AdrRecord>;
   updateAdrRecord(id: string, updates: Partial<InsertAdrRecord>): Promise<AdrRecord | undefined>;
+  
+  // Bookmarks
+  getBookmarks(): Promise<Bookmark[]>;
+  createBookmark(bookmark: InsertBookmark): Promise<Bookmark>;
+  deleteBookmark(id: string): Promise<boolean>;
+  
+  // Browser History
+  getBrowserHistory(): Promise<BrowserHistory[]>;
+  addToHistory(history: InsertBrowserHistory): Promise<BrowserHistory>;
+  clearHistory(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -81,6 +95,8 @@ export class MemStorage implements IStorage {
   private workOrders: Map<string, WorkOrder> = new Map();
   private privacyLedger: Map<string, PrivacyLedger> = new Map();
   private adrRecords: Map<string, AdrRecord> = new Map();
+  private bookmarks: Map<string, Bookmark> = new Map();
+  private browserHistory: Map<string, BrowserHistory> = new Map();
 
   constructor() {
     this.seedData();
@@ -156,6 +172,7 @@ export class MemStorage implements IStorage {
       permissions: ["Browse", "Extract", "Export"],
       progress: 45,
       startedAt: new Date(Date.now() - 2 * 60 * 1000),
+      completedAt: null,
       createdAt: new Date(Date.now() - 5 * 60 * 1000),
     };
     this.automationTasks.set(task.id, task);
@@ -167,6 +184,7 @@ export class MemStorage implements IStorage {
       type: "search",
       action: "Search Initiated",
       details: { query: "cookware wholesaler EU", results: 24 },
+      screenshot: null,
       status: "success",
       timestamp: new Date(Date.now() - 2 * 60 * 1000),
     };
@@ -181,6 +199,7 @@ export class MemStorage implements IStorage {
         total: 24, 
         extracted: { companies: 18, websites: 16, emails: 8, phones: 5 }
       },
+      screenshot: null,
       status: "pending",
       timestamp: new Date(Date.now() - 30 * 1000),
     };
@@ -197,6 +216,7 @@ export class MemStorage implements IStorage {
         website: "www.eu-cookware.com",
         email: "sales@eu-cookware.com",
         phone: "+49 30 12345678",
+        address: "Berlin, Germany",
         country: "Germany",
         category: "Wholesale",
         score: 85,
@@ -211,6 +231,7 @@ export class MemStorage implements IStorage {
         website: "www.nordickitchen.se",
         email: "info@nordickitchen.se",
         phone: "+46 8 98765432",
+        address: "Stockholm, Sweden",
         country: "Sweden",
         category: "Wholesale",
         score: 78,
@@ -221,6 +242,30 @@ export class MemStorage implements IStorage {
     ];
 
     leads.forEach(lead => this.extractedLeads.set(lead.id, lead));
+    
+    // Create sample bookmarks
+    const bookmarks: Bookmark[] = [
+      {
+        id: "bookmark-1",
+        title: "Google",
+        url: "https://www.google.com",
+        favicon: "https://www.google.com/favicon.ico",
+        folder: null,
+        position: 0,
+        createdAt: new Date(),
+      },
+      {
+        id: "bookmark-2",
+        title: "GitHub",
+        url: "https://github.com",
+        favicon: "https://github.com/favicon.ico",
+        folder: "Development",
+        position: 1,
+        createdAt: new Date(),
+      }
+    ];
+    
+    bookmarks.forEach(bookmark => this.bookmarks.set(bookmark.id, bookmark));
   }
 
   // Projects
@@ -235,8 +280,11 @@ export class MemStorage implements IStorage {
   async createProject(insertProject: InsertProject): Promise<Project> {
     const id = randomUUID();
     const project: Project = { 
-      ...insertProject, 
-      id, 
+      id,
+      name: insertProject.name,
+      description: insertProject.description || null,
+      autonomyLevel: insertProject.autonomyLevel || 1,
+      status: insertProject.status || 'active',
       createdAt: new Date() 
     };
     this.projects.set(id, project);
@@ -265,8 +313,13 @@ export class MemStorage implements IStorage {
   async createWorkflow(insertWorkflow: InsertWorkflow): Promise<Workflow> {
     const id = randomUUID();
     const workflow: Workflow = { 
-      ...insertWorkflow, 
-      id, 
+      id,
+      projectId: insertWorkflow.projectId || null,
+      name: insertWorkflow.name,
+      description: insertWorkflow.description || null,
+      steps: insertWorkflow.steps,
+      tags: insertWorkflow.tags || null,
+      lastUsed: null,
       createdAt: new Date() 
     };
     this.workflows.set(id, workflow);
@@ -295,8 +348,19 @@ export class MemStorage implements IStorage {
   async createAutomationTask(insertTask: InsertAutomationTask): Promise<AutomationTask> {
     const id = randomUUID();
     const task: AutomationTask = { 
-      ...insertTask, 
-      id, 
+      id,
+      projectId: insertTask.projectId || null,
+      workflowId: insertTask.workflowId || null,
+      name: insertTask.name,
+      goal: insertTask.goal,
+      status: insertTask.status || 'pending',
+      currentStep: insertTask.currentStep || null,
+      plan: insertTask.plan || null,
+      extractedData: insertTask.extractedData || [],
+      permissions: insertTask.permissions || [],
+      progress: insertTask.progress || null,
+      startedAt: null,
+      completedAt: null,
       createdAt: new Date() 
     };
     this.automationTasks.set(id, task);
@@ -321,8 +385,13 @@ export class MemStorage implements IStorage {
   async createActivityLog(insertLog: InsertActivityLog): Promise<ActivityLog> {
     const id = randomUUID();
     const log: ActivityLog = { 
-      ...insertLog, 
-      id, 
+      id,
+      taskId: insertLog.taskId || null,
+      type: insertLog.type,
+      action: insertLog.action,
+      details: insertLog.details || null,
+      screenshot: insertLog.screenshot || null,
+      status: insertLog.status,
       timestamp: new Date() 
     };
     this.activityLogs.set(id, log);
@@ -338,8 +407,18 @@ export class MemStorage implements IStorage {
   async createExtractedLead(insertLead: InsertExtractedLead): Promise<ExtractedLead> {
     const id = randomUUID();
     const lead: ExtractedLead = { 
-      ...insertLead, 
-      id, 
+      id,
+      taskId: insertLead.taskId || null,
+      company: insertLead.company || null,
+      website: insertLead.website || null,
+      email: insertLead.email || null,
+      phone: insertLead.phone || null,
+      address: insertLead.address || null,
+      country: insertLead.country || null,
+      category: insertLead.category || null,
+      score: insertLead.score || null,
+      validated: insertLead.validated || null,
+      source: insertLead.source || null,
       extractedAt: new Date() 
     };
     this.extractedLeads.set(id, lead);
@@ -350,8 +429,18 @@ export class MemStorage implements IStorage {
     const leads = insertLeads.map(insertLead => {
       const id = randomUUID();
       const lead: ExtractedLead = { 
-        ...insertLead, 
-        id, 
+        id,
+        taskId: insertLead.taskId || null,
+        company: insertLead.company || null,
+        website: insertLead.website || null,
+        email: insertLead.email || null,
+        phone: insertLead.phone || null,
+        address: insertLead.address || null,
+        country: insertLead.country || null,
+        category: insertLead.category || null,
+        score: insertLead.score || null,
+        validated: insertLead.validated || null,
+        source: insertLead.source || null,
         extractedAt: new Date() 
       };
       this.extractedLeads.set(id, lead);
@@ -373,9 +462,18 @@ export class MemStorage implements IStorage {
   async createSessionReplay(insertReplay: InsertSessionReplay): Promise<SessionReplay> {
     const id = randomUUID();
     const replay: SessionReplay = { 
-      ...insertReplay, 
-      id, 
-      createdAt: new Date() 
+      id,
+      projectId: insertReplay.projectId || null,
+      name: insertReplay.name,
+      description: insertReplay.description || null,
+      startUrl: insertReplay.startUrl,
+      endUrl: insertReplay.endUrl || null,
+      duration: insertReplay.duration || null,
+      status: insertReplay.status || 'recording',
+      recordingData: insertReplay.recordingData || null,
+      metadata: insertReplay.metadata || null,
+      createdAt: new Date(),
+      completedAt: null
     };
     this.sessionReplays.set(id, replay);
     return replay;
@@ -403,9 +501,21 @@ export class MemStorage implements IStorage {
   async createWorkOrder(insertOrder: InsertWorkOrder): Promise<WorkOrder> {
     const id = randomUUID();
     const order: WorkOrder = { 
-      ...insertOrder, 
-      id, 
-      createdAt: new Date() 
+      id,
+      projectId: insertOrder.projectId || null,
+      title: insertOrder.title,
+      description: insertOrder.description || null,
+      type: insertOrder.type,
+      priority: insertOrder.priority || 'normal',
+      status: insertOrder.status || 'pending',
+      assignee: insertOrder.assignee || null,
+      requirements: insertOrder.requirements || null,
+      deliverables: insertOrder.deliverables || null,
+      estimatedHours: insertOrder.estimatedHours || null,
+      actualHours: insertOrder.actualHours || null,
+      deadline: insertOrder.deadline || null,
+      createdAt: new Date(),
+      completedAt: null
     };
     this.workOrders.set(id, order);
     return order;
@@ -429,8 +539,15 @@ export class MemStorage implements IStorage {
   async createPrivacyLog(insertLog: InsertPrivacyLedger): Promise<PrivacyLedger> {
     const id = randomUUID();
     const log: PrivacyLedger = { 
-      ...insertLog, 
-      id, 
+      id,
+      sessionId: insertLog.sessionId,
+      eventType: insertLog.eventType,
+      domain: insertLog.domain,
+      dataType: insertLog.dataType || null,
+      dataValue: insertLog.dataValue || null,
+      purpose: insertLog.purpose || null,
+      consentStatus: insertLog.consentStatus || null,
+      metadata: insertLog.metadata || null,
       timestamp: new Date() 
     };
     this.privacyLedger.set(id, log);
@@ -450,8 +567,16 @@ export class MemStorage implements IStorage {
   async createAdrRecord(insertRecord: InsertAdrRecord): Promise<AdrRecord> {
     const id = randomUUID();
     const record: AdrRecord = { 
-      ...insertRecord, 
-      id, 
+      id,
+      projectId: insertRecord.projectId || null,
+      title: insertRecord.title,
+      status: insertRecord.status || 'proposed',
+      decisionDate: insertRecord.decisionDate || null,
+      context: insertRecord.context,
+      decision: insertRecord.decision,
+      consequences: insertRecord.consequences || null,
+      alternatives: insertRecord.alternatives || null,
+      relatedRecords: insertRecord.relatedRecords || null,
       createdAt: new Date(),
       updatedAt: new Date() 
     };
@@ -466,6 +591,73 @@ export class MemStorage implements IStorage {
     const updatedRecord = { ...record, ...updates, updatedAt: new Date() };
     this.adrRecords.set(id, updatedRecord);
     return updatedRecord;
+  }
+  
+  // Bookmarks
+  async getBookmarks(): Promise<Bookmark[]> {
+    return Array.from(this.bookmarks.values()).sort((a, b) => (a.position || 0) - (b.position || 0));
+  }
+  
+  async createBookmark(insertBookmark: InsertBookmark): Promise<Bookmark> {
+    const id = randomUUID();
+    const existingBookmarks = Array.from(this.bookmarks.values());
+    const maxPosition = existingBookmarks.reduce((max, b) => Math.max(max, b.position || 0), -1);
+    const bookmark: Bookmark = { 
+      id,
+      title: insertBookmark.title,
+      url: insertBookmark.url,
+      favicon: insertBookmark.favicon || null,
+      folder: insertBookmark.folder || null,
+      position: maxPosition + 1,
+      createdAt: new Date() 
+    };
+    this.bookmarks.set(id, bookmark);
+    return bookmark;
+  }
+  
+  async deleteBookmark(id: string): Promise<boolean> {
+    return this.bookmarks.delete(id);
+  }
+  
+  // Browser History
+  async getBrowserHistory(): Promise<BrowserHistory[]> {
+    return Array.from(this.browserHistory.values()).sort((a, b) => b.lastVisited.getTime() - a.lastVisited.getTime());
+  }
+  
+  async addToHistory(insertHistory: InsertBrowserHistory): Promise<BrowserHistory> {
+    // Check if URL already exists in history
+    const existing = Array.from(this.browserHistory.values()).find(h => h.url === insertHistory.url);
+    
+    if (existing) {
+      // Update existing entry
+      const updated: BrowserHistory = {
+        ...existing,
+        title: insertHistory.title || existing.title,
+        favicon: insertHistory.favicon || existing.favicon,
+        visitCount: (existing.visitCount || 0) + 1,
+        lastVisited: new Date()
+      };
+      this.browserHistory.set(existing.id, updated);
+      return updated;
+    } else {
+      // Create new entry
+      const id = randomUUID();
+      const history: BrowserHistory = { 
+        id,
+        title: insertHistory.title,
+        url: insertHistory.url,
+        favicon: insertHistory.favicon || null,
+        visitCount: 1,
+        lastVisited: new Date(),
+        createdAt: new Date() 
+      };
+      this.browserHistory.set(id, history);
+      return history;
+    }
+  }
+  
+  async clearHistory(): Promise<void> {
+    this.browserHistory.clear();
   }
 }
 

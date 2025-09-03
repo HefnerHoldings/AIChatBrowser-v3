@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,9 +19,12 @@ import {
   Loader2,
   Search,
   Star,
+  StarOff,
   Copy,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Bookmark as BookmarkIcon,
+  History
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -46,13 +50,45 @@ interface BrowserInstance {
   activeTabId: string;
 }
 
+interface Bookmark {
+  id: string;
+  title: string;
+  url: string;
+  favicon?: string;
+  folder?: string;
+  position: number;
+  createdAt: Date;
+}
+
+interface HistoryItem {
+  id: string;
+  title: string;
+  url: string;
+  favicon?: string;
+  visitCount: number;
+  lastVisited: Date;
+  createdAt: Date;
+}
+
 export default function Browser() {
   const { toast } = useToast();
   const [browserInstance, setBrowserInstance] = useState<BrowserInstance | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(true);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // Fetch bookmarks
+  const { data: bookmarks = [], refetch: refetchBookmarks } = useQuery<Bookmark[]>({
+    queryKey: ['/api/bookmarks'],
+  });
+  
+  // Fetch history
+  const { data: history = [] } = useQuery<HistoryItem[]>({
+    queryKey: ['/api/browser-history'],
+  });
 
   // Initialize browser instance
   const initBrowser = useMutation({
@@ -192,6 +228,25 @@ export default function Browser() {
     }
   }, []);
 
+  // Check if current page is bookmarked
+  useEffect(() => {
+    if (activeTab) {
+      const isInBookmarks = bookmarks.some(b => b.url === activeTab.url);
+      setIsBookmarked(isInBookmarks);
+    }
+  }, [activeTab, bookmarks]);
+  
+  // Add to history when navigating
+  useEffect(() => {
+    if (activeTab && activeTab.url && activeTab.url !== 'about:blank') {
+      apiRequest('POST', '/api/browser-history', {
+        title: activeTab.title || activeTab.url,
+        url: activeTab.url,
+        favicon: activeTab.favicon
+      }).catch(console.error);
+    }
+  }, [activeTab?.url]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -208,13 +263,19 @@ export default function Browser() {
         } else if (e.key === 'r') {
           e.preventDefault();
           handleReload();
+        } else if (e.key === 'd') {
+          e.preventDefault();
+          handleBookmarkToggle();
+        } else if (e.key === 'b' && e.shiftKey) {
+          e.preventDefault();
+          setShowBookmarks(!showBookmarks);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab]);
+  }, [browserInstance, activeTab, showBookmarks]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -291,6 +352,51 @@ export default function Browser() {
 
   const handleReload = () => {
     handleKeyboardShortcut.mutate('F5');
+  };
+  
+  const handleBookmarkToggle = async () => {
+    if (!activeTab || activeTab.url === 'about:blank') return;
+    
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const bookmark = bookmarks.find(b => b.url === activeTab.url);
+        if (bookmark) {
+          await apiRequest('DELETE', `/api/bookmarks/${bookmark.id}`);
+          setIsBookmarked(false);
+          toast({
+            title: 'Bokmerke fjernet',
+            description: `${activeTab.title} ble fjernet fra bokmerker`,
+          });
+        }
+      } else {
+        // Add bookmark
+        await apiRequest('POST', '/api/bookmarks', {
+          title: activeTab.title || activeTab.url,
+          url: activeTab.url,
+          favicon: activeTab.favicon
+        });
+        setIsBookmarked(true);
+        toast({
+          title: 'Bokmerke lagt til',
+          description: `${activeTab.title} ble lagt til i bokmerker`,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['/api/bookmarks'] });
+    } catch (error) {
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke oppdatere bokmerker',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const handleBookmarkClick = (url: string) => {
+    if (activeTab && browserInstance) {
+      setUrlInput(url);
+      navigateMutation.mutate({ tabId: activeTab.id, url });
+    }
   };
 
   const handleStop = () => {
@@ -426,6 +532,31 @@ export default function Browser() {
               )}
             </div>
           </div>
+          
+          {/* Bookmark controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBookmarkToggle}
+              title={isBookmarked ? "Fjern bokmerke (Ctrl+D)" : "Legg til bokmerke (Ctrl+D)"}
+              disabled={!activeTab || activeTab.url === 'about:blank'}
+            >
+              {isBookmarked ? (
+                <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+              ) : (
+                <Star className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowBookmarks(!showBookmarks)}
+              title="Vis/skjul bokmerker (Ctrl+Shift+B)"
+            >
+              <BookmarkIcon className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* Browser Menu */}
           <DropdownMenu>
@@ -468,6 +599,28 @@ export default function Browser() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        
+        {/* Bookmarks bar */}
+        {showBookmarks && bookmarks.length > 0 && (
+          <div className="flex items-center bg-accent/30 border-b border-border px-3 py-1 gap-2 overflow-x-auto">
+            {bookmarks.map(bookmark => (
+              <Button
+                key={bookmark.id}
+                variant="ghost"
+                size="sm"
+                className="px-2 py-1 text-xs h-7 min-w-0 flex items-center gap-1"
+                onClick={() => handleBookmarkClick(bookmark.url)}
+                title={bookmark.url}
+                data-testid={`bookmark-${bookmark.id}`}
+              >
+                {bookmark.favicon && (
+                  <img src={bookmark.favicon} alt="" className="w-3 h-3" />
+                )}
+                <span className="truncate max-w-[120px]">{bookmark.title}</span>
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Browser Viewport */}
