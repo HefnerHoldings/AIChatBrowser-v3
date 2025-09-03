@@ -22,6 +22,7 @@ import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 import { WebView } from '@/components/WebView';
 import { NetworkLayer } from '@/components/NetworkLayer';
 import { SecuritySandbox } from '@/components/SecuritySandbox';
+import { WebAPIs } from '@/components/WebAPIs';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -56,7 +57,8 @@ import {
   Volume2,
   Puzzle,
   Activity,
-  Wifi
+  Wifi,
+  Code
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -121,6 +123,7 @@ export default function Browser() {
   const [showPerformance, setShowPerformance] = useState(false);
   const [showNetworkLayer, setShowNetworkLayer] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
+  const [showWebAPIs, setShowWebAPIs] = useState(false);
   const [showTabGroups, setShowTabGroups] = useState(false);
   const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
@@ -976,6 +979,14 @@ export default function Browser() {
             >
               <Shield className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowWebAPIs(true)}
+              title="Web API-er"
+            >
+              <Code className="h-4 w-4" />
+            </Button>
             <SessionRestore
               currentTabs={browserInstance?.tabs.map(tab => ({
                 id: tab.id,
@@ -1545,6 +1556,14 @@ export default function Browser() {
       <SecuritySandbox
         isOpen={showSecurity}
         onClose={() => setShowSecurity(false)}
+        tabId={activeTab?.id}
+        url={activeTab?.url}
+      />
+      
+      {/* Web APIs */}
+      <WebAPIs
+        isOpen={showWebAPIs}
+        onClose={() => setShowWebAPIs(false)}
         tabId={activeTab?.id}
         url={activeTab?.url}
       />
