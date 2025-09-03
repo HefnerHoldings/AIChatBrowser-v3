@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DownloadsManager } from '@/components/DownloadsManager';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { HistoryPanel } from '@/components/HistoryPanel';
+import { TabPreview } from '@/components/TabPreview';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -30,7 +31,8 @@ import {
   History,
   Settings,
   EyeOff,
-  Eye
+  Eye,
+  Code2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -87,6 +89,10 @@ export default function Browser() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -286,12 +292,15 @@ export default function Browser() {
           e.preventDefault();
           setShowHistory(!showHistory);
         }
+      } else if (e.key === 'F12') {
+        e.preventDefault();
+        setShowDevTools(!showDevTools);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab, showBookmarks, showHistory]);
+  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -480,6 +489,24 @@ export default function Browser() {
                 }
               `}
               onClick={() => handleTabSwitch(tab.id)}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const timeout = setTimeout(() => {
+                  setHoveredTab(tab.id);
+                  setHoverPosition({ 
+                    x: rect.left + rect.width / 2 - 160, 
+                    y: rect.bottom 
+                  });
+                }, 500);
+                setHoverTimeout(timeout);
+              }}
+              onMouseLeave={() => {
+                if (hoverTimeout) {
+                  clearTimeout(hoverTimeout);
+                  setHoverTimeout(null);
+                }
+                setHoveredTab(null);
+              }}
             >
               {tab.favicon ? (
                 <img src={tab.favicon} alt="" className="w-4 h-4" />
@@ -670,6 +697,10 @@ export default function Browser() {
                 <History className="mr-2 h-4 w-4" />
                 Historikk
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowDevTools(!showDevTools)}>
+                <Code2 className="mr-2 h-4 w-4" />
+                {showDevTools ? 'Skjul' : 'Vis'} utviklerverktøy (F12)
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Åpne i nytt vindu
@@ -755,33 +786,101 @@ export default function Browser() {
       </div>
 
       {/* Browser Viewport */}
-      <div className="flex-1 relative bg-white">
-        {activeTab ? (
-          <>
-            {isNavigating && (
-              <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                  <p className="text-sm text-muted-foreground">Laster...</p>
+      <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative bg-white`}>
+        <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
+          {activeTab ? (
+            <>
+              {isNavigating && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="text-sm text-muted-foreground">Laster...</p>
+                  </div>
+                </div>
+              )}
+              <iframe
+                ref={iframeRef}
+                src={activeTab.url}
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                title="Browser viewport"
+              />
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-lg font-medium">Ingen fane åpen</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Trykk Ctrl+T for å åpne en ny fane
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Developer Tools Panel */}
+        {showDevTools && (
+          <div className="w-96 bg-card border-l flex flex-col">
+            <div className="p-3 border-b flex items-center justify-between">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Code2 className="w-4 h-4" />
+                Utviklerverktøy
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setShowDevTools(false)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="flex-1 p-4 overflow-auto">
+              <div className="space-y-4 text-sm">
+                <div>
+                  <p className="font-medium mb-2">Nåværende side</p>
+                  <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                    <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
+                    <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
+                    <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">Console</p>
+                  <div className="bg-zinc-900 text-zinc-300 p-3 rounded font-mono text-xs h-32 overflow-auto">
+                    <p className="text-zinc-500">// Console output vil vises her</p>
+                    <p className="text-blue-400">[Info] Side lastet</p>
+                    <p className="text-yellow-400">[Warning] Mixed content</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">Nettverk</p>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between p-1 hover:bg-muted rounded">
+                      <span>document</span>
+                      <span className="text-green-600">200 OK</span>
+                    </div>
+                    <div className="flex justify-between p-1 hover:bg-muted rounded">
+                      <span>style.css</span>
+                      <span className="text-green-600">200 OK</span>
+                    </div>
+                    <div className="flex justify-between p-1 hover:bg-muted rounded">
+                      <span>script.js</span>
+                      <span className="text-green-600">200 OK</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p className="font-medium mb-2">Ytelse</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p>Lastetid: 1.23s</p>
+                    <p>DOM klar: 0.45s</p>
+                    <p>Ressurser: 15</p>
+                    <p>Størrelse: 2.1 MB</p>
+                  </div>
                 </div>
               </div>
-            )}
-            <iframe
-              ref={iframeRef}
-              src={activeTab.url}
-              className="w-full h-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              title="Browser viewport"
-            />
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">Ingen fane åpen</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Trykk Ctrl+T for å åpne en ny fane
-              </p>
             </div>
           </div>
         )}
@@ -818,6 +917,15 @@ export default function Browser() {
           }
         }}
       />
+      
+      {/* Tab Preview */}
+      {hoveredTab && browserInstance && (
+        <TabPreview
+          tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
+          isActive={activeTab?.id === hoveredTab}
+          position={hoverPosition}
+        />
+      )}
     </div>
   );
 }
