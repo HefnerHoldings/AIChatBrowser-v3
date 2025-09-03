@@ -1,61 +1,37 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, ArrowRight, RefreshCw, Camera, Crosshair, Wand2 } from "lucide-react";
+import { Camera, Crosshair, Wand2 } from "lucide-react";
+import { BrowserNavigation } from "./browser-navigation";
 
 interface BrowserViewportProps {
   currentTaskId: string;
 }
 
 export default function BrowserViewport({ currentTaskId }: BrowserViewportProps) {
-  const [url, setUrl] = useState("https://www.google.com/search?q=cookware+wholesaler+EU");
-
   return (
     <div className="flex-1 p-4">
-      {/* Browser Controls */}
-      <div className="flex items-center space-x-2 mb-4 p-3 bg-card/50 rounded-lg border border-border">
-        <div className="flex items-center space-x-2 flex-1">
-          <Button variant="ghost" size="sm" data-testid="button-back">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" data-testid="button-forward">
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" data-testid="button-refresh">
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-          
-          <div className="flex-1 mx-4">
-            <Input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="bg-input border-border"
-              data-testid="input-url"
-            />
-          </div>
-          
-          <Button size="sm" data-testid="button-navigate">
-            Go
-          </Button>
-        </div>
-        
-        <div className="flex items-center space-x-2 border-l border-border pl-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="glassmorphism" 
-            title="Auto-mode active"
-            data-testid="button-auto-mode"
-          >
-            <Wand2 className="w-4 h-4 text-primary" />
-          </Button>
-          <Button variant="ghost" size="sm" data-testid="button-screenshot">
-            <Camera className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" data-testid="button-highlight">
-            <Crosshair className="w-4 h-4" />
-          </Button>
-        </div>
+      {/* Browser Navigation */}
+      <BrowserNavigation />
+      
+      {/* Automation Controls */}
+      <div className="flex items-center justify-end space-x-2 mt-2 mb-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="glassmorphism" 
+          title="Auto-mode active"
+          data-testid="button-auto-mode"
+        >
+          <Wand2 className="w-4 h-4 text-primary" />
+          <span className="ml-1 text-xs">Auto Mode</span>
+        </Button>
+        <Button variant="ghost" size="sm" data-testid="button-screenshot">
+          <Camera className="w-4 h-4" />
+          <span className="ml-1 text-xs">Screenshot</span>
+        </Button>
+        <Button variant="ghost" size="sm" data-testid="button-highlight">
+          <Crosshair className="w-4 h-4" />
+          <span className="ml-1 text-xs">Selector</span>
+        </Button>
       </div>
       
       {/* Browser Viewport */}

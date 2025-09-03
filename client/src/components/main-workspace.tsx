@@ -15,6 +15,9 @@ import { LeadDataVault } from "./lead-data-vault";
 import { Marketplace } from "./marketplace";
 import { PolicyGuard } from "./policy-guard";
 import { CollaborativeMode } from "./collaborative-mode";
+import { UserAuthentication } from "./user-authentication";
+import { CommunityHub } from "./community-hub";
+import { PluginDevelopment } from "./plugin-development";
 
 interface MainWorkspaceProps {
   activeTab: string;
@@ -40,6 +43,9 @@ export default function MainWorkspace({ activeTab, setActiveTab, currentTaskId }
     { id: "marketplace", label: "Marketplace" },
     { id: "policy", label: "Policy Guard" },
     { id: "collab", label: "Collaborative" },
+    { id: "account", label: "Account" },
+    { id: "community", label: "Community" },
+    { id: "plugins", label: "Plugin Dev" },
   ];
 
   return (
@@ -83,6 +89,9 @@ export default function MainWorkspace({ activeTab, setActiveTab, currentTaskId }
         {activeTab === "marketplace" && <Marketplace />}
         {activeTab === "policy" && <PolicyGuard />}
         {activeTab === "collab" && <CollaborativeMode sessionId="session-1" />}
+        {activeTab === "account" && <UserAuthentication />}
+        {activeTab === "community" && <CommunityHub />}
+        {activeTab === "plugins" && <PluginDevelopment />}
       </div>
     </div>
   );
