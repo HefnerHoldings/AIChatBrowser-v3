@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Search, Clock, Globe, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { BrowserHistory } from '@shared/schema';
@@ -25,18 +25,20 @@ export function SearchSuggestions({
   onClose,
   anchorRef
 }: SearchSuggestionsProps) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(false);
 
   // Hent historikk for forslag
   const { data: history = [] } = useQuery<BrowserHistory[]>({
     queryKey: ['/api/browser-history'],
-    enabled: isOpen && query.length > 0
+    enabled: isOpen && query.length > 0,
+    staleTime: 30000, // Cache i 30 sekunder
+    refetchOnWindowFocus: false
   });
 
   // Generer forslag basert på søk
-  const generatedSuggestions = useMemo(() => {
+  const suggestions = useMemo(() => {
     if (!query || !isOpen) {
       return [];
     }
@@ -46,7 +48,6 @@ export function SearchSuggestions({
 
     // Sjekk om det er en URL
     if (query.includes('.') || query.startsWith('http')) {
-      // Hvis det ser ut som en URL, foreslå å navigere direkte
       const url = query.startsWith('http') ? query : `https://${query}`;
       newSuggestions.push({
         type: 'url',
@@ -84,47 +85,47 @@ export function SearchSuggestions({
 
     return newSuggestions;
   }, [query, history, isOpen]);
-  
-  // Update suggestions when generated suggestions change
+
+  // Reset selected index når forslag endres
   useEffect(() => {
-    setSuggestions(generatedSuggestions);
     setSelectedIndex(-1);
-  }, [generatedSuggestions]);
+  }, [suggestions.length, query]);
 
   // Håndter tastatursnarveier
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isOpen || suggestions.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+          onSelect(suggestions[selectedIndex].url);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        onClose();
+        break;
+    }
+  }, [isOpen, selectedIndex, suggestions, onSelect, onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIndex(prev => 
-            prev < suggestions.length - 1 ? prev + 1 : 0
-          );
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIndex(prev => 
-            prev > 0 ? prev - 1 : suggestions.length - 1
-          );
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-            onSelect(suggestions[selectedIndex].url);
-          }
-          break;
-        case 'Escape':
-          e.preventDefault();
-          onClose();
-          break;
-      }
-    };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedIndex, suggestions, onSelect, onClose]);
+  }, [isOpen, handleKeyDown]);
 
   // Lukk ved klikk utenfor
   useEffect(() => {
@@ -137,9 +138,24 @@ export function SearchSuggestions({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    // Forsinkelse for å unngå umiddelbar lukking
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isOpen, onClose, anchorRef]);
+
+  // Sett mounted ref
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (!isOpen || suggestions.length === 0) return null;
 
