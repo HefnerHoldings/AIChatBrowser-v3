@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { DownloadsManager } from '@/components/DownloadsManager';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
+import { HistoryPanel } from '@/components/HistoryPanel';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -85,6 +86,7 @@ export default function Browser() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -280,13 +282,16 @@ export default function Browser() {
         } else if (e.key === 'n' && e.shiftKey) {
           e.preventDefault();
           handleToggleIncognito();
+        } else if (e.key === 'h') {
+          e.preventDefault();
+          setShowHistory(!showHistory);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab, showBookmarks]);
+  }, [browserInstance, activeTab, showBookmarks, showHistory]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -661,6 +666,10 @@ export default function Browser() {
                 <Star className="mr-2 h-4 w-4" />
                 Bokmerker
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowHistory(true)}>
+                <History className="mr-2 h-4 w-4" />
+                Historikk
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Åpne i nytt vindu
@@ -797,6 +806,18 @@ export default function Browser() {
           </span>
         </div>
       </div>
+      
+      {/* History Panel */}
+      <HistoryPanel 
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        onNavigate={(url) => {
+          if (activeTab) {
+            setUrlInput(url);
+            navigateMutation.mutate({ tabId: activeTab.id, url });
+          }
+        }}
+      />
     </div>
   );
 }
