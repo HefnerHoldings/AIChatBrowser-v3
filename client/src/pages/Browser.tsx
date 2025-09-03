@@ -32,7 +32,10 @@ import {
   Settings,
   EyeOff,
   Eye,
-  Code2
+  Code2,
+  Maximize2,
+  Minimize2,
+  Printer
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -90,6 +93,8 @@ export default function Browser() {
   const [isIncognito, setIsIncognito] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenBar, setShowFullscreenBar] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -295,12 +300,18 @@ export default function Browser() {
       } else if (e.key === 'F12') {
         e.preventDefault();
         setShowDevTools(!showDevTools);
+      } else if (e.key === 'F11') {
+        e.preventDefault();
+        handleToggleFullscreen();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        handlePrint();
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools]);
+  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools, isFullscreen]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -458,9 +469,124 @@ export default function Browser() {
         : 'Normal nettlesing gjenopptatt'
     });
   };
+  
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+      toast({
+        title: 'Fullskjerm aktivert',
+        description: 'Trykk F11 eller Esc for å avslutte',
+      });
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+  
+  const handlePrint = () => {
+    if (iframeRef.current && activeTab) {
+      try {
+        const printWindow = window.open(activeTab.url, '_blank');
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
+      } catch (error) {
+        toast({
+          title: 'Kunne ikke skrive ut',
+          description: 'Prøv å laste siden på nytt',
+          variant: 'destructive'
+        });
+      }
+    }
+  };
+  
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+  
+  // Show/hide fullscreen bar on mouse move
+  useEffect(() => {
+    if (!isFullscreen) return;
+    
+    let timeout: NodeJS.Timeout;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientY < 50) {
+        setShowFullscreenBar(true);
+        clearTimeout(timeout);
+        timeout = setTimeout(() => setShowFullscreenBar(false), 3000);
+      }
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      clearTimeout(timeout);
+    };
+  }, [isFullscreen]);
 
   return (
-    <div className={`flex flex-col h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+    <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+      {/* Fullscreen Navigation Bar */}
+      {isFullscreen && showFullscreenBar && (
+        <div className="absolute top-0 left-0 right-0 bg-card/95 backdrop-blur border-b z-50 animate-in slide-in-from-top duration-200">
+          <div className="flex items-center gap-2 p-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBack}
+              disabled={!activeTab?.canGoBack}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleForward}
+              disabled={!activeTab?.canGoForward}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleReload}
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+            <div className="flex-1 mx-2">
+              <Input
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleNavigate();
+                  }
+                }}
+                className="h-8"
+                placeholder="Søk eller skriv inn adresse"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleToggleFullscreen}
+              title="Avslutt fullskjerm (F11)"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {/* Incognito Indicator */}
       {isIncognito && (
         <div className="bg-purple-900 text-white px-3 py-1 text-xs flex items-center gap-2">
@@ -470,6 +596,7 @@ export default function Browser() {
       )}
       
       {/* Browser Header */}
+      {!isFullscreen && (
       <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
         {/* Tab Bar */}
         <div className={`flex items-center gap-1 p-1 min-h-[40px] ${isIncognito ? 'bg-zinc-700' : 'bg-muted/50'}`}>
@@ -701,6 +828,23 @@ export default function Browser() {
                 <Code2 className="mr-2 h-4 w-4" />
                 {showDevTools ? 'Skjul' : 'Vis'} utviklerverktøy (F12)
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleToggleFullscreen}>
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="mr-2 h-4 w-4" />
+                    Avslutt fullskjerm (F11)
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="mr-2 h-4 w-4" />
+                    Fullskjerm (F11)
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Skriv ut (Ctrl+P)
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Åpne i nytt vindu
@@ -784,6 +928,7 @@ export default function Browser() {
           </div>
         )}
       </div>
+      )}
 
       {/* Browser Viewport */}
       <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative bg-white`}>
