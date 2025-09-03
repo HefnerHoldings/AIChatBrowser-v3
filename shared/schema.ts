@@ -260,6 +260,19 @@ export const downloads = pgTable("downloads", {
   completedAt: timestamp("completed_at"),
 });
 
+// Saved passwords table
+export const savedPasswords = pgTable("saved_passwords", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  domain: text("domain").notNull(),
+  username: text("username").notNull(),
+  password: text("password").notNull(), // In production, this should be encrypted
+  title: text("title"),
+  favicon: text("favicon"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+  lastUsed: timestamp("last_used"),
+});
+
 // Insert schema for downloads
 export const insertDownloadSchema = createInsertSchema(downloads).omit({
   id: true,
@@ -268,11 +281,21 @@ export const insertDownloadSchema = createInsertSchema(downloads).omit({
   progress: true,
 });
 
+// Insert schema for saved passwords
+export const insertSavedPasswordSchema = createInsertSchema(savedPasswords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastUsed: true,
+});
+
 // Types for browser tables
 export type Bookmark = typeof bookmarks.$inferSelect;
 export type BrowserHistory = typeof browserHistory.$inferSelect;
 export type Download = typeof downloads.$inferSelect;
+export type SavedPassword = typeof savedPasswords.$inferSelect;
 
 export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
 export type InsertBrowserHistory = z.infer<typeof insertBrowserHistorySchema>;
 export type InsertDownload = z.infer<typeof insertDownloadSchema>;
+export type InsertSavedPassword = z.infer<typeof insertSavedPasswordSchema>;

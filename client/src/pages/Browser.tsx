@@ -12,6 +12,9 @@ import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { TabPreview } from '@/components/TabPreview';
 import { FindBar } from '@/components/FindBar';
+import { PasswordManager } from '@/components/PasswordManager';
+import { ReaderMode } from '@/components/ReaderMode';
+import { SessionRestore } from '@/components/SessionRestore';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -29,6 +32,8 @@ import {
   ExternalLink,
   ChevronDown,
   Bookmark as BookmarkIcon,
+  Key,
+  BookOpen,
   History,
   Settings,
   EyeOff,
@@ -96,6 +101,9 @@ export default function Browser() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [detectedFormData, setDetectedFormData] = useState<{username: string, password: string, domain: string} | null>(null);
+  const [showReaderMode, setShowReaderMode] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFullscreenBar, setShowFullscreenBar] = useState(false);
@@ -329,7 +337,7 @@ export default function Browser() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools, isFullscreen, zoomLevel, showFindBar]);
+  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools, isFullscreen, zoomLevel, showFindBar, showPasswords]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -345,6 +353,20 @@ export default function Browser() {
     if (!browserInstance) return;
     
     try {
+      // Lagre lukket fane for senere gjenoppretting
+      const closedTab = browserInstance.tabs.find(tab => tab.id === tabId);
+      if (closedTab) {
+        const recentlyClosed = JSON.parse(localStorage.getItem('recently_closed_tabs') || '[]');
+        recentlyClosed.unshift({
+          id: closedTab.id,
+          title: closedTab.title,
+          url: closedTab.url,
+          favicon: closedTab.favicon
+        });
+        // Behold maks 10 nylig lukkede faner
+        localStorage.setItem('recently_closed_tabs', JSON.stringify(recentlyClosed.slice(0, 10)));
+      }
+      
       await apiRequest(
         'DELETE',
         `/api/browser-engine/instance/${browserInstance.id}/tab/${tabId}`
@@ -840,6 +862,46 @@ export default function Browser() {
             >
               <BookmarkIcon className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowReaderMode(true)}
+              title="Lesemodus"
+              disabled={!activeTab?.url || activeTab.url === 'about:blank'}
+            >
+              <BookOpen className="h-4 w-4" />
+            </Button>
+            <SessionRestore
+              currentTabs={browserInstance?.tabs.map(tab => ({
+                id: tab.id,
+                title: tab.title,
+                url: tab.url,
+                favicon: tab.favicon
+              })) || []}
+              onRestoreSession={(session) => {
+                // Gjenopprett alle faner fra økten
+                session.tabs.forEach((tab, index) => {
+                  if (index === 0 && activeTab) {
+                    // Bruk eksisterende fane for første URL
+                    navigateMutation.mutate({ tabId: activeTab.id, url: tab.url });
+                  } else {
+                    // Opprett nye faner for resten
+                    apiRequest(
+                      '/api/browser-engine/tab/create',
+                      'POST',
+                      {
+                        instanceId: browserInstance?.id,
+                        url: tab.url
+                      }
+                    );
+                  }
+                });
+                toast({
+                  title: 'Økt gjenopprettet',
+                  description: `${session.tabs.length} ${session.tabs.length === 1 ? 'fane' : 'faner'} ble gjenopprettet`,
+                });
+              }}
+            />
             <DownloadsManager />
           </div>
 
@@ -880,6 +942,10 @@ export default function Browser() {
               <DropdownMenuItem onClick={() => setShowHistory(true)}>
                 <History className="mr-2 h-4 w-4" />
                 Historikk
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowPasswords(true)}>
+                <Key className="mr-2 h-4 w-4" />
+                Passord
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowDevTools(!showDevTools)}>
                 <Code2 className="mr-2 h-4 w-4" />
@@ -1152,6 +1218,133 @@ export default function Browser() {
           }
         }}
       />
+
+      {/* Password Manager */}
+      {showPasswords && (
+        <div className="fixed top-0 right-0 w-96 h-full bg-background border-l shadow-lg z-50">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="font-semibold">Passordbehandling</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowPasswords(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <PasswordManager
+            currentDomain={activeTab?.url ? new URL(activeTab.url).hostname : undefined}
+            onAutoFill={(username, password) => {
+              // Inject auto-fill script into active tab
+              if (activeTab && browserInstance) {
+                const autoFillScript = `
+                  (function() {
+                    // Find all password fields
+                    const passwordFields = document.querySelectorAll('input[type="password"]');
+                    if (passwordFields.length > 0) {
+                      passwordFields[0].value = '${password.replace(/'/g, "\\'")}';
+                      
+                      // Try to find username field
+                      const passwordField = passwordFields[0];
+                      const form = passwordField.closest('form');
+                      
+                      if (form) {
+                        // Look for username input in same form
+                        const usernameFields = form.querySelectorAll(
+                          'input[type="text"], input[type="email"], input[name*="user"], input[name*="email"], input[name*="login"]'
+                        );
+                        
+                        if (usernameFields.length > 0) {
+                          usernameFields[0].value = '${username.replace(/'/g, "\\'")}';
+                        }
+                      } else {
+                        // Try to find username field near password field
+                        const allInputs = document.querySelectorAll('input[type="text"], input[type="email"]');
+                        for (let input of allInputs) {
+                          const rect1 = input.getBoundingClientRect();
+                          const rect2 = passwordField.getBoundingClientRect();
+                          const distance = Math.sqrt(
+                            Math.pow(rect1.left - rect2.left, 2) + 
+                            Math.pow(rect1.top - rect2.top, 2)
+                          );
+                          
+                          // If input is within 200 pixels of password field, assume it's the username
+                          if (distance < 200) {
+                            input.value = '${username.replace(/'/g, "\\'")}';
+                            break;
+                          }
+                        }
+                      }
+                      
+                      // Trigger input events
+                      passwordFields[0].dispatchEvent(new Event('input', { bubbles: true }));
+                      passwordFields[0].dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                  })();
+                `;
+                
+                apiRequest(
+                  'POST',
+                  '/api/browser-engine/tab/execute',
+                  {
+                    instanceId: browserInstance.id,
+                    tabId: activeTab.id,
+                    script: autoFillScript
+                  }
+                );
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* Password Save Dialog */}
+      {detectedFormData && (
+        <div className="fixed bottom-4 right-4 w-96 p-4 bg-background border rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2 mb-3">
+            <Key className="h-5 w-5 text-primary" />
+            <h4 className="font-semibold">Lagre passord?</h4>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Vil du lagre passordet for {detectedFormData.username} på {detectedFormData.domain}?
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDetectedFormData(null)}
+            >
+              Nei takk
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                // Save the password
+                apiRequest(
+                  '/api/saved-passwords',
+                  'POST',
+                  {
+                    domain: detectedFormData.domain,
+                    username: detectedFormData.username,
+                    password: detectedFormData.password,
+                    title: `${detectedFormData.username} på ${detectedFormData.domain}`,
+                    favicon: activeTab?.favicon
+                  }
+                ).then(() => {
+                  toast({
+                    title: 'Passord lagret',
+                    description: 'Passordet er trygt lagret i nettleseren',
+                  });
+                  setDetectedFormData(null);
+                });
+              }}
+            >
+              Lagre passord
+            </Button>
+          </div>
+        </div>
+      )}
+      
       
       {/* Tab Preview */}
       {hoveredTab && browserInstance && (
@@ -1167,6 +1360,14 @@ export default function Browser() {
         isOpen={showFindBar}
         onClose={() => setShowFindBar(false)}
         onFind={handleFind}
+      />
+      
+      {/* Reader Mode */}
+      <ReaderMode
+        isOpen={showReaderMode}
+        onClose={() => setShowReaderMode(false)}
+        url={activeTab?.url || ''}
+        title={activeTab?.title || ''}
       />
     </div>
   );

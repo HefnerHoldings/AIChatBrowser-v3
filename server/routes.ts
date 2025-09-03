@@ -18,7 +18,8 @@ import {
   insertAdrRecordSchema,
   insertBookmarkSchema,
   insertBrowserHistorySchema,
-  insertDownloadSchema
+  insertDownloadSchema,
+  insertSavedPasswordSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1616,6 +1617,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await storage.deleteDownload(req.params.id);
       if (!success) {
         res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Saved passwords endpoints
+  app.get("/api/saved-passwords", async (req, res) => {
+    try {
+      const passwords = await storage.getSavedPasswords();
+      res.json(passwords);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/saved-passwords/domain/:domain", async (req, res) => {
+    try {
+      const passwords = await storage.getSavedPasswordForDomain(req.params.domain);
+      res.json(passwords);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/saved-passwords", async (req, res) => {
+    try {
+      const data = insertSavedPasswordSchema.parse(req.body);
+      const password = await storage.savePassword(data);
+      res.json(password);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid password data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
+  app.patch("/api/saved-passwords/:id", async (req, res) => {
+    try {
+      const updates = insertSavedPasswordSchema.partial().parse(req.body);
+      const password = await storage.updatePassword(req.params.id, updates);
+      if (!password) {
+        res.status(404).json({ message: "Password not found" });
+        return;
+      }
+      res.json(password);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid password data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
+  app.delete("/api/saved-passwords/:id", async (req, res) => {
+    try {
+      const success = await storage.deletePassword(req.params.id);
+      if (!success) {
+        res.status(404).json({ message: "Password not found" });
         return;
       }
       res.json({ success: true });

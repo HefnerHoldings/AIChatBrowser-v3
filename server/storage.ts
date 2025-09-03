@@ -22,7 +22,9 @@ import {
   type InsertAdrRecord,
   type InsertBookmark,
   type InsertBrowserHistory,
-  type InsertDownload
+  type InsertDownload,
+  type SavedPassword,
+  type InsertSavedPassword
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -92,6 +94,13 @@ export interface IStorage {
   createDownload(download: InsertDownload): Promise<Download>;
   updateDownload(id: string, updates: Partial<InsertDownload>): Promise<Download | undefined>;
   deleteDownload(id: string): Promise<boolean>;
+  
+  // Saved Passwords
+  getSavedPasswords(): Promise<SavedPassword[]>;
+  getSavedPasswordForDomain(domain: string): Promise<SavedPassword[]>;
+  savePassword(password: InsertSavedPassword): Promise<SavedPassword>;
+  updatePassword(id: string, updates: Partial<InsertSavedPassword>): Promise<SavedPassword | undefined>;
+  deletePassword(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -107,6 +116,7 @@ export class MemStorage implements IStorage {
   private bookmarks: Map<string, Bookmark> = new Map();
   private browserHistory: Map<string, BrowserHistory> = new Map();
   private downloads: Map<string, Download> = new Map();
+  private savedPasswords: Map<string, SavedPassword> = new Map();
 
   constructor() {
     this.seedData();
@@ -716,6 +726,55 @@ export class MemStorage implements IStorage {
 
   async deleteDownload(id: string): Promise<boolean> {
     return this.downloads.delete(id);
+  }
+  
+  // Saved Passwords
+  async getSavedPasswords(): Promise<SavedPassword[]> {
+    return Array.from(this.savedPasswords.values()).sort((a, b) => 
+      (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0)
+    );
+  }
+
+  async getSavedPasswordForDomain(domain: string): Promise<SavedPassword[]> {
+    return Array.from(this.savedPasswords.values())
+      .filter(p => p.domain === domain || p.domain.includes(domain))
+      .sort((a, b) => (b.lastUsed?.getTime() || 0) - (a.lastUsed?.getTime() || 0));
+  }
+
+  async savePassword(insertPassword: InsertSavedPassword): Promise<SavedPassword> {
+    const id = randomUUID();
+    const now = new Date();
+    const password: SavedPassword = {
+      id,
+      domain: insertPassword.domain,
+      username: insertPassword.username,
+      password: insertPassword.password,
+      title: insertPassword.title || null,
+      favicon: insertPassword.favicon || null,
+      createdAt: now,
+      updatedAt: now,
+      lastUsed: null,
+    };
+    this.savedPasswords.set(id, password);
+    return password;
+  }
+
+  async updatePassword(id: string, updates: Partial<InsertSavedPassword>): Promise<SavedPassword | undefined> {
+    const password = this.savedPasswords.get(id);
+    if (!password) return undefined;
+
+    const updated: SavedPassword = {
+      ...password,
+      ...updates,
+      updatedAt: new Date(),
+      lastUsed: updates.password ? new Date() : password.lastUsed,
+    };
+    this.savedPasswords.set(id, updated);
+    return updated;
+  }
+
+  async deletePassword(id: string): Promise<boolean> {
+    return this.savedPasswords.delete(id);
   }
 }
 
