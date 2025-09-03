@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Compass, Play, Rocket, User, Shield, Command } from "lucide-react";
+import { Compass, Play, Rocket, User, Shield, Command, Globe } from "lucide-react";
 import PermissionManager from "./permission-manager";
 import CommandPalette from "./command-palette";
 
@@ -102,6 +103,17 @@ export default function TopNavigation({
           </div>
           
           <div className="flex items-center space-x-2">
+            <Link href="/browser">
+              <Button 
+                variant="outline" 
+                size="sm"
+                title="Åpne nettleser"
+                data-testid="button-browser"
+              >
+                <Globe className="w-4 h-4 mr-1" />
+                Nettleser
+              </Button>
+            </Link>
             <Button 
               variant="ghost" 
               size="sm" 
