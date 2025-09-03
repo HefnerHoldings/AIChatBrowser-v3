@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { DownloadsManager } from '@/components/DownloadsManager';
+import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -79,7 +80,9 @@ export default function Browser() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const addressBarRef = useRef<HTMLDivElement>(null);
   
   // Fetch bookmarks
   const { data: bookmarks = [], refetch: refetchBookmarks } = useQuery<Bookmark[]>({
@@ -507,7 +510,7 @@ export default function Browser() {
 
           {/* Address Bar */}
           <div className="flex-1 flex items-center gap-2">
-            <div className="relative flex-1 flex items-center">
+            <div ref={addressBarRef} className="relative flex-1 flex items-center">
               {activeTab?.url?.startsWith('https://') && (
                 <Shield className="absolute left-3 h-4 w-4 text-green-600" />
               )}
@@ -515,9 +518,13 @@ export default function Browser() {
                 id="url-input"
                 type="text"
                 value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
+                onChange={(e) => {
+                  setUrlInput(e.target.value);
+                  setShowSuggestions(e.target.value.length > 0);
+                }}
+                onFocus={() => setShowSuggestions(urlInput.length > 0)}
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !showSuggestions) {
                     handleNavigate();
                   }
                 }}
@@ -532,6 +539,21 @@ export default function Browser() {
                   onClick={handleNavigate}
                 />
               )}
+              
+              {/* Search Suggestions */}
+              <SearchSuggestions
+                query={urlInput}
+                isOpen={showSuggestions}
+                onSelect={(url) => {
+                  setUrlInput(url);
+                  setShowSuggestions(false);
+                  if (activeTab) {
+                    navigateMutation.mutate({ tabId: activeTab.id, url });
+                  }
+                }}
+                onClose={() => setShowSuggestions(false)}
+                anchorRef={addressBarRef}
+              />
             </div>
           </div>
           
