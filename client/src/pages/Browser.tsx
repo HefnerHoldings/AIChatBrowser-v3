@@ -652,7 +652,7 @@ export default function Browser() {
   return (
     <div className={`relative h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
       {/* Main Content Area */}
-      <div className="h-full flex flex-col pr-[320px]">
+      <div className="h-full flex flex-col">
         {/* Main Navigation Tabs */}
         <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
         <TabsList className="w-full rounded-none justify-start px-4 bg-card">
@@ -690,14 +690,7 @@ export default function Browser() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="browser" className="flex-1 flex flex-row p-0 m-0 gap-0">
-          {/* Left Panel - Goal Tracking */}
-          <div className="w-80 border-r bg-card overflow-y-auto">
-            <GoalTracker />
-          </div>
-
-          {/* Main Browser Area */}
-          <div className="flex-1 flex flex-col">
+        <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0" style={{ paddingLeft: '320px', paddingRight: '320px' }}>
             {/* Browser Tabs Row */}
             {!isFullscreen && (
               <div className={`flex items-center border-b ${isIncognito ? 'bg-zinc-900 border-zinc-700' : 'bg-muted/20'} px-2 py-1`}>
@@ -1098,7 +1091,6 @@ export default function Browser() {
                 </div>
               )}
             </div>
-          </div>
         </TabsContent>
 
         {/* Workflow */}
@@ -1303,8 +1295,15 @@ export default function Browser() {
       )}
       </div>
       
-      {/* AI Assistant Sidebar - Positioned after tabs */}
-      <div className="absolute top-[45px] right-0 w-[320px] h-[calc(100%-45px)] border-l bg-background flex flex-col z-40">
+      {/* Goal Tracker Sidebar - Left side */}
+      {activeView === 'browser' && (
+        <div className="absolute top-[41px] left-0 w-80 h-[calc(100%-41px)] border-r bg-card overflow-y-auto z-40">
+          <GoalTracker />
+        </div>
+      )}
+      
+      {/* AI Assistant Sidebar - Right side */}
+      <div className="absolute top-[41px] right-0 w-[320px] h-[calc(100%-41px)] border-l bg-background flex flex-col z-40">
         <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
