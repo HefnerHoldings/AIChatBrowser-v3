@@ -143,8 +143,8 @@ export function ExtensionsAPI({ onClose }: ExtensionsAPIProps) {
 
   const initializeExtensionsAPI = () => {
     // Set up global chrome object for extensions
-    if (typeof window !== 'undefined' && !window.chrome) {
-      window.chrome = {
+    if (typeof window !== 'undefined' && !(window as any).chrome) {
+      (window as any).chrome = {
         runtime: createRuntimeAPI(),
         storage: createStorageAPI(),
         tabs: createTabsAPI(),
