@@ -1689,6 +1689,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cloud Sync endpoints
+  app.get('/api/sync/status', (req, res) => {
+    res.json({
+      isEnabled: true,
+      lastSync: new Date().toISOString(),
+      pendingChanges: 0,
+      conflicts: 0,
+      devices: 2
+    });
+  });
+
+  app.post('/api/sync/start', async (req, res) => {
+    // Simulate sync operation
+    res.json({
+      success: true,
+      itemsSynced: {
+        bookmarks: 156,
+        history: 1250,
+        passwords: 45,
+        settings: 1
+      },
+      duration: 2100
+    });
+  });
+
+  app.get('/api/sync/conflicts', (req, res) => {
+    res.json([]);
+  });
+
+  app.post('/api/sync/conflicts/:id/resolve', (req, res) => {
+    const { id } = req.params;
+    const { resolution } = req.body;
+    res.json({ success: true, conflictId: id, resolution });
+  });
+
+  app.get('/api/sync/devices', (req, res) => {
+    res.json([
+      {
+        id: 'device-1',
+        name: 'Min Desktop',
+        type: 'desktop',
+        lastSeen: new Date().toISOString(),
+        isActive: true,
+        browser: 'MadEasy Browser v2.0',
+        os: 'Windows 11'
+      },
+      {
+        id: 'device-2',
+        name: 'Min iPhone',
+        type: 'mobile',
+        lastSeen: new Date(Date.now() - 3600000).toISOString(),
+        isActive: false,
+        browser: 'MadEasy Mobile v2.0',
+        os: 'iOS 17'
+      }
+    ]);
+  });
+
+  app.post('/api/sync/backup', async (req, res) => {
+    res.json({
+      id: `backup-${Date.now()}`,
+      name: req.body.name || 'Manual backup',
+      createdAt: new Date().toISOString(),
+      size: Math.random() * 5 * 1024 * 1024,
+      type: 'manual'
+    });
+  });
+
+  app.get('/api/sync/backups', (req, res) => {
+    res.json([
+      {
+        id: 'backup-1',
+        name: 'Automatisk backup',
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        size: 2.5 * 1024 * 1024,
+        type: 'auto',
+        items: {
+          bookmarks: 156,
+          history: 1250,
+          passwords: 45,
+          settings: 1
+        }
+      }
+    ]);
+  });
+
+  app.post('/api/sync/restore/:backupId', async (req, res) => {
+    const { backupId } = req.params;
+    res.json({ success: true, backupId, restoredItems: 1500 });
+  });
+
   // AI Agent Orchestration endpoints
   app.post("/api/agents/task", async (req, res) => {
     try {
