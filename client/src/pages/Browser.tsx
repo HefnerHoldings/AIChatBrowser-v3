@@ -1299,26 +1299,39 @@ export default function Browser() {
       )}
       </div>
       
-      {/* AI Assistant Column - Always visible on the right */}
-      <div className="w-[400px] border-l bg-background">
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Bot className="h-5 w-5 text-purple-500" />
-              AI Browser Assistant
-            </h3>
+      {/* AI Assistant Column - Compact size */}
+      <div className="w-[350px] border-l bg-background flex flex-col">
+        <div className="h-[420px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-2.5 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <Bot className="h-4 w-4 text-purple-500" />
+                AI Assistant
+              </h3>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <AIAssistant
+                currentUrl={activeTab?.url}
+                pageContent=""
+                onNavigate={(url) => {
+                  if (activeTab) {
+                    setUrlInput(url);
+                    navigateMutation.mutate({ tabId: activeTab.id, url });
+                  }
+                }}
+              />
+            </div>
           </div>
-          <div className="flex-1 overflow-auto">
-            <AIAssistant
-              currentUrl={activeTab?.url}
-              pageContent=""
-              onNavigate={(url) => {
-                if (activeTab) {
-                  setUrlInput(url);
-                  navigateMutation.mutate({ tabId: activeTab.id, url });
-                }
-              }}
-            />
+        </div>
+        {/* Remaining space below AI Assistant */}
+        <div className="flex-1 bg-muted/5 p-4">
+          <div className="text-xs text-muted-foreground">
+            <p className="mb-2">Quick Tips:</p>
+            <ul className="space-y-1 ml-3">
+              <li>• Chat with AI about the current page</li>
+              <li>• Ask for summaries and insights</li>
+              <li>• Navigate with natural language</li>
+            </ul>
           </div>
         </div>
       </div>
