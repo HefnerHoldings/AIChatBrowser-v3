@@ -1297,13 +1297,13 @@ export default function Browser() {
       
       {/* Goal Tracker Sidebar - Left side */}
       {activeView === 'browser' && (
-        <div className="absolute top-[120px] left-0 w-80 h-[calc(100%-120px)] border-r bg-card overflow-y-auto z-40">
+        <div className="absolute top-[180px] left-0 w-80 h-[calc(100%-180px)] border-r bg-card overflow-y-auto z-40">
           <GoalTracker />
         </div>
       )}
       
       {/* AI Assistant Sidebar - Right side */}
-      <div className="absolute top-[120px] right-0 w-[320px] h-[calc(100%-120px)] border-l bg-background flex flex-col z-40">
+      <div className="absolute top-[180px] right-0 w-[320px] h-[calc(100%-180px)] border-l bg-background flex flex-col z-40">
         <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
