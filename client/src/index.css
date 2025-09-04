@@ -139,9 +139,32 @@
     50% { opacity: 0.5; }
   }
   
+  @keyframes pulse-subtle {
+    0%, 100% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s infinite;
+  }
+  
   .glassmorphism {
     background: rgba(59, 130, 246, 0.1);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+  
+  /* Glass panel effect for sidebars */
+  .glass-panel {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
