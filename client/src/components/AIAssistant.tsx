@@ -47,7 +47,8 @@ import {
   Cpu,
   Gauge,
   BarChart3,
-  Activity
+  Activity,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
