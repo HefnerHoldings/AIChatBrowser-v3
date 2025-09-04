@@ -28,6 +28,7 @@ import { AIAssistant } from '@/components/AIAssistant';
 import { ExtensionsAPI } from '@/components/ExtensionsAPI';
 import { ContentScriptInjector } from '@/components/ContentScriptInjector';
 import { PWAManager } from '@/components/PWAManager';
+import { WorkflowManager } from '@/components/WorkflowManager';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -650,7 +651,7 @@ export default function Browser() {
           </TabsTrigger>
           <TabsTrigger value="workflow" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
-            Workflow Editor
+            Workflow
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -687,10 +688,6 @@ export default function Browser() {
           <TabsTrigger value="selector" className="flex items-center gap-2">
             <Code className="h-4 w-4" />
             Selector Studio
-          </TabsTrigger>
-          <TabsTrigger value="watched" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            Watched Workflows
           </TabsTrigger>
         </TabsList>
 
@@ -755,80 +752,88 @@ export default function Browser() {
 
           {/* Main Browser Area */}
           <div className="flex-1 flex flex-col">
+            {/* Browser Tabs Row */}
             {!isFullscreen && (
-              <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
-                {/* Tab Bar */}
-                {browserInstance && browserInstance.tabs.length > 0 && (
-                  <div className="flex items-center px-2 pt-2 bg-muted/30">
-                    <div className="flex-1 flex items-center gap-1 overflow-x-auto">
-                      {browserInstance.tabs.map(tab => (
-                        <div
-                          key={tab.id}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[150px] max-w-[250px] group relative ${
-                            activeTab?.id === tab.id 
-                              ? 'bg-background border-t border-l border-r' 
-                              : 'bg-muted/50 hover:bg-muted border border-transparent'
-                          }`}
-                          onClick={() => handleTabSwitch(tab.id)}
-                          onMouseEnter={(e) => {
-                            if (hoverTimeout) clearTimeout(hoverTimeout);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoverTimeout(setTimeout(() => {
-                              setHoveredTab(tab.id);
-                              setHoverPosition({ x: rect.left, y: rect.bottom });
-                            }, 500));
-                          }}
-                          onMouseLeave={() => {
-                            if (hoverTimeout) clearTimeout(hoverTimeout);
-                            setHoveredTab(null);
+              <div className={`flex items-center border-b ${isIncognito ? 'bg-zinc-900 border-zinc-700' : 'bg-muted/20'} px-2 py-1`}>
+                <div className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-thin">
+                  {browserInstance && browserInstance.tabs.length > 0 ? (
+                    browserInstance.tabs.map(tab => (
+                      <div
+                        key={tab.id}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[120px] max-w-[200px] group relative transition-all ${
+                          activeTab?.id === tab.id 
+                            ? 'bg-background border-t border-l border-r shadow-sm' 
+                            : 'bg-muted/30 hover:bg-muted/50 border border-transparent'
+                        }`}
+                        onClick={() => handleTabSwitch(tab.id)}
+                        onMouseEnter={(e) => {
+                          if (hoverTimeout) clearTimeout(hoverTimeout);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setHoverTimeout(setTimeout(() => {
+                            setHoveredTab(tab.id);
+                            setHoverPosition({ x: rect.left, y: rect.bottom });
+                          }, 500));
+                        }}
+                        onMouseLeave={() => {
+                          if (hoverTimeout) clearTimeout(hoverTimeout);
+                          setHoveredTab(null);
+                        }}
+                      >
+                        {tab.favicon ? (
+                          <img src={tab.favicon} alt="" className="w-3 h-3 shrink-0" />
+                        ) : (
+                          <Globe className="w-3 h-3 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="flex-1 text-xs truncate">
+                          {tab.title || 'Ny fane'}
+                        </span>
+                        {tab.isLoading && (
+                          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseTab(tab.id);
                           }}
                         >
-                          {tab.favicon ? (
-                            <img src={tab.favicon} alt="" className="w-4 h-4" />
-                          ) : (
-                            <Globe className="w-4 h-4 text-muted-foreground" />
-                          )}
-                          <span className="flex-1 text-sm truncate">
-                            {tab.title || 'Ny fane'}
-                          </span>
-                          {tab.isLoading && (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCloseTab(tab.id);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground px-3 py-1">
+                      Ingen faner åpne
                     </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 ml-1"
-                      onClick={handleNewTab}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                  )}
+                </div>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 ml-1 shrink-0"
+                  onClick={handleNewTab}
+                  title="Ny fane (Ctrl+T)"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
-                {/* Tab Preview */}
-                {hoveredTab && browserInstance && (
-                  <TabPreview
-                    tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
-                    position={hoverPosition}
-                  />
-                )}
+            {/* Tab Preview */}
+            {hoveredTab && browserInstance && !isFullscreen && (
+              <TabPreview
+                tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
+                position={hoverPosition}
+                isActive={hoveredTab === activeTab?.id}
+              />
+            )}
 
-                {/* Navigation Bar */}
+            {/* Navigation Bar */}
+            {!isFullscreen && (
+              <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
                 <div className="flex items-center gap-2 px-3 py-2">
                   <Button
                     variant="ghost"
@@ -1020,28 +1025,28 @@ export default function Browser() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+              </div>
+            )}
                 
-                {/* Bookmarks bar */}
-                {showBookmarks && bookmarks.length > 0 && (
-                  <div className="flex items-center bg-accent/30 border-b border-border px-3 py-1 gap-2 overflow-x-auto">
-                    {bookmarks.map(bookmark => (
-                      <Button
-                        key={bookmark.id}
-                        variant="ghost"
-                        size="sm"
-                        className="px-2 py-1 text-xs h-7 min-w-0 flex items-center gap-1"
-                        onClick={() => handleBookmarkClick(bookmark.url)}
-                        title={bookmark.url}
-                        data-testid={`bookmark-${bookmark.id}`}
-                      >
-                        {bookmark.favicon && (
-                          <img src={bookmark.favicon} alt="" className="w-3 h-3" />
-                        )}
-                        <span className="truncate max-w-[120px]">{bookmark.title}</span>
-                      </Button>
-                    ))}
-                  </div>
-                )}
+            {/* Bookmarks bar */}
+            {!isFullscreen && showBookmarks && bookmarks.length > 0 && (
+              <div className="flex items-center bg-accent/30 border-b border-border px-3 py-1 gap-2 overflow-x-auto">
+                {bookmarks.map(bookmark => (
+                  <Button
+                    key={bookmark.id}
+                    variant="ghost"
+                    size="sm"
+                    className="px-2 py-1 text-xs h-7 min-w-0 flex items-center gap-1"
+                    onClick={() => handleBookmarkClick(bookmark.url)}
+                    title={bookmark.url}
+                    data-testid={`bookmark-${bookmark.id}`}
+                  >
+                    {bookmark.favicon && (
+                      <img src={bookmark.favicon} alt="" className="w-3 h-3" />
+                    )}
+                    <span className="truncate max-w-[120px]">{bookmark.title}</span>
+                  </Button>
+                ))}
               </div>
             )}
 
@@ -1158,15 +1163,9 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        {/* Other tabs - placeholder content */}
+        {/* Workflow */}
         <TabsContent value="workflow" className="flex-1 p-4">
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <Layers className="h-16 w-16 mx-auto mb-4" />
-              <p className="text-lg font-medium">Workflow Editor</p>
-              <p className="text-sm mt-2">Bygg og administrer automatiserte arbeidsflyter</p>
-            </div>
-          </div>
+          <WorkflowManager />
         </TabsContent>
 
         <TabsContent value="data" className="flex-1 p-4">
@@ -1259,15 +1258,6 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="watched" className="flex-1 p-4">
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <Eye className="h-16 w-16 mx-auto mb-4" />
-              <p className="text-lg font-medium">Watched Workflows</p>
-              <p className="text-sm mt-2">Overvåk automatiserte arbeidsflyter</p>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
       
       {/* Floating panels */}
