@@ -32,7 +32,7 @@ import { WorkflowManager } from '@/components/WorkflowManager';
 import { AITesting } from '@/components/AITesting';
 import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
-import { VibeProfiler } from '@/components/vibecoding/VibeProfiler';
+import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -1176,7 +1176,7 @@ export default function Browser() {
 
         {/* Vibecoding Platform Tab */}
         <TabsContent value="vibecoding" className="flex-1 p-0">
-          <VibeProfiler />
+          <VibePlatform />
         </TabsContent>
 
         {/* Agent Team Tab */}
