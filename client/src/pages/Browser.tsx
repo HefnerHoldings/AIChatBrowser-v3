@@ -30,6 +30,7 @@ import { ContentScriptInjector } from '@/components/ContentScriptInjector';
 import { PWAManager } from '@/components/PWAManager';
 import { WorkflowManager } from '@/components/WorkflowManager';
 import { AITesting } from '@/components/AITesting';
+import { GoalTracker } from '@/components/GoalTracker';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -685,62 +686,9 @@ export default function Browser() {
         </TabsList>
 
         <TabsContent value="browser" className="flex-1 flex flex-row p-0 m-0 gap-0">
-          {/* Left Panel - Goal Planning */}
-          <div className="w-64 border-r bg-card p-4 space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Goal Planning
-              </h3>
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>You: Find 150 relevant cookware wholesalers in EU, extract contact info and export to XLSX</p>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium mb-2">Describe your goal</h4>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <p>Current Plan</p>
-                <p className="text-foreground">
-                  Search Google for wholesalers → Extract contact details → Validate email formats → Export to XLSX
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium mb-2">Permissions Required</h4>
-              <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Globe className="h-3 w-3 mr-2" />
-                  Browse
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Database className="h-3 w-3 mr-2" />
-                  Extract
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <FileCode2 className="h-3 w-3 mr-2" />
-                  Export
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start text-muted-foreground">
-                  <X className="h-3 w-3 mr-2" />
-                  Export to XLSX <span className="ml-1 text-xs">5m</span>
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium">Saved Workflows</h4>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-              <Button variant="default" className="w-full">
-                <Star className="h-4 w-4 mr-2" />
-                Executing
-              </Button>
-            </div>
+          {/* Left Panel - Goal Tracking */}
+          <div className="w-80 border-r bg-card overflow-y-auto">
+            <GoalTracker />
           </div>
 
           {/* Main Browser Area */}
