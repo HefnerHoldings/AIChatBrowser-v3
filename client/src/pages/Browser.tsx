@@ -155,7 +155,6 @@ export default function Browser() {
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const [activeView, setActiveView] = useState('browser');
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showExtensionsAPI, setShowExtensionsAPI] = useState(false);
   const [showPWAManager, setShowPWAManager] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -647,9 +646,11 @@ export default function Browser() {
   };
 
   return (
-    <div className={`flex flex-col h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
-      {/* Main Navigation Tabs */}
-      <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
+    <div className={`flex h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Main Navigation Tabs */}
+        <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
         <TabsList className="w-full rounded-none justify-start px-4 bg-card">
           <TabsTrigger value="browser" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
@@ -875,14 +876,6 @@ export default function Browser() {
                       ) : (
                         <Star className="h-4 w-4" />
                       )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowAIAssistant(!showAIAssistant)}
-                      title="AI Assistant"
-                    >
-                      <Bot className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -1225,30 +1218,6 @@ export default function Browser() {
         </div>
       )}
 
-      {showAIAssistant && (
-        <div className="fixed top-0 right-0 w-[600px] h-full bg-background border-l shadow-lg z-50">
-          <div className="flex items-center justify-between p-3 border-b">
-            <h3 className="font-semibold">AI Assistant</h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowAIAssistant(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <AIAssistant
-            currentUrl={activeTab?.url}
-            pageContent=""
-            onNavigate={(url) => {
-              if (activeTab) {
-                setUrlInput(url);
-                navigateMutation.mutate({ tabId: activeTab.id, url });
-              }
-            }}
-          />
-        </div>
-      )}
 
       {showExtensionsAPI && (
         <div className="fixed top-0 right-0 w-96 h-full bg-background border-l shadow-lg z-50">
@@ -1328,6 +1297,31 @@ export default function Browser() {
           onClose={() => setShowRenderingEngine(false)}
         />
       )}
+      </div>
+      
+      {/* AI Assistant Column - Always visible on the right */}
+      <div className="w-[400px] border-l bg-background">
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Bot className="h-5 w-5 text-purple-500" />
+              AI Browser Assistant
+            </h3>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <AIAssistant
+              currentUrl={activeTab?.url}
+              pageContent=""
+              onNavigate={(url) => {
+                if (activeTab) {
+                  setUrlInput(url);
+                  navigateMutation.mutate({ tabId: activeTab.id, url });
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
