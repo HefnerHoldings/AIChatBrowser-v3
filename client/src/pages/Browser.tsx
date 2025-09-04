@@ -25,6 +25,7 @@ import { SecuritySandbox } from '@/components/SecuritySandbox';
 import { WebAPIs } from '@/components/WebAPIs';
 import { RenderingEngine } from '@/components/RenderingEngine';
 import { AIAssistant } from '@/components/AIAssistant';
+import { WorkflowSuggestions } from '@/components/WorkflowSuggestions';
 import { ExtensionsAPI } from '@/components/ExtensionsAPI';
 import { ContentScriptInjector } from '@/components/ContentScriptInjector';
 import { PWAManager } from '@/components/PWAManager';
@@ -1334,37 +1335,20 @@ export default function Browser() {
             </div>
           </div>
         </div>
-        {/* Task Queue & Activity Planner */}
-        <div className="flex-1 bg-muted/5 flex flex-col">
-          <div className="border-b p-2">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Task Queue</h4>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 p-1.5 bg-background rounded text-xs">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="flex-1 truncate">Find wholesale suppliers</span>
-                <Button size="icon" className="h-5 w-5" variant="ghost">
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 p-2">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Activity Planner</h4>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="w-full h-7 text-xs"
-            >
-              <Calendar className="h-3 w-3 mr-1" />
-              Schedule New Activity
-            </Button>
-            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Mic className="h-3 w-3" />
-                <span>Click mic to speak commands</span>
-              </div>
-            </div>
-          </div>
+        {/* Workflow Suggestions */}
+        <div className="flex-1 bg-muted/5 overflow-auto p-2">
+          <WorkflowSuggestions
+            currentUrl={activeTab?.url}
+            onSelectWorkflow={(workflow) => {
+              console.log('Selected workflow:', workflow);
+              // Handle workflow selection
+              toast({
+                title: "Workflow Started",
+                description: `Starting ${workflow.title}...`,
+              });
+            }}
+            maxSuggestions={3}
+          />
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, jsonb, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, jsonb, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -108,6 +108,54 @@ export type InsertWorkflow = z.infer<typeof insertWorkflowSchema>;
 export type InsertAutomationTask = z.infer<typeof insertAutomationTaskSchema>;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type InsertExtractedLead = z.infer<typeof insertExtractedLeadSchema>;
+
+// Workflow Suggestions
+export const workflowSuggestions = pgTable('workflow_suggestions', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar('title').notNull(),
+  description: text('description'),
+  category: varchar('category').notNull(),
+  confidence: real('confidence').default(0),
+  estimatedTime: varchar('estimated_time'),
+  triggers: jsonb('triggers').$type<string[]>().default([]),
+  actions: jsonb('actions').$type<string[]>().default([]),
+  relevance: varchar('relevance').default('medium'),
+  usageCount: integer('usage_count').default(0),
+  lastUsed: timestamp('last_used'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+export const insertWorkflowSuggestionSchema = createInsertSchema(workflowSuggestions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type WorkflowSuggestion = typeof workflowSuggestions.$inferSelect;
+export type InsertWorkflowSuggestion = z.infer<typeof insertWorkflowSuggestionSchema>;
+
+// Workflow Usage History
+export const workflowUsageHistory = pgTable('workflow_usage_history', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar('workflow_id').notNull(),
+  userId: varchar('user_id'),
+  url: text('url'),
+  context: jsonb('context').$type<Record<string, any>>().default({}),
+  startedAt: timestamp('started_at').notNull(),
+  completedAt: timestamp('completed_at'),
+  status: varchar('status').notNull().default('started'),
+  results: jsonb('results').$type<any>(),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+export const insertWorkflowUsageHistorySchema = createInsertSchema(workflowUsageHistory).omit({
+  id: true,
+  createdAt: true
+});
+
+export type WorkflowUsageHistory = typeof workflowUsageHistory.$inferSelect;
+export type InsertWorkflowUsageHistory = z.infer<typeof insertWorkflowUsageHistorySchema>;
 
 // Session Replay table
 export const sessionReplays = pgTable("session_replays", {
