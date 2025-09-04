@@ -31,6 +31,8 @@ import { PWAManager } from '@/components/PWAManager';
 import { WorkflowManager } from '@/components/WorkflowManager';
 import { AITesting } from '@/components/AITesting';
 import { GoalTracker } from '@/components/GoalTracker';
+import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
+import { VibeProfiler } from '@/components/vibecoding/VibeProfiler';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -73,7 +75,9 @@ import {
   Database,
   FileCode2,
   Bot,
-  Package
+  Package,
+  Sparkles,
+  Users
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -649,7 +653,15 @@ export default function Browser() {
         <TabsList className="w-full rounded-none justify-start px-4 bg-card">
           <TabsTrigger value="browser" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            Browser View
+            Browser
+          </TabsTrigger>
+          <TabsTrigger value="vibecoding" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Vibecoding
+          </TabsTrigger>
+          <TabsTrigger value="agent-team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            AI Team
           </TabsTrigger>
           <TabsTrigger value="workflow" className="flex items-center gap-2">
             <Layers className="h-4 w-4" />
@@ -657,31 +669,19 @@ export default function Browser() {
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            Data Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="session" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Session Replay
+            Data
           </TabsTrigger>
           <TabsTrigger value="devbridge" className="flex items-center gap-2">
             <FileCode2 className="h-4 w-4" />
             DevBridge
           </TabsTrigger>
-          <TabsTrigger value="work-orders" className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Work Orders
-          </TabsTrigger>
           <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             Privacy
           </TabsTrigger>
-          <TabsTrigger value="adr-risk" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            ADR & Risk
-          </TabsTrigger>
           <TabsTrigger value="ai-testing" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            AI & Testing
+            AI Testing
           </TabsTrigger>
         </TabsList>
 
@@ -1172,6 +1172,16 @@ export default function Browser() {
         {/* AI & Testing */}
         <TabsContent value="ai-testing" className="flex-1 p-4">
           <AITesting />
+        </TabsContent>
+
+        {/* Vibecoding Platform Tab */}
+        <TabsContent value="vibecoding" className="flex-1 p-0">
+          <VibeProfiler />
+        </TabsContent>
+
+        {/* Agent Team Tab */}
+        <TabsContent value="agent-team" className="flex-1 p-0">
+          <MultiAgentTeam />
         </TabsContent>
 
       </Tabs>
