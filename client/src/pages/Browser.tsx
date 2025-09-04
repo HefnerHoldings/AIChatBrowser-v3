@@ -77,7 +77,10 @@ import {
   Bot,
   Package,
   Sparkles,
-  Users
+  Users,
+  Mic,
+  Clock,
+  Calendar
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -1300,14 +1303,22 @@ export default function Browser() {
       </div>
       
       {/* AI Assistant Column - Compact size */}
-      <div className="w-[350px] border-l bg-background flex flex-col">
-        <div className="h-[420px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
+      <div className="w-[320px] border-l bg-background flex flex-col">
+        <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-2.5 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+            <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <Bot className="h-4 w-4 text-purple-500" />
                 AI Assistant
               </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hover:bg-purple-500/20"
+                title="Speak Command"
+              >
+                <Mic className="h-3.5 w-3.5 text-purple-600" />
+              </Button>
             </div>
             <div className="flex-1 overflow-auto">
               <AIAssistant
@@ -1323,15 +1334,36 @@ export default function Browser() {
             </div>
           </div>
         </div>
-        {/* Remaining space below AI Assistant */}
-        <div className="flex-1 bg-muted/5 p-4">
-          <div className="text-xs text-muted-foreground">
-            <p className="mb-2">Quick Tips:</p>
-            <ul className="space-y-1 ml-3">
-              <li>• Chat with AI about the current page</li>
-              <li>• Ask for summaries and insights</li>
-              <li>• Navigate with natural language</li>
-            </ul>
+        {/* Task Queue & Activity Planner */}
+        <div className="flex-1 bg-muted/5 flex flex-col">
+          <div className="border-b p-2">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Task Queue</h4>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 p-1.5 bg-background rounded text-xs">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span className="flex-1 truncate">Find wholesale suppliers</span>
+                <Button size="icon" className="h-5 w-5" variant="ghost">
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 p-2">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">Activity Planner</h4>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full h-7 text-xs"
+            >
+              <Calendar className="h-3 w-3 mr-1" />
+              Schedule New Activity
+            </Button>
+            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Mic className="h-3 w-3" />
+                <span>Click mic to speak commands</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

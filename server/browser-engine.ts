@@ -101,17 +101,37 @@ export class NativeBrowserEngine extends EventEmitter {
     }
   }
 
-  // Initialize Chromium engine (simulated for web environment)
+  // Initialize Chromium engine with real Puppeteer
   private async initializeChromium(options: BrowserContextOptions): Promise<void> {
-    // Since we can't launch actual Chrome in this environment,
-    // we'll simulate browser functionality
-    console.log('Initializing simulated browser with options:', options);
-    
-    // Simulate browser initialization
-    this.emit('connected');
-    
-    // Store context options for later use
-    this.contexts.set('default', options);
+    try {
+      // Try to launch real Puppeteer browser
+      console.log('Attempting to launch real Chromium browser...');
+      
+      this.browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+          ...(options.ignoreHTTPSErrors ? ['--ignore-certificate-errors'] : [])
+        ]
+      });
+      
+      console.log('Real Chromium browser launched successfully');
+      this.emit('connected');
+      this.contexts.set('default', options);
+    } catch (error) {
+      console.log('Failed to launch real browser, falling back to simulation:', error);
+      // Fallback to simulation
+      console.log('Initializing simulated browser with options:', options);
+      this.emit('connected');
+      this.contexts.set('default', options);
+    }
   }
 
   // Initialize Firefox engine (simulated for web environment)

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { NativeBrowserEngine, BrowserEngineType, BrowserTab, BrowserContextOptions } from './browser-engine-sim';
+import { NativeBrowserEngine, BrowserEngineType, BrowserTab, BrowserContextOptions } from './browser-engine';
 import { randomUUID } from 'crypto';
 import { storage } from './storage';
 import type { InsertDownload } from '@shared/schema';
