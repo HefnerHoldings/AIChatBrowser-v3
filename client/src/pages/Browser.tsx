@@ -690,7 +690,7 @@ export default function Browser() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0" style={{ paddingLeft: '320px', paddingRight: '320px' }}>
+        <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0 pl-80 pr-[320px]">
             {/* Browser Tabs Row */}
             {!isFullscreen && (
               <div className={`flex items-center border-b ${isIncognito ? 'bg-zinc-900 border-zinc-700' : 'bg-muted/20'} px-2 py-1`}>
