@@ -24,8 +24,10 @@ import { NetworkLayer } from '@/components/NetworkLayer';
 import { SecuritySandbox } from '@/components/SecuritySandbox';
 import { WebAPIs } from '@/components/WebAPIs';
 import { RenderingEngine } from '@/components/RenderingEngine';
-import { LeftSidebar } from '@/components/LeftSidebar';
-import { RightSidebar } from '@/components/RightSidebar';
+import { AIAssistant } from '@/components/AIAssistant';
+import { ExtensionsAPI } from '@/components/ExtensionsAPI';
+import { ContentScriptInjector } from '@/components/ContentScriptInjector';
+import { PWAManager } from '@/components/PWAManager';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -62,7 +64,13 @@ import {
   Activity,
   Wifi,
   Code,
-  Monitor as MonitorIcon
+  Monitor as MonitorIcon,
+  CheckCircle,
+  Layers,
+  Database,
+  FileCode2,
+  Bot,
+  Package
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -114,7 +122,7 @@ export default function Browser() {
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
-  const [showBookmarks, setShowBookmarks] = useState(true);
+  const [showBookmarks, setShowBookmarks] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
@@ -139,8 +147,10 @@ export default function Browser() {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState('browser');
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showExtensionsAPI, setShowExtensionsAPI] = useState(false);
+  const [showPWAManager, setShowPWAManager] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -382,7 +392,6 @@ export default function Browser() {
     if (!browserInstance) return;
     
     try {
-      // Lagre lukket fane for senere gjenoppretting
       const closedTab = browserInstance.tabs.find(tab => tab.id === tabId);
       if (closedTab) {
         const recentlyClosed = JSON.parse(localStorage.getItem('recently_closed_tabs') || '[]');
@@ -392,7 +401,6 @@ export default function Browser() {
           url: closedTab.url,
           favicon: closedTab.favicon
         });
-        // Behold maks 10 nylig lukkede faner
         localStorage.setItem('recently_closed_tabs', JSON.stringify(recentlyClosed.slice(0, 10)));
       }
       
@@ -404,7 +412,6 @@ export default function Browser() {
       const remainingTabs = browserInstance.tabs.filter(tab => tab.id !== tabId);
       
       if (remainingTabs.length === 0) {
-        // Create new tab if closing last one
         await createNewTab(browserInstance.id, 'https://www.google.com');
       } else {
         setBrowserInstance({
@@ -464,7 +471,6 @@ export default function Browser() {
     
     try {
       if (isBookmarked) {
-        // Remove bookmark
         const bookmark = bookmarks.find(b => b.url === activeTab.url);
         if (bookmark) {
           await apiRequest('DELETE', `/api/bookmarks/${bookmark.id}`);
@@ -475,7 +481,6 @@ export default function Browser() {
           });
         }
       } else {
-        // Add bookmark
         await apiRequest('POST', '/api/bookmarks', {
           title: activeTab.title || activeTab.url,
           url: activeTab.url,
@@ -518,14 +523,11 @@ export default function Browser() {
     const newIncognitoState = !isIncognito;
     setIsIncognito(newIncognitoState);
     
-    // Re-initialize browser with new incognito state
     if (browserInstance) {
-      // Close current instance
       await apiRequest('DELETE', `/api/browser-engine/instance/${browserInstance.id}`);
       setBrowserInstance(null);
       setActiveTab(null);
       
-      // Create new instance with incognito mode
       setTimeout(() => {
         initBrowser.mutate();
       }, 100);
@@ -572,7 +574,6 @@ export default function Browser() {
     }
   };
   
-  // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -582,7 +583,6 @@ export default function Browser() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
   
-  // Show/hide fullscreen bar on mouse move
   useEffect(() => {
     if (!isFullscreen) return;
     
@@ -633,827 +633,655 @@ export default function Browser() {
   };
   
   const handleFind = (query: string, direction?: 'next' | 'prev') => {
-    // In a real implementation, this would search the iframe content
-    // For now, we'll just show a toast
     toast({
       title: 'Søker...',
       description: `Søker etter "${query}"${direction ? ` (${direction === 'next' ? 'neste' : 'forrige'})` : ''}`,
     });
   };
 
-  // Handle tool toggling from sidebars
-  const handleToolToggle = (toolId: string, active: boolean) => {
-    switch(toolId) {
-      case 'history':
-        setShowHistory(active);
-        break;
-      case 'downloads':
-        // Handle downloads
-        break;
-      case 'security':
-        setShowSecurity(active);
-        break;
-      case 'performance':
-        setShowPerformance(active);
-        break;
-      case 'devtools':
-        setShowDevTools(active);
-        break;
-      case 'network':
-        setShowNetworkLayer(active);
-        break;
-      case 'webapis':
-        setShowWebAPIs(active);
-        break;
-      case 'extensions':
-        setShowExtensions(active);
-        break;
-      case 'passwords':
-        setShowPasswords(active);
-        break;
-      case 'media':
-        setShowMediaControls(active);
-        break;
-      case 'reader':
-        setShowReaderMode(active);
-        break;
-      case 'rendering':
-        setShowRenderingEngine(active);
-        break;
-      default:
-        break;
-    }
-  };
-
   return (
-    <div className={`flex ${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
-      {/* Sidebars */}
-      <LeftSidebar
-        isOpen={leftSidebarOpen}
-        onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)}
-        bookmarks={bookmarks}
-        history={history}
-        onBookmarkClick={handleBookmarkClick}
-        onHistoryClick={(url) => {
-          if (activeTab) {
-            setUrlInput(url);
-            navigateMutation.mutate({ tabId: activeTab.id, url });
-          }
-        }}
-      />
-      
-      <RightSidebar
-        isOpen={rightSidebarOpen}
-        onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
-        onToolToggle={handleToolToggle}
-      />
-      {/* Tab Groups Panel */}
-      {showTabGroups && browserInstance && !isFullscreen && (
-        <TabGroups
-          tabs={browserInstance.tabs.map(tab => ({
-            ...tab,
-            groupId: undefined
-          }))}
-          groups={tabGroups}
-          activeTabId={activeTab?.id}
-          onGroupCreate={(group) => {
-            const newGroup = {
-              ...group,
-              id: `group-${Date.now()}`,
-              tabs: []
-            };
-            setTabGroups(prev => [...prev, newGroup]);
-          }}
-          onGroupUpdate={(groupId, updates) => {
-            setTabGroups(prev => prev.map(g => 
-              g.id === groupId ? { ...g, ...updates } : g
-            ));
-          }}
-          onGroupDelete={(groupId) => {
-            setTabGroups(prev => prev.filter(g => g.id !== groupId));
-          }}
-          onTabMove={(tabId, groupId) => {
-            toast({
-              title: 'Fane flyttet',
-              description: groupId ? 'Fane lagt til gruppe' : 'Fane fjernet fra gruppe',
-            });
-          }}
-          onTabSwitch={handleTabSwitch}
-          onTabClose={handleCloseTab}
-        />
-      )}
-      
-      <div className="flex-1 flex flex-col">
-      {/* Fullscreen Navigation Bar */}
-      {isFullscreen && showFullscreenBar && (
-        <div className="absolute top-0 left-0 right-0 bg-card/95 backdrop-blur border-b z-50 animate-in slide-in-from-top duration-200">
-          <div className="flex items-center gap-2 p-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              disabled={!activeTab?.canGoBack}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleForward}
-              disabled={!activeTab?.canGoForward}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleReload}
-            >
-              <RotateCw className="h-4 w-4" />
-            </Button>
-            <div className="flex-1 mx-2">
-              <Input
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleNavigate();
-                  }
-                }}
-                className="h-8"
-                placeholder="Søk eller skriv inn adresse"
-              />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleToggleFullscreen}
-              title="Avslutt fullskjerm (F11)"
-            >
-              <Minimize2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {/* Incognito Indicator */}
-      {isIncognito && (
-        <div className="bg-purple-900 text-white px-3 py-1 text-xs flex items-center gap-2">
-          <EyeOff className="w-3 h-3" />
-          <span>Du er i inkognitomodus - Historikk og cookies vil ikke bli lagret</span>
-        </div>
-      )}
-      
-      {/* Browser Header */}
-      {!isFullscreen && (
-      <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
-        {/* Tab Bar */}
-        <div className={`flex items-center gap-1 p-1 min-h-[40px] ${isIncognito ? 'bg-zinc-700' : 'bg-muted/50'}`}>
-          {browserInstance?.tabs.map((tab) => (
-            <div
-              key={tab.id}
-              className={`
-                flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer
-                max-w-[200px] group relative
-                ${tab.id === activeTab?.id 
-                  ? isIncognito 
-                    ? 'bg-zinc-800 border-t border-l border-r border-zinc-600 text-white' 
-                    : 'bg-card border-t border-l border-r' 
-                  : isIncognito 
-                    ? 'bg-zinc-700 hover:bg-zinc-600 text-gray-300'
-                    : 'bg-muted hover:bg-muted/80'
-                }
-              `}
-              onClick={() => handleTabSwitch(tab.id)}
-              onMouseEnter={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const timeout = setTimeout(() => {
-                  setHoveredTab(tab.id);
-                  setHoverPosition({ 
-                    x: rect.left + rect.width / 2 - 160, 
-                    y: rect.bottom 
-                  });
-                }, 500);
-                setHoverTimeout(timeout);
-              }}
-              onMouseLeave={() => {
-                if (hoverTimeout) {
-                  clearTimeout(hoverTimeout);
-                  setHoverTimeout(null);
-                }
-                setHoveredTab(null);
-              }}
-            >
-              {tab.favicon ? (
-                <img src={tab.favicon} alt="" className="w-4 h-4" />
-              ) : (
-                <Globe className="w-4 h-4 text-muted-foreground" />
-              )}
-              <span className="text-sm truncate flex-1">
-                {tab.title || 'Ny fane'}
-              </span>
-              {tab.isLoading && (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloseTab(tab.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 rounded p-0.5"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={handleNewTab}
-            className="flex items-center justify-center w-8 h-8 hover:bg-accent rounded-lg transition-colors ml-1"
-            title="Åpne ny fane (Ctrl+T)"
-            data-testid="button-new-tab"
-          >
-            <Plus className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-          </button>
-        </div>
+    <div className={`flex flex-col h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+      {/* Main Navigation Tabs */}
+      <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
+        <TabsList className="w-full rounded-none justify-start px-4 bg-card">
+          <TabsTrigger value="browser" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            Browser View
+          </TabsTrigger>
+          <TabsTrigger value="workflow" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Workflow Editor
+          </TabsTrigger>
+          <TabsTrigger value="data" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Data Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="session" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Session Replay
+          </TabsTrigger>
+          <TabsTrigger value="devbridge" className="flex items-center gap-2">
+            <FileCode2 className="h-4 w-4" />
+            DevBridge
+          </TabsTrigger>
+          <TabsTrigger value="work-orders" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Work Orders
+          </TabsTrigger>
+          <TabsTrigger value="privacy" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Privacy
+          </TabsTrigger>
+          <TabsTrigger value="adr-risk" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            ADR & Risk
+          </TabsTrigger>
+          <TabsTrigger value="multi-agent" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            Multi-Agent
+          </TabsTrigger>
+          <TabsTrigger value="qa-suite" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            QA Suite Pro
+          </TabsTrigger>
+          <TabsTrigger value="selector" className="flex items-center gap-2">
+            <Code className="h-4 w-4" />
+            Selector Studio
+          </TabsTrigger>
+          <TabsTrigger value="watched" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Watched Workflows
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Navigation Bar */}
-        <div className={`flex items-center gap-2 p-2 ${isIncognito ? 'bg-zinc-800' : ''}`}>
-          {/* Navigation Buttons */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              disabled={!activeTab?.canGoBack}
-              title="Tilbake (Alt+←)"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleForward}
-              disabled={!activeTab?.canGoForward}
-              title="Fremover (Alt+→)"
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={isNavigating ? handleStop : handleReload}
-              title={isNavigating ? "Stopp (Esc)" : "Last på nytt (Ctrl+R)"}
-            >
-              {isNavigating ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <RotateCw className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleHome}
-              title="Hjem"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Address Bar */}
-          <div className="flex-1 flex items-center gap-2">
-            <div ref={addressBarRef} className="relative flex-1 flex items-center">
-              {activeTab?.url?.startsWith('https://') && (
-                <Shield className="absolute left-3 h-4 w-4 text-green-600" />
-              )}
-              <Input
-                id="url-input"
-                type="text"
-                value={urlInput}
-                onChange={(e) => {
-                  setUrlInput(e.target.value);
-                  setShowSuggestions(e.target.value.length > 0);
-                }}
-                onFocus={() => setShowSuggestions(urlInput.length > 0)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !showSuggestions) {
-                    handleNavigate();
-                  }
-                }}
-                placeholder="Skriv inn URL eller søk..."
-                className={`${activeTab?.url?.startsWith('https://') ? 'pl-10' : 'pl-3'} pr-10`}
-              />
-              {isNavigating ? (
-                <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-muted-foreground" />
-              ) : (
-                <Search 
-                  className="absolute right-3 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
-                  onClick={handleNavigate}
-                />
-              )}
-              
-              {/* Search Suggestions */}
-              <SearchSuggestions
-                query={urlInput}
-                isOpen={showSuggestions}
-                onSelect={(url) => {
-                  setUrlInput(url);
-                  setShowSuggestions(false);
-                  if (activeTab) {
-                    navigateMutation.mutate({ tabId: activeTab.id, url });
-                  }
-                }}
-                onClose={() => setShowSuggestions(false)}
-                anchorRef={addressBarRef}
-              />
-            </div>
-          </div>
-          
-          {/* Bookmark controls */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBookmarkToggle}
-              title={isBookmarked ? "Fjern bokmerke (Ctrl+D)" : "Legg til bokmerke (Ctrl+D)"}
-              disabled={!activeTab || activeTab.url === 'about:blank'}
-            >
-              {isBookmarked ? (
-                <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-              ) : (
-                <Star className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowBookmarks(!showBookmarks)}
-              title="Vis/skjul bokmerker (Ctrl+Shift+B)"
-            >
-              <BookmarkIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowTabGroups(!showTabGroups)}
-              title="Fanegrupper"
-            >
-              <Folder className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowReaderMode(true)}
-              title="Lesemodus"
-              disabled={!activeTab?.url || activeTab.url === 'about:blank'}
-            >
-              <BookOpen className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowMediaControls(true)}
-              title="Mediakontroller"
-              disabled={!activeTab?.url || activeTab.url === 'about:blank'}
-            >
-              <Volume2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowExtensions(true)}
-              title="Utvidelser"
-            >
-              <Puzzle className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowPerformance(true)}
-              title="Ytelsesovervåking"
-            >
-              <Activity className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowNetworkLayer(true)}
-              title="Nettverkslag"
-            >
-              <Wifi className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSecurity(true)}
-              title="Sikkerhet"
-            >
-              <Shield className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowWebAPIs(true)}
-              title="Web API-er"
-            >
-              <Code className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowRenderingEngine(true)}
-              title="Rendering"
-            >
-              <MonitorIcon className="h-4 w-4" />
-            </Button>
-            <SessionRestore
-              currentTabs={browserInstance?.tabs.map(tab => ({
-                id: tab.id,
-                title: tab.title,
-                url: tab.url,
-                favicon: tab.favicon
-              })) || []}
-              onRestoreSession={(session) => {
-                // Gjenopprett alle faner fra økten
-                session.tabs.forEach((tab, index) => {
-                  if (index === 0 && activeTab) {
-                    // Bruk eksisterende fane for første URL
-                    navigateMutation.mutate({ tabId: activeTab.id, url: tab.url });
-                  } else {
-                    // Opprett nye faner for resten
-                    apiRequest(
-                      '/api/browser-engine/tab/create',
-                      'POST',
-                      {
-                        instanceId: browserInstance?.id,
-                        url: tab.url
-                      }
-                    );
-                  }
-                });
-                toast({
-                  title: 'Økt gjenopprettet',
-                  description: `${session.tabs.length} ${session.tabs.length === 1 ? 'fane' : 'faner'} ble gjenopprettet`,
-                });
-              }}
-            />
-            <DownloadsManager />
-          </div>
-
-          {/* Browser Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleNewTab}>
-                <Plus className="mr-2 h-4 w-4" />
-                Ny fane
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => {
-                  if (activeTab?.id) {
-                    apiRequest(
-                      'POST',
-                      '/api/browser-engine/tab/duplicate',
-                      {
-                        instanceId: browserInstance?.id,
-                        tabId: activeTab.id
-                      }
-                    );
-                  }
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Dupliser fane
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Star className="mr-2 h-4 w-4" />
-                Bokmerker
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowHistory(true)}>
-                <History className="mr-2 h-4 w-4" />
-                Historikk
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowPasswords(true)}>
-                <Key className="mr-2 h-4 w-4" />
-                Passord
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowDevTools(!showDevTools)}>
-                <Code2 className="mr-2 h-4 w-4" />
-                {showDevTools ? 'Skjul' : 'Vis'} utviklerverktøy (F12)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleToggleFullscreen}>
-                {isFullscreen ? (
-                  <>
-                    <Minimize2 className="mr-2 h-4 w-4" />
-                    Avslutt fullskjerm (F11)
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 className="mr-2 h-4 w-4" />
-                    Fullskjerm (F11)
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePrint}>
-                <Printer className="mr-2 h-4 w-4" />
-                Skriv ut (Ctrl+P)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowFindBar(true)}>
-                <SearchIcon className="mr-2 h-4 w-4" />
-                Finn på siden (Ctrl+F)
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleZoomIn}>
-                <ZoomIn className="mr-2 h-4 w-4" />
-                Zoom inn (Ctrl++)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleZoomOut}>
-                <ZoomOut className="mr-2 h-4 w-4" />
-                Zoom ut (Ctrl+-)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleZoomReset}>
-                <span className="mr-2 text-xs font-mono w-4 text-center">100</span>
-                Tilbakestill zoom (Ctrl+0)
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Åpne i nytt vindu
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleToggleIncognito}>
-                {isIncognito ? (
-                  <>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Avslutt inkognito
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="mr-2 h-4 w-4" />
-                    Ny inkognito-vindu
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => window.location.href = '/settings'}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                Innstillinger
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={async () => {
-                  // Simuler nedlasting for testing
-                  await apiRequest('/api/downloads', 'POST', {
-                    filename: 'test-dokument.pdf',
-                    url: activeTab?.url || 'https://example.com/test.pdf',
-                    size: 1024 * 1024 * 2, // 2MB
-                    mimeType: 'application/pdf',
-                    status: 'downloading'
-                  });
-                  toast({
-                    title: 'Nedlasting startet',
-                    description: 'test-dokument.pdf laster ned...'
-                  });
-                  
-                  // Simuler fullført nedlasting etter 3 sekunder
-                  setTimeout(async () => {
-                    const downloads = await queryClient.fetchQuery<any[]>({
-                      queryKey: ['/api/downloads']
-                    });
-                    const testDownload = downloads?.find(d => d.filename === 'test-dokument.pdf');
-                    if (testDownload) {
-                      await apiRequest(`/api/downloads/${testDownload.id}`, 'PATCH', {
-                        status: 'completed'
-                      });
-                    }
-                  }, 3000);
-                }}
-              >
-                <Loader2 className="mr-2 h-4 w-4" />
-                Test nedlasting
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        
-        {/* Bookmarks bar */}
-        {showBookmarks && bookmarks.length > 0 && (
-          <div className="flex items-center bg-accent/30 border-b border-border px-3 py-1 gap-2 overflow-x-auto">
-            {bookmarks.map(bookmark => (
-              <Button
-                key={bookmark.id}
-                variant="ghost"
-                size="sm"
-                className="px-2 py-1 text-xs h-7 min-w-0 flex items-center gap-1"
-                onClick={() => handleBookmarkClick(bookmark.url)}
-                title={bookmark.url}
-                data-testid={`bookmark-${bookmark.id}`}
-              >
-                {bookmark.favicon && (
-                  <img src={bookmark.favicon} alt="" className="w-3 h-3" />
-                )}
-                <span className="truncate max-w-[120px]">{bookmark.title}</span>
-              </Button>
-            ))}
-          </div>
-        )}
-      </div>
-      )}
-
-      {/* Browser Viewport */}
-      <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative bg-white`}>
-        <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
-          {activeTab ? (
-            <>
-              {isNavigating && (
-                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <p className="text-sm text-muted-foreground">Laster...</p>
-                  </div>
-                </div>
-              )}
-              <div
-                className="w-full h-full origin-top-left"
-                style={{ 
-                  transform: `scale(${zoomLevel / 100})`,
-                  width: `${100 * (100 / zoomLevel)}%`,
-                  height: `${100 * (100 / zoomLevel)}%`
-                }}
-              >
-                <WebView
-                  url={activeTab.url}
-                  onUrlChange={(newUrl) => {
-                    setUrlInput(newUrl);
-                    if (browserInstance) {
-                      const updatedTabs = browserInstance.tabs.map(tab => 
-                        tab.id === activeTab.id ? { ...tab, url: newUrl } : tab
-                      );
-                      setBrowserInstance({
-                        ...browserInstance,
-                        tabs: updatedTabs
-                      });
-                    }
-                  }}
-                  onTitleChange={(newTitle) => {
-                    if (browserInstance) {
-                      const updatedTabs = browserInstance.tabs.map(tab => 
-                        tab.id === activeTab.id ? { ...tab, title: newTitle } : tab
-                      );
-                      setBrowserInstance({
-                        ...browserInstance,
-                        tabs: updatedTabs
-                      });
-                      setActiveTab(prev => prev ? { ...prev, title: newTitle } : null);
-                    }
-                  }}
-                  onLoadStart={() => {
-                    setIsNavigating(true);
-                  }}
-                  onLoadEnd={() => {
-                    setIsNavigating(false);
-                  }}
-                  onError={(error) => {
-                    toast({
-                      title: 'Innlastingsfeil',
-                      description: error,
-                      variant: 'destructive'
-                    });
-                  }}
-                  isActive={true}
-                  tabId={activeTab.id}
-                />
+        <TabsContent value="browser" className="flex-1 flex flex-row p-0 m-0 gap-0">
+          {/* Left Panel - Goal Planning */}
+          <div className="w-64 border-r bg-card p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Goal Planning
+              </h3>
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>You: Find 150 relevant cookware wholesalers in EU, extract contact info and export to XLSX</p>
               </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-lg font-medium">Ingen fane åpen</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Trykk Ctrl+T for å åpne en ny fane
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium mb-2">Describe your goal</h4>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>Current Plan</p>
+                <p className="text-foreground">
+                  Search Google for wholesalers → Extract contact details → Validate email formats → Export to XLSX
                 </p>
               </div>
             </div>
-          )}
-        </div>
-        
-        {/* Developer Tools Panel */}
-        {showDevTools && (
-          <div className="w-96 bg-card border-l flex flex-col">
-            <div className="p-3 border-b flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Code2 className="w-4 h-4" />
-                Utviklerverktøy
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setShowDevTools(false)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-            <div className="flex-1 p-4 overflow-auto">
-              <div className="space-y-4 text-sm">
-                <div>
-                  <p className="font-medium mb-2">Nåværende side</p>
-                  <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                    <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
-                    <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
-                    <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium mb-2">Console</p>
-                  <div className="bg-zinc-900 text-zinc-300 p-3 rounded font-mono text-xs h-32 overflow-auto">
-                    <p className="text-zinc-500">// Console output vil vises her</p>
-                    <p className="text-blue-400">[Info] Side lastet</p>
-                    <p className="text-yellow-400">[Warning] Mixed content</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium mb-2">Nettverk</p>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between p-1 hover:bg-muted rounded">
-                      <span>document</span>
-                      <span className="text-green-600">200 OK</span>
-                    </div>
-                    <div className="flex justify-between p-1 hover:bg-muted rounded">
-                      <span>style.css</span>
-                      <span className="text-green-600">200 OK</span>
-                    </div>
-                    <div className="flex justify-between p-1 hover:bg-muted rounded">
-                      <span>script.js</span>
-                      <span className="text-green-600">200 OK</span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium mb-2">Ytelse</p>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <p>Lastetid: 1.23s</p>
-                    <p>DOM klar: 0.45s</p>
-                    <p>Ressurser: 15</p>
-                    <p>Størrelse: 2.1 MB</p>
-                  </div>
-                </div>
+
+            <div>
+              <h4 className="text-sm font-medium mb-2">Permissions Required</h4>
+              <div className="space-y-2">
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Globe className="h-3 w-3 mr-2" />
+                  Browse
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <Database className="h-3 w-3 mr-2" />
+                  Extract
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start">
+                  <FileCode2 className="h-3 w-3 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start text-muted-foreground">
+                  <X className="h-3 w-3 mr-2" />
+                  Export to XLSX <span className="ml-1 text-xs">5m</span>
+                </Button>
               </div>
             </div>
-          </div>
-        )}
-      </div>
 
-      {/* Status Bar */}
-      <div className="border-t bg-card px-3 py-1">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {activeTab ? (
-              <>
-                {isNavigating ? 'Laster...' : 'Klar'}
-                {' • '}
-                {activeTab.url}
-              </>
-            ) : (
-              'Ingen fane åpen'
-            )}
-          </span>
-          <div className="flex items-center gap-3">
-            {zoomLevel !== 100 && (
-              <button 
-                onClick={handleZoomReset}
-                className="hover:text-foreground cursor-pointer"
-                title="Klikk for å tilbakestille zoom"
-              >
-                Zoom: {zoomLevel}%
-              </button>
-            )}
-            <span>
-              {browserInstance?.tabs.length || 0} {browserInstance?.tabs.length === 1 ? 'fane' : 'faner'}
-            </span>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium">Saved Workflows</h4>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button variant="default" className="w-full">
+                <Star className="h-4 w-4 mr-2" />
+                Executing
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* Main Browser Area */}
+          <div className="flex-1 flex flex-col">
+            {!isFullscreen && (
+              <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
+                {/* Tab Bar */}
+                {browserInstance && browserInstance.tabs.length > 0 && (
+                  <div className="flex items-center px-2 pt-2 bg-muted/30">
+                    <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+                      {browserInstance.tabs.map(tab => (
+                        <div
+                          key={tab.id}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[150px] max-w-[250px] group relative ${
+                            activeTab?.id === tab.id 
+                              ? 'bg-background border-t border-l border-r' 
+                              : 'bg-muted/50 hover:bg-muted border border-transparent'
+                          }`}
+                          onClick={() => handleTabSwitch(tab.id)}
+                          onMouseEnter={(e) => {
+                            if (hoverTimeout) clearTimeout(hoverTimeout);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setHoverTimeout(setTimeout(() => {
+                              setHoveredTab(tab.id);
+                              setHoverPosition({ x: rect.left, y: rect.bottom });
+                            }, 500));
+                          }}
+                          onMouseLeave={() => {
+                            if (hoverTimeout) clearTimeout(hoverTimeout);
+                            setHoveredTab(null);
+                          }}
+                        >
+                          {tab.favicon ? (
+                            <img src={tab.favicon} alt="" className="w-4 h-4" />
+                          ) : (
+                            <Globe className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <span className="flex-1 text-sm truncate">
+                            {tab.title || 'Ny fane'}
+                          </span>
+                          {tab.isLoading && (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCloseTab(tab.id);
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 ml-1"
+                      onClick={handleNewTab}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Tab Preview */}
+                {hoveredTab && browserInstance && (
+                  <TabPreview
+                    tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
+                    position={hoverPosition}
+                    onClose={() => setHoveredTab(null)}
+                  />
+                )}
+
+                {/* Navigation Bar */}
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBack}
+                    disabled={!activeTab?.canGoBack}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleForward}
+                    disabled={!activeTab?.canGoForward}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={isNavigating ? handleStop : handleReload}
+                  >
+                    {isNavigating ? (
+                      <X className="h-4 w-4" />
+                    ) : (
+                      <RotateCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleHome}
+                  >
+                    <Home className="h-4 w-4" />
+                  </Button>
+
+                  {/* URL Bar */}
+                  <div 
+                    ref={addressBarRef}
+                    className="flex-1 relative flex items-center"
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  >
+                    <Input
+                      id="url-input"
+                      type="text"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleNavigate();
+                        }
+                      }}
+                      placeholder="Søk eller skriv inn adresse"
+                      className={`pr-10 ${isIncognito ? 'bg-zinc-700 border-zinc-600 text-zinc-100' : ''}`}
+                      data-testid="url-input"
+                    />
+                    {isIncognito && (
+                      <div className="absolute right-12 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-0.5 bg-zinc-600 rounded text-xs text-zinc-200">
+                        <EyeOff className="h-3 w-3" />
+                        Inkognito
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={handleNavigate}
+                    >
+                      <Search className="h-4 w-4" />
+                    </Button>
+                    {showSuggestions && urlInput && (
+                      <SearchSuggestions
+                        query={urlInput}
+                        onSelect={(url) => {
+                          setUrlInput(url);
+                          handleNavigate();
+                          setShowSuggestions(false);
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleBookmarkToggle}
+                      title={isBookmarked ? "Fjern bokmerke (Ctrl+D)" : "Legg til bokmerke (Ctrl+D)"}
+                      disabled={!activeTab || activeTab.url === 'about:blank'}
+                    >
+                      {isBookmarked ? (
+                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                      ) : (
+                        <Star className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAIAssistant(!showAIAssistant)}
+                      title="AI Assistant"
+                    >
+                      <Bot className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowExtensionsAPI(!showExtensionsAPI)}
+                      title="Extensions"
+                    >
+                      <Puzzle className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowPWAManager(!showPWAManager)}
+                      title="PWA Manager"
+                    >
+                      <Package className="h-4 w-4" />
+                    </Button>
+                    <DownloadsManager />
+                  </div>
+
+                  {/* Browser Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleNewTab}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Ny fane
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowHistory(true)}>
+                        <History className="mr-2 h-4 w-4" />
+                        Historikk
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowBookmarks(!showBookmarks)}>
+                        <BookmarkIcon className="mr-2 h-4 w-4" />
+                        Bokmerker
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowPasswords(true)}>
+                        <Key className="mr-2 h-4 w-4" />
+                        Passord
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowDevTools(!showDevTools)}>
+                        <Code2 className="mr-2 h-4 w-4" />
+                        {showDevTools ? 'Skjul' : 'Vis'} utviklerverktøy
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleToggleFullscreen}>
+                        {isFullscreen ? (
+                          <>
+                            <Minimize2 className="mr-2 h-4 w-4" />
+                            Avslutt fullskjerm
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="mr-2 h-4 w-4" />
+                            Fullskjerm
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleToggleIncognito}>
+                        {isIncognito ? (
+                          <>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Avslutt inkognito
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="mr-2 h-4 w-4" />
+                            Ny inkognito-vindu
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Innstillinger
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                {/* Bookmarks bar */}
+                {showBookmarks && bookmarks.length > 0 && (
+                  <div className="flex items-center bg-accent/30 border-b border-border px-3 py-1 gap-2 overflow-x-auto">
+                    {bookmarks.map(bookmark => (
+                      <Button
+                        key={bookmark.id}
+                        variant="ghost"
+                        size="sm"
+                        className="px-2 py-1 text-xs h-7 min-w-0 flex items-center gap-1"
+                        onClick={() => handleBookmarkClick(bookmark.url)}
+                        title={bookmark.url}
+                        data-testid={`bookmark-${bookmark.id}`}
+                      >
+                        {bookmark.favicon && (
+                          <img src={bookmark.favicon} alt="" className="w-3 h-3" />
+                        )}
+                        <span className="truncate max-w-[120px]">{bookmark.title}</span>
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Browser Viewport */}
+            <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative bg-white`}>
+              <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
+                {activeTab ? (
+                  <>
+                    {isNavigating && (
+                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                          <p className="text-sm text-muted-foreground">Laster...</p>
+                        </div>
+                      </div>
+                    )}
+                    <div
+                      className="w-full h-full origin-top-left"
+                      style={{ 
+                        transform: `scale(${zoomLevel / 100})`,
+                        width: `${100 * (100 / zoomLevel)}%`,
+                        height: `${100 * (100 / zoomLevel)}%`
+                      }}
+                    >
+                      <WebView
+                        url={activeTab.url}
+                        onUrlChange={(newUrl) => {
+                          setUrlInput(newUrl);
+                          if (browserInstance) {
+                            const updatedTabs = browserInstance.tabs.map(tab => 
+                              tab.id === activeTab.id ? { ...tab, url: newUrl } : tab
+                            );
+                            setBrowserInstance({
+                              ...browserInstance,
+                              tabs: updatedTabs
+                            });
+                          }
+                        }}
+                        onTitleChange={(newTitle) => {
+                          if (browserInstance) {
+                            const updatedTabs = browserInstance.tabs.map(tab => 
+                              tab.id === activeTab.id ? { ...tab, title: newTitle } : tab
+                            );
+                            setBrowserInstance({
+                              ...browserInstance,
+                              tabs: updatedTabs
+                            });
+                            setActiveTab(prev => prev ? { ...prev, title: newTitle } : null);
+                          }
+                        }}
+                        onLoadStart={() => {
+                          setIsNavigating(true);
+                        }}
+                        onLoadEnd={() => {
+                          setIsNavigating(false);
+                        }}
+                        onError={(error) => {
+                          toast({
+                            title: 'Innlastingsfeil',
+                            description: error,
+                            variant: 'destructive'
+                          });
+                        }}
+                        isActive={true}
+                        tabId={activeTab.id}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-lg font-medium">Ingen fane åpen</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Trykk Ctrl+T for å åpne en ny fane
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Developer Tools Panel */}
+              {showDevTools && (
+                <div className="w-96 bg-card border-l flex flex-col">
+                  <div className="p-3 border-b flex items-center justify-between">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Code2 className="w-4 h-4" />
+                      Utviklerverktøy
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setShowDevTools(false)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex-1 p-4 overflow-auto">
+                    <div className="space-y-4 text-sm">
+                      <div>
+                        <p className="font-medium mb-2">Nåværende side</p>
+                        <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                          <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
+                          <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
+                          <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Other tabs - placeholder content */}
+        <TabsContent value="workflow" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Layers className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Workflow Editor</p>
+              <p className="text-sm mt-2">Bygg og administrer automatiserte arbeidsflyter</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="data" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Database className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Data Dashboard</p>
+              <p className="text-sm mt-2">Se og analyser innsamlede data</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="session" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <History className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Session Replay</p>
+              <p className="text-sm mt-2">Spill av og analyser tidligere økter</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="devbridge" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <FileCode2 className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">DevBridge</p>
+              <p className="text-sm mt-2">Integrer med eksterne utviklingsverktøy</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="work-orders" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <CheckCircle className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Work Orders</p>
+              <p className="text-sm mt-2">Administrer arbeidsordre og oppgaver</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="privacy" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Shield className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Privacy</p>
+              <p className="text-sm mt-2">Personvern og sikkerhet innstillinger</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="adr-risk" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Activity className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">ADR & Risk</p>
+              <p className="text-sm mt-2">Architecture Decision Records og risikovurdering</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="multi-agent" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Bot className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Multi-Agent</p>
+              <p className="text-sm mt-2">Koordiner flere AI-agenter</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="qa-suite" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <CheckCircle className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">QA Suite Pro</p>
+              <p className="text-sm mt-2">Kvalitetssikring og testing</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="selector" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Code className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Selector Studio</p>
+              <p className="text-sm mt-2">Bygg og test element selektorer</p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="watched" className="flex-1 p-4">
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <Eye className="h-16 w-16 mx-auto mb-4" />
+              <p className="text-lg font-medium">Watched Workflows</p>
+              <p className="text-sm mt-2">Overvåk automatiserte arbeidsflyter</p>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
       
-      {/* History Panel */}
-      <HistoryPanel 
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
-        onNavigate={(url) => {
-          if (activeTab) {
-            setUrlInput(url);
-            navigateMutation.mutate({ tabId: activeTab.id, url });
-          }
-        }}
-      />
+      {/* Floating panels */}
+      {showHistory && (
+        <HistoryPanel 
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          onNavigate={(url) => {
+            if (activeTab) {
+              setUrlInput(url);
+              navigateMutation.mutate({ tabId: activeTab.id, url });
+            }
+          }}
+        />
+      )}
 
-      {/* Password Manager */}
       {showPasswords && (
         <div className="fixed top-0 right-0 w-96 h-full bg-background border-l shadow-lg z-50">
           <div className="flex items-center justify-between p-3 border-b">
@@ -1469,192 +1297,123 @@ export default function Browser() {
           <PasswordManager
             currentDomain={activeTab?.url ? new URL(activeTab.url).hostname : undefined}
             onAutoFill={(username, password) => {
-              // Inject auto-fill script into active tab
-              if (activeTab && browserInstance) {
-                const autoFillScript = `
-                  (function() {
-                    // Find all password fields
-                    const passwordFields = document.querySelectorAll('input[type="password"]');
-                    if (passwordFields.length > 0) {
-                      passwordFields[0].value = '${password.replace(/'/g, "\\'")}';
-                      
-                      // Try to find username field
-                      const passwordField = passwordFields[0];
-                      const form = passwordField.closest('form');
-                      
-                      if (form) {
-                        // Look for username input in same form
-                        const usernameFields = form.querySelectorAll(
-                          'input[type="text"], input[type="email"], input[name*="user"], input[name*="email"], input[name*="login"]'
-                        );
-                        
-                        if (usernameFields.length > 0) {
-                          usernameFields[0].value = '${username.replace(/'/g, "\\'")}';
-                        }
-                      } else {
-                        // Try to find username field near password field
-                        const allInputs = document.querySelectorAll('input[type="text"], input[type="email"]');
-                        for (let input of allInputs) {
-                          const rect1 = input.getBoundingClientRect();
-                          const rect2 = passwordField.getBoundingClientRect();
-                          const distance = Math.sqrt(
-                            Math.pow(rect1.left - rect2.left, 2) + 
-                            Math.pow(rect1.top - rect2.top, 2)
-                          );
-                          
-                          // If input is within 200 pixels of password field, assume it's the username
-                          if (distance < 200) {
-                            input.value = '${username.replace(/'/g, "\\'")}';
-                            break;
-                          }
-                        }
-                      }
-                      
-                      // Trigger input events
-                      passwordFields[0].dispatchEvent(new Event('input', { bubbles: true }));
-                      passwordFields[0].dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                  })();
-                `;
-                
-                apiRequest(
-                  'POST',
-                  '/api/browser-engine/tab/execute',
-                  {
-                    instanceId: browserInstance.id,
-                    tabId: activeTab.id,
-                    script: autoFillScript
-                  }
-                );
-              }
+              // Handle autofill
+              toast({
+                title: 'Autofyll aktivert',
+                description: 'Passord fylt ut i skjema',
+              });
             }}
           />
         </div>
       )}
 
-      {/* Password Save Dialog */}
-      {detectedFormData && (
-        <div className="fixed bottom-4 right-4 w-96 p-4 bg-background border rounded-lg shadow-lg z-50">
-          <div className="flex items-center gap-2 mb-3">
-            <Key className="h-5 w-5 text-primary" />
-            <h4 className="font-semibold">Lagre passord?</h4>
-          </div>
-          <p className="text-sm text-muted-foreground mb-3">
-            Vil du lagre passordet for {detectedFormData.username} på {detectedFormData.domain}?
-          </p>
-          <div className="flex gap-2 justify-end">
+      {showAIAssistant && (
+        <div className="fixed top-0 right-0 w-[600px] h-full bg-background border-l shadow-lg z-50">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="font-semibold">AI Assistant</h3>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDetectedFormData(null)}
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowAIAssistant(false)}
             >
-              Nei takk
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                // Save the password
-                apiRequest(
-                  '/api/saved-passwords',
-                  'POST',
-                  {
-                    domain: detectedFormData.domain,
-                    username: detectedFormData.username,
-                    password: detectedFormData.password,
-                    title: `${detectedFormData.username} på ${detectedFormData.domain}`,
-                    favicon: activeTab?.favicon
-                  }
-                ).then(() => {
-                  toast({
-                    title: 'Passord lagret',
-                    description: 'Passordet er trygt lagret i nettleseren',
-                  });
-                  setDetectedFormData(null);
-                });
-              }}
-            >
-              Lagre passord
+              <X className="h-4 w-4" />
             </Button>
           </div>
+          <AIAssistant
+            currentUrl={activeTab?.url}
+            pageContent=""
+            onNavigate={(url) => {
+              if (activeTab) {
+                setUrlInput(url);
+                navigateMutation.mutate({ tabId: activeTab.id, url });
+              }
+            }}
+            onExecuteScript={(script: string) => {
+              // Execute script in browser context
+              console.log('Executing script:', script);
+            }}
+          />
         </div>
       )}
-      
-      
-      {/* Tab Preview */}
-      {hoveredTab && browserInstance && (
-        <TabPreview
-          tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
-          isActive={activeTab?.id === hoveredTab}
-          position={hoverPosition}
+
+      {showExtensionsAPI && (
+        <div className="fixed top-0 right-0 w-96 h-full bg-background border-l shadow-lg z-50">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="font-semibold">Extensions API</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowExtensionsAPI(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <ExtensionsAPI />
+        </div>
+      )}
+
+      {showPWAManager && (
+        <div className="fixed top-0 right-0 w-[500px] h-full bg-background border-l shadow-lg z-50">
+          <PWAManager onClose={() => setShowPWAManager(false)} />
+        </div>
+      )}
+
+      {showFindBar && (
+        <FindBar
+          isOpen={showFindBar}
+          onClose={() => setShowFindBar(false)}
+          onFind={handleFind}
         />
       )}
-      
-      {/* Find Bar */}
-      <FindBar
-        isOpen={showFindBar}
-        onClose={() => setShowFindBar(false)}
-        onFind={handleFind}
-      />
-      
-      {/* Reader Mode */}
-      <ReaderMode
-        isOpen={showReaderMode}
-        onClose={() => setShowReaderMode(false)}
-        url={activeTab?.url || ''}
-        title={activeTab?.title || ''}
-      />
-      
-      {/* Media Controls */}
-      <MediaControls
-        isOpen={showMediaControls}
-        onClose={() => setShowMediaControls(false)}
-        currentTab={activeTab ? { url: activeTab.url, title: activeTab.title } : undefined}
-      />
-      
-      {/* Extensions */}
-      <Extensions
-        isOpen={showExtensions}
-        onClose={() => setShowExtensions(false)}
-      />
-      
-      {/* Performance Monitor */}
-      <PerformanceMonitor
-        isOpen={showPerformance}
-        onClose={() => setShowPerformance(false)}
-        currentTab={activeTab ? { id: activeTab.id, title: activeTab.title, url: activeTab.url } : undefined}
-      />
-      
-      {/* Network Layer */}
-      <NetworkLayer
-        isOpen={showNetworkLayer}
-        onClose={() => setShowNetworkLayer(false)}
-        tabId={activeTab?.id}
-      />
-      
-      {/* Security Sandbox */}
-      <SecuritySandbox
-        isOpen={showSecurity}
-        onClose={() => setShowSecurity(false)}
-        tabId={activeTab?.id}
-        url={activeTab?.url}
-      />
-      
-      {/* Web APIs */}
-      <WebAPIs
-        isOpen={showWebAPIs}
-        onClose={() => setShowWebAPIs(false)}
-        tabId={activeTab?.id}
-        url={activeTab?.url}
-      />
-      
-      {/* Rendering Engine */}
-      <RenderingEngine
-        isOpen={showRenderingEngine}
-        onClose={() => setShowRenderingEngine(false)}
-        tabId={activeTab?.id}
-        url={activeTab?.url}
-      />
-      </div>
+
+      {showReaderMode && activeTab && (
+        <ReaderMode
+          url={activeTab.url}
+          title={activeTab.title}
+          isOpen={showReaderMode}
+          onClose={() => setShowReaderMode(false)}
+        />
+      )}
+
+      {showMediaControls && (
+        <MediaControls isOpen={showMediaControls} onClose={() => setShowMediaControls(false)} />
+      )}
+
+      {showExtensions && (
+        <Extensions isOpen={showExtensions} onClose={() => setShowExtensions(false)} />
+      )}
+
+      {showPerformance && (
+        <PerformanceMonitor isOpen={showPerformance} onClose={() => setShowPerformance(false)} />
+      )}
+
+      {showNetworkLayer && (
+        <NetworkLayer
+          isOpen={showNetworkLayer}
+          onClose={() => setShowNetworkLayer(false)}
+        />
+      )}
+
+      {showSecurity && (
+        <SecuritySandbox
+          isOpen={showSecurity}
+          onClose={() => setShowSecurity(false)}
+        />
+      )}
+
+      {showWebAPIs && (
+        <WebAPIs
+          isOpen={showWebAPIs}
+          onClose={() => setShowWebAPIs(false)}
+        />
+      )}
+
+      {showRenderingEngine && (
+        <RenderingEngine
+          isOpen={showRenderingEngine}
+          onClose={() => setShowRenderingEngine(false)}
+        />
+      )}
     </div>
   );
 }

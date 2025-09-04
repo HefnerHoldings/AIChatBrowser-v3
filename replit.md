@@ -14,6 +14,12 @@ MadEasy Browser is a standalone AI-powered web browser designed to autonomously 
 - **Policy Guard**: Rule engine for evaluating actions against security policies with simulation mode
 - **Collaborative Mode**: Real-time shared sessions with live cursors, comments, @mentions, and review rules
 
+### Recent Updates (September 2025)
+- **UI Restoration**: Returned to horizontal tab layout with integrated Goal Planning panel
+- **AI Assistant Integration**: Complete AI browsing assistant with chat interface, smart page summarization, and natural language commands
+- **Extensions API**: Full Manifest V3 Chrome Extensions API support with content script injection
+- **PWA Support**: Complete Progressive Web App functionality with service workers, offline mode, and push notifications
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
