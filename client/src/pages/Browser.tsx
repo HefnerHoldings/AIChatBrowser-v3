@@ -825,7 +825,6 @@ export default function Browser() {
                   <TabPreview
                     tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
                     position={hoverPosition}
-                    onClose={() => setHoveredTab(null)}
                   />
                 )}
 
@@ -904,6 +903,9 @@ export default function Browser() {
                     {showSuggestions && urlInput && (
                       <SearchSuggestions
                         query={urlInput}
+                        isOpen={showSuggestions}
+                        onClose={() => setShowSuggestions(false)}
+                        anchorRef={addressBarRef}
                         onSelect={(url) => {
                           setUrlInput(url);
                           handleNavigate();
@@ -1327,10 +1329,6 @@ export default function Browser() {
                 setUrlInput(url);
                 navigateMutation.mutate({ tabId: activeTab.id, url });
               }
-            }}
-            onExecuteScript={(script: string) => {
-              // Execute script in browser context
-              console.log('Executing script:', script);
             }}
           />
         </div>
