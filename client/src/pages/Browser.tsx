@@ -650,9 +650,9 @@ export default function Browser() {
   };
 
   return (
-    <div className={`flex h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+    <div className={`relative h-screen ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="h-full flex flex-col pr-[320px]">
         {/* Main Navigation Tabs */}
         <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
         <TabsList className="w-full rounded-none justify-start px-4 bg-card">
@@ -1303,8 +1303,8 @@ export default function Browser() {
       )}
       </div>
       
-      {/* AI Assistant Column - Compact size */}
-      <div className="w-[320px] border-l bg-background flex flex-col">
+      {/* AI Assistant Sidebar - Positioned after tabs */}
+      <div className="absolute top-[45px] right-0 w-[320px] h-[calc(100%-45px)] border-l bg-background flex flex-col z-40">
         <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
