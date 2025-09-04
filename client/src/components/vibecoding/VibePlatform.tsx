@@ -3,13 +3,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VibeProfiler } from './VibeProfiler';
 import { SandboxRuntime } from './SandboxRuntime';
 import { EditorRunner } from './EditorRunner';
+import { Marketplace } from './Marketplace';
+import { PolicyGuard } from './PolicyGuard';
 import { 
   Settings,
   Code2,
   Shield,
   Terminal,
   Play,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  Shield as ShieldIcon
 } from 'lucide-react';
 
 export function VibePlatform() {
@@ -41,6 +45,14 @@ export function VibePlatform() {
             <Settings className="h-4 w-4" />
             Vibe Profiles
           </TabsTrigger>
+          <TabsTrigger value="marketplace" className="flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4" />
+            Marketplace
+          </TabsTrigger>
+          <TabsTrigger value="policy" className="flex items-center gap-2">
+            <ShieldIcon className="h-4 w-4" />
+            Policy Guard
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="editor" className="flex-1 m-0">
@@ -53,6 +65,14 @@ export function VibePlatform() {
 
         <TabsContent value="profiles" className="flex-1 m-0 overflow-auto">
           <VibeProfiler />
+        </TabsContent>
+
+        <TabsContent value="marketplace" className="flex-1 m-0 overflow-auto">
+          <Marketplace />
+        </TabsContent>
+
+        <TabsContent value="policy" className="flex-1 m-0 overflow-auto">
+          <PolicyGuard />
         </TabsContent>
       </Tabs>
     </div>
