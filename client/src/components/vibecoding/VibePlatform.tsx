@@ -5,6 +5,8 @@ import { SandboxRuntime } from './SandboxRuntime';
 import { EditorRunner } from './EditorRunner';
 import { Marketplace } from './Marketplace';
 import { PolicyGuard } from './PolicyGuard';
+import { CollaborativeMode } from './CollaborativeMode';
+import { QASuite } from './QASuite';
 import { 
   Settings,
   Code2,
@@ -13,7 +15,9 @@ import {
   Play,
   Sparkles,
   ShoppingBag,
-  Shield as ShieldIcon
+  Shield as ShieldIcon,
+  Users,
+  TestTube2
 } from 'lucide-react';
 
 export function VibePlatform() {
@@ -53,6 +57,14 @@ export function VibePlatform() {
             <ShieldIcon className="h-4 w-4" />
             Policy Guard
           </TabsTrigger>
+          <TabsTrigger value="collab" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Collaborative
+          </TabsTrigger>
+          <TabsTrigger value="qa" className="flex items-center gap-2">
+            <TestTube2 className="h-4 w-4" />
+            QA Suite
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="editor" className="flex-1 m-0">
@@ -73,6 +85,14 @@ export function VibePlatform() {
 
         <TabsContent value="policy" className="flex-1 m-0 overflow-auto">
           <PolicyGuard />
+        </TabsContent>
+
+        <TabsContent value="collab" className="flex-1 m-0 overflow-auto">
+          <CollaborativeMode />
+        </TabsContent>
+
+        <TabsContent value="qa" className="flex-1 m-0 overflow-auto">
+          <QASuite />
         </TabsContent>
       </Tabs>
     </div>
