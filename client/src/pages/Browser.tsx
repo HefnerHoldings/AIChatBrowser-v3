@@ -29,6 +29,7 @@ import { ExtensionsAPI } from '@/components/ExtensionsAPI';
 import { ContentScriptInjector } from '@/components/ContentScriptInjector';
 import { PWAManager } from '@/components/PWAManager';
 import { WorkflowManager } from '@/components/WorkflowManager';
+import { AITesting } from '@/components/AITesting';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -677,17 +678,9 @@ export default function Browser() {
             <Activity className="h-4 w-4" />
             ADR & Risk
           </TabsTrigger>
-          <TabsTrigger value="multi-agent" className="flex items-center gap-2">
+          <TabsTrigger value="ai-testing" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            Multi-Agent
-          </TabsTrigger>
-          <TabsTrigger value="qa-suite" className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            QA Suite Pro
-          </TabsTrigger>
-          <TabsTrigger value="selector" className="flex items-center gap-2">
-            <Code className="h-4 w-4" />
-            Selector Studio
+            AI & Testing
           </TabsTrigger>
         </TabsList>
 
@@ -1228,34 +1221,9 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="multi-agent" className="flex-1 p-4">
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <Bot className="h-16 w-16 mx-auto mb-4" />
-              <p className="text-lg font-medium">Multi-Agent</p>
-              <p className="text-sm mt-2">Koordiner flere AI-agenter</p>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="qa-suite" className="flex-1 p-4">
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <CheckCircle className="h-16 w-16 mx-auto mb-4" />
-              <p className="text-lg font-medium">QA Suite Pro</p>
-              <p className="text-sm mt-2">Kvalitetssikring og testing</p>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="selector" className="flex-1 p-4">
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <Code className="h-16 w-16 mx-auto mb-4" />
-              <p className="text-lg font-medium">Selector Studio</p>
-              <p className="text-sm mt-2">Bygg og test element selektorer</p>
-            </div>
-          </div>
+        {/* AI & Testing */}
+        <TabsContent value="ai-testing" className="flex-1 p-4">
+          <AITesting />
         </TabsContent>
 
       </Tabs>
