@@ -641,8 +641,72 @@ export default function Browser() {
     });
   };
 
+  // Handle tool toggling from sidebars
+  const handleToolToggle = (toolId: string, active: boolean) => {
+    switch(toolId) {
+      case 'history':
+        setShowHistory(active);
+        break;
+      case 'downloads':
+        // Handle downloads
+        break;
+      case 'security':
+        setShowSecurity(active);
+        break;
+      case 'performance':
+        setShowPerformance(active);
+        break;
+      case 'devtools':
+        setShowDevTools(active);
+        break;
+      case 'network':
+        setShowNetworkLayer(active);
+        break;
+      case 'webapis':
+        setShowWebAPIs(active);
+        break;
+      case 'extensions':
+        setShowExtensions(active);
+        break;
+      case 'passwords':
+        setShowPasswords(active);
+        break;
+      case 'media':
+        setShowMediaControls(active);
+        break;
+      case 'reader':
+        setShowReaderMode(active);
+        break;
+      case 'rendering':
+        setShowRenderingEngine(active);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className={`flex ${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen'} ${isIncognito ? 'bg-zinc-900' : 'bg-background'}`}>
+      {/* Sidebars */}
+      <LeftSidebar
+        isOpen={leftSidebarOpen}
+        onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)}
+        bookmarks={bookmarks}
+        history={history}
+        onBookmarkClick={handleBookmarkClick}
+        onHistoryClick={(url) => {
+          if (activeTab) {
+            setUrlInput(url);
+            navigateMutation.mutate({ tabId: activeTab.id, url });
+          }
+        }}
+      />
+      
+      <RightSidebar
+        isOpen={rightSidebarOpen}
+        onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
+        onToolToggle={handleToolToggle}
+      />
       {/* Tab Groups Panel */}
       {showTabGroups && browserInstance && !isFullscreen && (
         <TabGroups
