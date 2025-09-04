@@ -24,6 +24,8 @@ import { NetworkLayer } from '@/components/NetworkLayer';
 import { SecuritySandbox } from '@/components/SecuritySandbox';
 import { WebAPIs } from '@/components/WebAPIs';
 import { RenderingEngine } from '@/components/RenderingEngine';
+import { LeftSidebar } from '@/components/LeftSidebar';
+import { RightSidebar } from '@/components/RightSidebar';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -60,7 +62,7 @@ import {
   Activity,
   Wifi,
   Code,
-  Monitor
+  Monitor as MonitorIcon
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -137,6 +139,8 @@ export default function Browser() {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -996,7 +1000,7 @@ export default function Browser() {
               onClick={() => setShowRenderingEngine(true)}
               title="Rendering"
             >
-              <Monitor className="h-4 w-4" />
+              <MonitorIcon className="h-4 w-4" />
             </Button>
             <SessionRestore
               currentTabs={browserInstance?.tabs.map(tab => ({
