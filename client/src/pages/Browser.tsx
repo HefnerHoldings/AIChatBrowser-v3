@@ -1054,11 +1054,11 @@ export default function Browser() {
                 <>
                   {/* Collapsed indicator */}
                   {leftPanelCollapsed && (
-                    <div className="absolute top-1/2 -translate-y-1/2 left-0 z-50">
+                    <div className="absolute top-3 left-0 z-50">
                       <Button
                         variant="default"
                         size="sm"
-                        className="rounded-r-lg rounded-l-none h-24 w-6 px-0 bg-green-500/10 hover:bg-green-500/20 border-l-0"
+                        className="rounded-r-lg rounded-l-none h-8 w-6 px-0 bg-green-500/10 hover:bg-green-500/20 border-l-0"
                         onClick={() => setLeftPanelCollapsed(false)}
                         title="Åpne Workflow Progress"
                       >
@@ -1203,11 +1203,11 @@ export default function Browser() {
                   <>
                     {/* Collapsed indicator */}
                     {rightPanelCollapsed && (
-                      <div className="absolute top-1/2 -translate-y-1/2 right-0 z-50">
+                      <div className="absolute top-3 right-0 z-50">
                         <Button
                           variant="default"
                           size="sm"
-                          className="rounded-l-lg rounded-r-none h-24 w-6 px-0 bg-blue-500/10 hover:bg-blue-500/20 border-r-0"
+                          className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-blue-500/10 hover:bg-blue-500/20 border-r-0"
                           onClick={() => setRightPanelCollapsed(false)}
                           title="Åpne Utviklerverktøy"
                         >
