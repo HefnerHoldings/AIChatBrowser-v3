@@ -1298,11 +1298,7 @@ export default function Browser() {
                 <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
-                      <h3 className="font-semibold text-sm flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-purple-500" />
-                        AI Assistant
-                      </h3>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1312,15 +1308,19 @@ export default function Browser() {
                         >
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 hover:bg-purple-500/20"
-                          title="Speak Command"
-                        >
-                          <Mic className="h-3.5 w-3.5 text-purple-600" />
-                        </Button>
+                        <h3 className="font-semibold text-sm flex items-center gap-2">
+                          <Bot className="h-4 w-4 text-purple-500" />
+                          AI Assistant
+                        </h3>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-purple-500/20"
+                        title="Speak Command"
+                      >
+                        <Mic className="h-3.5 w-3.5 text-purple-600" />
+                      </Button>
                     </div>
                     <div className="flex-1 overflow-auto">
                       <AIAssistant
