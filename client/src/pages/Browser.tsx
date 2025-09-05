@@ -37,6 +37,7 @@ import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
 import { VoiceControl } from '@/components/VoiceControl';
+import { ActionRecorder } from '@/components/ActionRecorder';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -86,7 +87,8 @@ import {
   Clock,
   Calendar,
   Target,
-  Trophy
+  Trophy,
+  Video
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -169,6 +171,7 @@ export default function Browser() {
   const [showWorkflowBuilder, setShowWorkflowBuilder] = useState(false);
   const [showWorkflowChat, setShowWorkflowChat] = useState(false);
   const [showVoiceControl, setShowVoiceControl] = useState(false);
+  const [showActionRecorder, setShowActionRecorder] = useState(false);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
@@ -921,6 +924,17 @@ export default function Browser() {
                     >
                       <Bot className="h-4 w-4" />
                     </Button>
+
+                    {/* Action Recorder Button */}
+                    <Button
+                      variant={showActionRecorder ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => setShowActionRecorder(!showActionRecorder)}
+                      title="Action Recorder - Ta opp handlinger"
+                      data-testid="button-action-recorder"
+                    >
+                      <Video className="h-4 w-4" />
+                    </Button>
                     
                     <DownloadsManager />
                   </div>
@@ -1399,6 +1413,25 @@ export default function Browser() {
               setSelectedWorkflowId(workflow.id);
               setShowWorkflowBuilder(true);
               setShowWorkflowChat(false);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Action Recorder Panel */}
+      {showActionRecorder && (
+        <div className="fixed bottom-4 right-96 mr-8 w-96 z-50">
+          <ActionRecorder
+            onWorkflowGenerated={(workflow) => {
+              // Handle generated workflow
+              console.log('Generated workflow:', workflow);
+              setShowWorkflowBuilder(true);
+              setShowActionRecorder(false);
+              // Could integrate with workflow builder here
+              toast({
+                title: 'Workflow generert',
+                description: 'Workflow er opprettet basert på dine handlinger',
+              });
             }}
           />
         </div>
