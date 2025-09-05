@@ -56,8 +56,11 @@ export function WorkflowSuggestions({
 
   // Generate contextual suggestions based on current activity
   useEffect(() => {
-    generateSuggestions();
-  }, [currentUrl, userActivity]);
+    // Only generate suggestions if we have a valid URL
+    if (currentUrl && currentUrl !== 'about:blank') {
+      generateSuggestions();
+    }
+  }, [currentUrl]);
 
   const generateSuggestions = () => {
     setLoading(true);
@@ -356,7 +359,7 @@ export function WorkflowSuggestions({
       </div>
 
       {/* Loading State */}
-      {loading && suggestions.length === 0 && (
+      {loading && (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
           <RefreshCw className="h-4 w-4 animate-spin mr-2" />
           <span className="text-sm">Analyzing context...</span>
