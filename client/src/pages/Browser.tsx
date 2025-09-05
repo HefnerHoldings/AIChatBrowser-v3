@@ -1060,7 +1060,11 @@ export default function Browser() {
                         variant="default"
                         size="sm"
                         className="rounded-r-lg rounded-l-none h-8 w-6 px-0 bg-green-500/10 hover:bg-green-500/20 border-l-0"
-                        onClick={() => setLeftPanelCollapsed(false)}
+                        onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setLeftPanelCollapsed(false);
+                    }}
                         title="Åpne Workflow Progress"
                       >
                         <ChevronRight className="h-4 w-4 text-green-600" />
@@ -1209,7 +1213,11 @@ export default function Browser() {
                           variant="default"
                           size="sm"
                           className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-blue-500/10 hover:bg-blue-500/20 border-r-0"
-                          onClick={() => setRightPanelCollapsed(false)}
+                          onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setRightPanelCollapsed(false);
+                    }}
                           title="Åpne Utviklerverktøy"
                         >
                           <ChevronLeft className="h-4 w-4 text-blue-600" />
@@ -1272,7 +1280,11 @@ export default function Browser() {
                     variant="default"
                     size="sm"
                     className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0"
-                    onClick={() => setAiAssistantCollapsed(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAiAssistantCollapsed(false);
+                    }}
                     title="Åpne AI Assistant"
                   >
                     <ChevronLeft className="h-4 w-4 text-purple-600" />
