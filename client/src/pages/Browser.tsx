@@ -1307,18 +1307,18 @@ export default function Browser() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 hover:bg-purple-500/20"
-                          title="Speak Command"
+                          onClick={() => setAiAssistantCollapsed(true)}
+                          title="Minimer AI Assistant"
                         >
-                          <Mic className="h-3.5 w-3.5 text-purple-600" />
+                          <ChevronRight className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 hover:bg-purple-500/20"
-                          onClick={() => setAiAssistantCollapsed(true)}
-                          title="Minimer AI Assistant"
+                          title="Speak Command"
                         >
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          <Mic className="h-3.5 w-3.5 text-purple-600" />
                         </Button>
                       </div>
                     </div>
