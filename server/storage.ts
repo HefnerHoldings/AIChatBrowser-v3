@@ -24,7 +24,13 @@ import {
   type InsertBrowserHistory,
   type InsertDownload,
   type SavedPassword,
-  type InsertSavedPassword
+  type InsertSavedPassword,
+  type WorkflowAIChat,
+  type WorkflowVoiceSession,
+  type WorkflowStepConfig,
+  type InsertWorkflowAIChat,
+  type InsertWorkflowVoiceSession,
+  type InsertWorkflowStepConfig
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -101,6 +107,27 @@ export interface IStorage {
   savePassword(password: InsertSavedPassword): Promise<SavedPassword>;
   updatePassword(id: string, updates: Partial<InsertSavedPassword>): Promise<SavedPassword | undefined>;
   deletePassword(id: string): Promise<boolean>;
+  
+  // Workflow AI Chats
+  getWorkflowAIChats(workflowId?: string): Promise<WorkflowAIChat[]>;
+  getWorkflowAIChatsBySession(sessionId: string): Promise<WorkflowAIChat[]>;
+  createWorkflowAIChat(chat: InsertWorkflowAIChat): Promise<WorkflowAIChat>;
+  
+  // Workflow Voice Sessions
+  getWorkflowVoiceSessions(): Promise<WorkflowVoiceSession[]>;
+  getWorkflowVoiceSession(sessionId: string): Promise<WorkflowVoiceSession | undefined>;
+  createWorkflowVoiceSession(session: InsertWorkflowVoiceSession): Promise<WorkflowVoiceSession>;
+  updateWorkflowVoiceSession(id: string, updates: Partial<InsertWorkflowVoiceSession>): Promise<WorkflowVoiceSession | undefined>;
+  
+  // Workflow Step Configs
+  getWorkflowStepConfigs(workflowId: string): Promise<WorkflowStepConfig[]>;
+  createWorkflowStepConfig(config: InsertWorkflowStepConfig): Promise<WorkflowStepConfig>;
+  updateWorkflowStepConfig(id: string, updates: Partial<InsertWorkflowStepConfig>): Promise<WorkflowStepConfig | undefined>;
+  deleteWorkflowStepConfig(id: string): Promise<boolean>;
+  
+  // Workflow Templates
+  getWorkflowTemplates(): Promise<Workflow[]>;
+  createWorkflowFromTemplate(templateId: string): Promise<Workflow>;
 }
 
 export class MemStorage implements IStorage {
@@ -117,6 +144,9 @@ export class MemStorage implements IStorage {
   private browserHistory: Map<string, BrowserHistory> = new Map();
   private downloads: Map<string, Download> = new Map();
   private savedPasswords: Map<string, SavedPassword> = new Map();
+  private workflowAIChats: Map<string, WorkflowAIChat> = new Map();
+  private workflowVoiceSessions: Map<string, WorkflowVoiceSession> = new Map();
+  private workflowStepConfigs: Map<string, WorkflowStepConfig> = new Map();
 
   constructor() {
     this.seedData();
@@ -140,13 +170,22 @@ export class MemStorage implements IStorage {
       projectId: project.id,
       name: "EU Lead Generation",
       description: "Search and extract contact details from European cookware wholesalers",
+      type: "data-extraction",
+      status: "active",
       steps: [
         { type: "search", query: "cookware wholesaler EU", pages: 5 },
         { type: "extract", fields: ["company", "email", "phone", "website"] },
         { type: "validate", rules: ["email_format", "phone_region"] },
         { type: "export", format: "xlsx" }
       ],
+      config: {
+        sources: ["google.com", "eu-manufacturers.com"],
+        selectors: { company: ".company-name", email: ".contact-email" }
+      },
+      metrics: { leadsFound: 150, emailsValidated: 89 },
       tags: ["Scraping", "Lead Generation"],
+      isTemplate: false,
+      aiGenerated: false,
       lastUsed: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     };
@@ -156,12 +195,21 @@ export class MemStorage implements IStorage {
       projectId: project.id,
       name: "Competitor Analysis",
       description: "Analyze competitor websites and pricing",
+      type: "research",
+      status: "active",
       steps: [
         { type: "navigate", urls: ["competitor1.com", "competitor2.com"] },
         { type: "extract", fields: ["pricing", "products", "contact"] },
         { type: "analyze", comparison: true }
       ],
+      config: {
+        competitors: ["competitor1.com", "competitor2.com"],
+        compareFields: ["pricing", "features", "shipping"]
+      },
+      metrics: { sitesAnalyzed: 5, dataPoints: 125 },
       tags: ["Research", "Analysis"],
+      isTemplate: false,
+      aiGenerated: false,
       lastUsed: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
     };
@@ -337,8 +385,14 @@ export class MemStorage implements IStorage {
       projectId: insertWorkflow.projectId || null,
       name: insertWorkflow.name,
       description: insertWorkflow.description || null,
+      type: insertWorkflow.type || "data-extraction",
+      status: insertWorkflow.status || "draft",
       steps: insertWorkflow.steps,
+      config: insertWorkflow.config || {},
+      metrics: insertWorkflow.metrics || {},
       tags: insertWorkflow.tags || null,
+      isTemplate: insertWorkflow.isTemplate || false,
+      aiGenerated: insertWorkflow.aiGenerated || false,
       lastUsed: null,
       createdAt: new Date() 
     };
@@ -775,6 +829,130 @@ export class MemStorage implements IStorage {
 
   async deletePassword(id: string): Promise<boolean> {
     return this.savedPasswords.delete(id);
+  }
+  
+  // Workflow AI Chats
+  async getWorkflowAIChats(workflowId?: string): Promise<WorkflowAIChat[]> {
+    const chats = Array.from(this.workflowAIChats.values());
+    return workflowId ? chats.filter(c => c.workflowId === workflowId) : chats;
+  }
+  
+  async getWorkflowAIChatsBySession(sessionId: string): Promise<WorkflowAIChat[]> {
+    return Array.from(this.workflowAIChats.values()).filter(c => c.sessionId === sessionId);
+  }
+  
+  async createWorkflowAIChat(insertChat: InsertWorkflowAIChat): Promise<WorkflowAIChat> {
+    const id = randomUUID();
+    const chat: WorkflowAIChat = {
+      id,
+      workflowId: insertChat.workflowId || null,
+      userId: insertChat.userId || null,
+      sessionId: insertChat.sessionId,
+      inputType: insertChat.inputType,
+      userMessage: insertChat.userMessage,
+      aiResponse: insertChat.aiResponse || null,
+      parsedIntent: insertChat.parsedIntent || null,
+      audioUrl: insertChat.audioUrl || null,
+      createdWorkflowId: insertChat.createdWorkflowId || null,
+      createdAt: new Date()
+    };
+    this.workflowAIChats.set(id, chat);
+    return chat;
+  }
+  
+  // Workflow Voice Sessions
+  async getWorkflowVoiceSessions(): Promise<WorkflowVoiceSession[]> {
+    return Array.from(this.workflowVoiceSessions.values());
+  }
+  
+  async getWorkflowVoiceSession(sessionId: string): Promise<WorkflowVoiceSession | undefined> {
+    return Array.from(this.workflowVoiceSessions.values()).find(s => s.sessionId === sessionId);
+  }
+  
+  async createWorkflowVoiceSession(insertSession: InsertWorkflowVoiceSession): Promise<WorkflowVoiceSession> {
+    const id = randomUUID();
+    const session: WorkflowVoiceSession = {
+      id,
+      sessionId: insertSession.sessionId,
+      status: insertSession.status || 'active',
+      mode: insertSession.mode,
+      language: insertSession.language || 'en',
+      transcripts: insertSession.transcripts || [],
+      audioFiles: insertSession.audioFiles || [],
+      duration: insertSession.duration || null,
+      startedAt: new Date(),
+      endedAt: null
+    };
+    this.workflowVoiceSessions.set(id, session);
+    return session;
+  }
+  
+  async updateWorkflowVoiceSession(id: string, updates: Partial<InsertWorkflowVoiceSession>): Promise<WorkflowVoiceSession | undefined> {
+    const session = this.workflowVoiceSessions.get(id);
+    if (!session) return undefined;
+    
+    const updatedSession = { ...session, ...updates };
+    this.workflowVoiceSessions.set(id, updatedSession);
+    return updatedSession;
+  }
+  
+  // Workflow Step Configs
+  async getWorkflowStepConfigs(workflowId: string): Promise<WorkflowStepConfig[]> {
+    return Array.from(this.workflowStepConfigs.values())
+      .filter(c => c.workflowId === workflowId)
+      .sort((a, b) => a.stepIndex - b.stepIndex);
+  }
+  
+  async createWorkflowStepConfig(insertConfig: InsertWorkflowStepConfig): Promise<WorkflowStepConfig> {
+    const id = randomUUID();
+    const config: WorkflowStepConfig = {
+      id,
+      workflowId: insertConfig.workflowId,
+      stepIndex: insertConfig.stepIndex,
+      type: insertConfig.type,
+      name: insertConfig.name,
+      config: insertConfig.config || {},
+      selectors: insertConfig.selectors || {},
+      extractionRules: insertConfig.extractionRules || {},
+      validationRules: insertConfig.validationRules || {},
+      errorHandling: insertConfig.errorHandling || {},
+      conditions: insertConfig.conditions || {},
+      createdAt: new Date()
+    };
+    this.workflowStepConfigs.set(id, config);
+    return config;
+  }
+  
+  async updateWorkflowStepConfig(id: string, updates: Partial<InsertWorkflowStepConfig>): Promise<WorkflowStepConfig | undefined> {
+    const config = this.workflowStepConfigs.get(id);
+    if (!config) return undefined;
+    
+    const updatedConfig = { ...config, ...updates };
+    this.workflowStepConfigs.set(id, updatedConfig);
+    return updatedConfig;
+  }
+  
+  async deleteWorkflowStepConfig(id: string): Promise<boolean> {
+    return this.workflowStepConfigs.delete(id);
+  }
+  
+  // Workflow Templates
+  async getWorkflowTemplates(): Promise<Workflow[]> {
+    return Array.from(this.workflows.values()).filter(w => w.isTemplate);
+  }
+  
+  async createWorkflowFromTemplate(templateId: string): Promise<Workflow> {
+    const template = this.workflows.get(templateId);
+    if (!template || !template.isTemplate) {
+      throw new Error('Template not found');
+    }
+    
+    const newWorkflow = { ...template };
+    delete (newWorkflow as any).id;
+    newWorkflow.isTemplate = false;
+    newWorkflow.name = `${template.name} (Copy)`;
+    
+    return this.createWorkflow(newWorkflow as InsertWorkflow);
   }
 }
 

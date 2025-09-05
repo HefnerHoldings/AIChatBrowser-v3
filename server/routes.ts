@@ -19,7 +19,10 @@ import {
   insertBookmarkSchema,
   insertBrowserHistorySchema,
   insertDownloadSchema,
-  insertSavedPasswordSchema
+  insertSavedPasswordSchema,
+  insertWorkflowAIChatSchema,
+  insertWorkflowVoiceSessionSchema,
+  insertWorkflowStepConfigSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -87,6 +90,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/workflows/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const workflow = await storage.getWorkflow(id);
+      if (!workflow) {
+        res.status(404).json({ message: "Workflow not found" });
+        return;
+      }
+      res.json(workflow);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch workflow" });
+    }
+  });
+
   app.post("/api/workflows", async (req, res) => {
     try {
       const data = insertWorkflowSchema.parse(req.body);
@@ -98,6 +115,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to create workflow" });
       }
+    }
+  });
+
+  app.patch("/api/workflows/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertWorkflowSchema.partial().parse(req.body);
+      const workflow = await storage.updateWorkflow(id, updates);
+      if (!workflow) {
+        res.status(404).json({ message: "Workflow not found" });
+        return;
+      }
+      res.json(workflow);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid workflow data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update workflow" });
+      }
+    }
+  });
+
+  // Workflow Templates
+  app.get("/api/workflows/templates", async (req, res) => {
+    try {
+      const templates = await storage.getWorkflowTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch workflow templates" });
+    }
+  });
+
+  app.post("/api/workflows/templates/:templateId/create", async (req, res) => {
+    try {
+      const { templateId } = req.params;
+      const workflow = await storage.createWorkflowFromTemplate(templateId);
+      res.json(workflow);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create workflow from template" });
+    }
+  });
+
+  // Workflow AI Chat
+  app.get("/api/workflows/:workflowId/ai-chats", async (req, res) => {
+    try {
+      const { workflowId } = req.params;
+      const chats = await storage.getWorkflowAIChats(workflowId);
+      res.json(chats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch AI chats" });
+    }
+  });
+
+  app.post("/api/workflows/ai-chat", async (req, res) => {
+    try {
+      const data = insertWorkflowAIChatSchema.parse(req.body);
+      const chat = await storage.createWorkflowAIChat(data);
+      res.json(chat);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid AI chat data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create AI chat" });
+      }
+    }
+  });
+
+  // Workflow Voice Sessions
+  app.get("/api/workflows/voice-sessions", async (req, res) => {
+    try {
+      const sessions = await storage.getWorkflowVoiceSessions();
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch voice sessions" });
+    }
+  });
+
+  app.post("/api/workflows/voice-session", async (req, res) => {
+    try {
+      const data = insertWorkflowVoiceSessionSchema.parse(req.body);
+      const session = await storage.createWorkflowVoiceSession(data);
+      res.json(session);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid voice session data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create voice session" });
+      }
+    }
+  });
+
+  app.patch("/api/workflows/voice-session/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertWorkflowVoiceSessionSchema.partial().parse(req.body);
+      const session = await storage.updateWorkflowVoiceSession(id, updates);
+      if (!session) {
+        res.status(404).json({ message: "Voice session not found" });
+        return;
+      }
+      res.json(session);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid voice session data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update voice session" });
+      }
+    }
+  });
+
+  // Workflow Step Configs
+  app.get("/api/workflows/:workflowId/step-configs", async (req, res) => {
+    try {
+      const { workflowId } = req.params;
+      const configs = await storage.getWorkflowStepConfigs(workflowId);
+      res.json(configs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch step configurations" });
+    }
+  });
+
+  app.post("/api/workflows/step-config", async (req, res) => {
+    try {
+      const data = insertWorkflowStepConfigSchema.parse(req.body);
+      const config = await storage.createWorkflowStepConfig(data);
+      res.json(config);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid step config data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create step configuration" });
+      }
+    }
+  });
+
+  app.patch("/api/workflows/step-config/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertWorkflowStepConfigSchema.partial().parse(req.body);
+      const config = await storage.updateWorkflowStepConfig(id, updates);
+      if (!config) {
+        res.status(404).json({ message: "Step configuration not found" });
+        return;
+      }
+      res.json(config);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid step config data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update step configuration" });
+      }
+    }
+  });
+
+  app.delete("/api/workflows/step-config/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteWorkflowStepConfig(id);
+      if (!deleted) {
+        res.status(404).json({ message: "Step configuration not found" });
+        return;
+      }
+      res.json({ message: "Step configuration deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete step configuration" });
     }
   });
 

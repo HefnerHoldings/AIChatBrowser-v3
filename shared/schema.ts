@@ -17,8 +17,14 @@ export const workflows = pgTable("workflows", {
   projectId: varchar("project_id").references(() => projects.id),
   name: text("name").notNull(),
   description: text("description"),
+  type: varchar("type", { length: 50 }).notNull().default('data-extraction'), // data-extraction, form-filling, monitoring, research, testing
+  status: varchar("status", { length: 50 }).notNull().default('draft'), // draft, active, paused, completed
   steps: jsonb("steps").notNull(), // Array of workflow steps
+  config: jsonb("config").default({}), // Sources, selectors, extraction rules, schedules
+  metrics: jsonb("metrics").default({}), // Runtime metrics
   tags: text("tags").array().default([]),
+  isTemplate: boolean("is_template").default(false),
+  aiGenerated: boolean("ai_generated").default(false),
   lastUsed: timestamp("last_used"),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
@@ -347,3 +353,74 @@ export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
 export type InsertBrowserHistory = z.infer<typeof insertBrowserHistorySchema>;
 export type InsertDownload = z.infer<typeof insertDownloadSchema>;
 export type InsertSavedPassword = z.infer<typeof insertSavedPasswordSchema>;
+
+// Workflow AI Chat table
+export const workflowAIChats = pgTable("workflow_ai_chats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar("workflow_id").references(() => workflows.id),
+  userId: varchar("user_id"),
+  sessionId: varchar("session_id").notNull(),
+  inputType: varchar("input_type", { length: 50 }).notNull(), // text, voice-to-text, voice-to-voice
+  userMessage: text("user_message").notNull(),
+  aiResponse: text("ai_response"),
+  parsedIntent: jsonb("parsed_intent"), // Extracted workflow config from natural language
+  audioUrl: text("audio_url"), // For voice messages
+  createdWorkflowId: varchar("created_workflow_id"), // If a workflow was created
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Workflow Voice Sessions table
+export const workflowVoiceSessions = pgTable("workflow_voice_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  status: varchar("status", { length: 50 }).notNull().default('active'), // active, completed, interrupted
+  mode: varchar("mode", { length: 50 }).notNull(), // voice-to-text, voice-to-voice
+  language: varchar("language", { length: 10 }).default('en'),
+  transcripts: jsonb("transcripts").default([]), // Array of transcriptions
+  audioFiles: jsonb("audio_files").default([]), // URLs to audio recordings
+  duration: integer("duration"), // Total duration in seconds
+  startedAt: timestamp("started_at").notNull().default(sql`now()`),
+  endedAt: timestamp("ended_at"),
+});
+
+// Workflow Step Configurations table
+export const workflowStepConfigs = pgTable("workflow_step_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar("workflow_id").notNull().references(() => workflows.id, { onDelete: 'cascade' }),
+  stepIndex: integer("step_index").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // navigate, extract, click, fill, wait, condition, loop
+  name: text("name").notNull(),
+  config: jsonb("config").notNull().default({}), // Step-specific configuration
+  selectors: jsonb("selectors").default({}), // CSS selectors, XPath
+  extractionRules: jsonb("extraction_rules").default({}), // Data extraction rules
+  validationRules: jsonb("validation_rules").default({}), // Data validation rules
+  errorHandling: jsonb("error_handling").default({}), // What to do on error
+  conditions: jsonb("conditions").default({}), // Conditional logic
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Insert schemas for new workflow tables
+export const insertWorkflowAIChatSchema = createInsertSchema(workflowAIChats).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWorkflowVoiceSessionSchema = createInsertSchema(workflowVoiceSessions).omit({
+  id: true,
+  startedAt: true,
+  endedAt: true,
+});
+
+export const insertWorkflowStepConfigSchema = createInsertSchema(workflowStepConfigs).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for new workflow tables
+export type WorkflowAIChat = typeof workflowAIChats.$inferSelect;
+export type WorkflowVoiceSession = typeof workflowVoiceSessions.$inferSelect;
+export type WorkflowStepConfig = typeof workflowStepConfigs.$inferSelect;
+
+export type InsertWorkflowAIChat = z.infer<typeof insertWorkflowAIChatSchema>;
+export type InsertWorkflowVoiceSession = z.infer<typeof insertWorkflowVoiceSessionSchema>;
+export type InsertWorkflowStepConfig = z.infer<typeof insertWorkflowStepConfigSchema>;
