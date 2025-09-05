@@ -176,9 +176,34 @@ export default function Browser() {
   const [showVoiceControl, setShowVoiceControl] = useState(false);
   const [showActionRecorder, setShowActionRecorder] = useState(false);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const [aiAssistantCollapsed, setAiAssistantCollapsed] = useState(false);
+  
+  // Initialize panel states from localStorage
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem('workflowPanelCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem('developerPanelCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [aiAssistantCollapsed, setAiAssistantCollapsed] = useState(() => {
+    const saved = localStorage.getItem('aiAssistantCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  
+  // Save panel states to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('workflowPanelCollapsed', JSON.stringify(leftPanelCollapsed));
+  }, [leftPanelCollapsed]);
+  
+  useEffect(() => {
+    localStorage.setItem('developerPanelCollapsed', JSON.stringify(rightPanelCollapsed));
+  }, [rightPanelCollapsed]);
+  
+  useEffect(() => {
+    localStorage.setItem('aiAssistantCollapsed', JSON.stringify(aiAssistantCollapsed));
+  }, [aiAssistantCollapsed]);
+  
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -797,7 +822,7 @@ export default function Browser() {
             {/* Tab Preview */}
             {hoveredTab && browserInstance && !isFullscreen && (
               <TabPreview
-                tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
+                tab={browserInstance.tabs.find(t => t.id === hoveredTab)}
                 position={hoverPosition}
                 isActive={hoveredTab === activeTab?.id}
               />

@@ -42,8 +42,13 @@ export function TabPreview({ tab, isActive, position }: TabPreviewProps) {
     }
   }, [position]);
 
+  // Sjekk om tab eksisterer
+  if (!tab) {
+    return null;
+  }
+
   // Forkortet URL for visning
-  const displayUrl = tab.url.replace(/^https?:\/\/(www\.)?/, '').substring(0, 50);
+  const displayUrl = tab.url?.replace(/^https?:\/\/(www\.)?/, '').substring(0, 50) || '';
 
   return (
     <Card
@@ -101,7 +106,7 @@ export function TabPreview({ tab, isActive, position }: TabPreviewProps) {
         {/* Footer info */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{tab.isLoading ? 'Laster side...' : 'Klar'}</span>
-          <span className="truncate max-w-[150px]">{tab.url.split('/')[2]}</span>
+          <span className="truncate max-w-[150px]">{tab.url?.split('/')[2] || ''}</span>
         </div>
       </div>
     </Card>
