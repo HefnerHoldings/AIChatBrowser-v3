@@ -1059,6 +1059,62 @@ export default function Browser() {
                 )}
               </div>
               
+              {/* Goal Tracker Sidebar - Left side */}
+              {activeView === 'browser' && (
+                <div className="absolute top-0 left-0 w-80 h-full border-r bg-card overflow-y-auto z-40">
+                  <GoalTracker />
+                </div>
+              )}
+              
+              {/* AI Assistant Sidebar - Right side */}
+              <div className="absolute top-0 right-0 w-[320px] h-full border-l bg-background flex flex-col z-40">
+                <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <Bot className="h-4 w-4 text-purple-500" />
+                        AI Assistant
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-purple-500/20"
+                        title="Speak Command"
+                      >
+                        <Mic className="h-3.5 w-3.5 text-purple-600" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <AIAssistant
+                        currentUrl={activeTab?.url}
+                        pageContent=""
+                        onNavigate={(url) => {
+                          if (activeTab) {
+                            setUrlInput(url);
+                            navigateMutation.mutate({ tabId: activeTab.id, url });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* Workflow Suggestions */}
+                <div className="flex-1 bg-muted/5 overflow-auto p-2">
+                  <WorkflowSuggestions
+                    currentUrl={activeTab?.url}
+                    onSelectWorkflow={(workflow) => {
+                      console.log('Selected workflow:', workflow);
+                      // Handle workflow selection
+                      toast({
+                        title: "Workflow Started",
+                        description: `Starting ${workflow.title}...`,
+                      });
+                    }}
+                    maxSuggestions={3}
+                  />
+                </div>
+              </div>
+              
               {/* Developer Tools Panel */}
               {showDevTools && (
                 <div className="w-96 bg-card border-l flex flex-col">
@@ -1293,62 +1349,6 @@ export default function Browser() {
           onClose={() => setShowRenderingEngine(false)}
         />
       )}
-      </div>
-      
-      {/* Goal Tracker Sidebar - Left side */}
-      {activeView === 'browser' && (
-        <div className="absolute top-[41px] left-0 w-80 h-[calc(100%-41px)] border-r bg-card overflow-y-auto z-40">
-          <GoalTracker />
-        </div>
-      )}
-      
-      {/* AI Assistant Sidebar - Right side */}
-      <div className="absolute top-[41px] right-0 w-[320px] h-[calc(100%-41px)] border-l bg-background flex flex-col z-40">
-        <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Bot className="h-4 w-4 text-purple-500" />
-                AI Assistant
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 hover:bg-purple-500/20"
-                title="Speak Command"
-              >
-                <Mic className="h-3.5 w-3.5 text-purple-600" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <AIAssistant
-                currentUrl={activeTab?.url}
-                pageContent=""
-                onNavigate={(url) => {
-                  if (activeTab) {
-                    setUrlInput(url);
-                    navigateMutation.mutate({ tabId: activeTab.id, url });
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-        {/* Workflow Suggestions */}
-        <div className="flex-1 bg-muted/5 overflow-auto p-2">
-          <WorkflowSuggestions
-            currentUrl={activeTab?.url}
-            onSelectWorkflow={(workflow) => {
-              console.log('Selected workflow:', workflow);
-              // Handle workflow selection
-              toast({
-                title: "Workflow Started",
-                description: `Starting ${workflow.title}...`,
-              });
-            }}
-            maxSuggestions={3}
-          />
-        </div>
       </div>
     </div>
   );
