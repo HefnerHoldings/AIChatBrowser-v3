@@ -89,7 +89,9 @@ import {
   Calendar,
   Target,
   Trophy,
-  Video
+  Video,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -174,6 +176,8 @@ export default function Browser() {
   const [showVoiceControl, setShowVoiceControl] = useState(false);
   const [showActionRecorder, setShowActionRecorder] = useState(false);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -534,6 +538,12 @@ export default function Browser() {
 
   const handleStop = () => {
     handleKeyboardShortcut.mutate('Escape');
+  };
+
+  const handleRefresh = () => {
+    if (activeTab && browserInstance) {
+      navigateMutation.mutate({ tabId: activeTab.id, url: activeTab.url });
+    }
   };
 
   const handleHome = () => {
@@ -1041,30 +1051,56 @@ export default function Browser() {
             <div className={`flex-1 relative bg-white`}>
               {/* Workflow Progress Sidebar - Left side */}
               {activeView === 'browser' && (
-                <div className="absolute top-0 left-0 w-80 h-full border-r bg-card flex flex-col z-40">
-                  <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-                    <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <Target className="h-4 w-4 text-green-500" />
-                      Workflow Progress
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:bg-green-500/20"
-                      title="View All Workflows"
-                    >
-                      <Trophy className="h-3.5 w-3.5 text-green-600" />
-                    </Button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
-                    <GoalTracker 
-                      onEditWorkflow={(workflowId) => {
-                        setSelectedWorkflowId(workflowId);
-                        setShowWorkflowBuilder(true);
-                      }}
-                    />
-                  </div>
-                </div>
+                <>
+                  {/* Collapsed indicator */}
+                  {leftPanelCollapsed && (
+                    <div className="absolute top-1/2 -translate-y-1/2 left-0 z-50">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="rounded-r-lg rounded-l-none h-24 w-6 px-0 bg-green-500/10 hover:bg-green-500/20 border-l-0"
+                        onClick={() => setLeftPanelCollapsed(false)}
+                        title="Åpne Workflow Progress"
+                      >
+                        <ChevronRight className="h-4 w-4 text-green-600" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Full panel */}
+                  {!leftPanelCollapsed && (
+                    <div className="absolute top-0 left-0 w-80 h-full border-r bg-card flex flex-col z-40">
+                      <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+                        <h3 className="font-semibold text-sm flex items-center gap-2">
+                          <Target className="h-4 w-4 text-green-500" />
+                          Workflow Progress
+                        </h3>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 hover:bg-green-500/20"
+                            title="View All Workflows"
+                          >
+                            <Trophy className="h-3.5 w-3.5 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 hover:bg-green-500/20"
+                            onClick={() => setLeftPanelCollapsed(true)}
+                            title="Minimer panel"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto">
+                        <GoalTracker />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               
               {/* Main Browser Content - Center */}
@@ -1164,34 +1200,66 @@ export default function Browser() {
                 
                 {/* Developer Tools Panel */}
                 {showDevTools && (
-                  <div className="w-96 bg-card border-l flex flex-col">
-                    <div className="p-3 border-b flex items-center justify-between">
-                      <h3 className="text-sm font-semibold flex items-center gap-2">
-                        <Code2 className="w-4 h-4" />
-                        Utviklerverktøy
-                      </h3>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setShowDevTools(false)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <div className="flex-1 p-4 overflow-auto">
-                      <div className="space-y-4 text-sm">
-                        <div>
-                          <p className="font-medium mb-2">Nåværende side</p>
-                          <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                            <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
-                            <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
-                            <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
+                  <>
+                    {/* Collapsed indicator */}
+                    {rightPanelCollapsed && (
+                      <div className="absolute top-1/2 -translate-y-1/2 right-0 z-50">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="rounded-l-lg rounded-r-none h-24 w-6 px-0 bg-blue-500/10 hover:bg-blue-500/20 border-r-0"
+                          onClick={() => setRightPanelCollapsed(false)}
+                          title="Åpne Utviklerverktøy"
+                        >
+                          <ChevronLeft className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Full panel */}
+                    {!rightPanelCollapsed && (
+                      <div className="w-96 bg-card border-l flex flex-col">
+                        <div className="p-3 border-b flex items-center justify-between">
+                          <h3 className="text-sm font-semibold flex items-center gap-2">
+                            <Code2 className="w-4 h-4" />
+                            Utviklerverktøy
+                          </h3>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setRightPanelCollapsed(true)}
+                              title="Minimer panel"
+                            >
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setShowDevTools(false)}
+                              title="Lukk panel"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex-1 p-4 overflow-auto">
+                          <div className="space-y-4 text-sm">
+                            <div>
+                              <p className="font-medium mb-2">Nåværende side</p>
+                              <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                                <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
+                                <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
+                                <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
               
