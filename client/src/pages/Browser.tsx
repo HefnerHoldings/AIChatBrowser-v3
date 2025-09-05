@@ -1218,30 +1218,30 @@ export default function Browser() {
                     
                     {/* Full panel */}
                     {!rightPanelCollapsed && (
-                      <div className="w-96 bg-card border-l flex flex-col">
-                        <div className="p-3 border-b flex items-center justify-between">
-                          <h3 className="text-sm font-semibold flex items-center gap-2">
-                            <Code2 className="w-4 h-4" />
+                      <div className="absolute top-0 right-0 w-96 h-full border-l bg-card flex flex-col z-40">
+                        <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
+                          <h3 className="font-semibold text-sm flex items-center gap-2">
+                            <Code2 className="h-4 w-4 text-blue-500" />
                             Utviklerverktøy
                           </h3>
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-7 w-7 hover:bg-blue-500/20"
                               onClick={() => setRightPanelCollapsed(true)}
                               title="Minimer panel"
                             >
-                              <ChevronRight className="h-3 w-3" />
+                              <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-7 w-7 hover:bg-blue-500/20"
                               onClick={() => setShowDevTools(false)}
                               title="Lukk panel"
                             >
-                              <X className="h-3 w-3" />
+                              <X className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
