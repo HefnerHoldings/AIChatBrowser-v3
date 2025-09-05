@@ -34,6 +34,9 @@ import { AITesting } from '@/components/AITesting';
 import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
+import { WorkflowBuilder } from '@/components/WorkflowBuilder';
+import { WorkflowAIChat } from '@/components/WorkflowAIChat';
+import { VoiceControl } from '@/components/VoiceControl';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -163,6 +166,10 @@ export default function Browser() {
   const [activeView, setActiveView] = useState('browser');
   const [showExtensionsAPI, setShowExtensionsAPI] = useState(false);
   const [showPWAManager, setShowPWAManager] = useState(false);
+  const [showWorkflowBuilder, setShowWorkflowBuilder] = useState(false);
+  const [showWorkflowChat, setShowWorkflowChat] = useState(false);
+  const [showVoiceControl, setShowVoiceControl] = useState(false);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -892,6 +899,29 @@ export default function Browser() {
                     >
                       <Package className="h-4 w-4" />
                     </Button>
+                    
+                    {/* Voice Control Button */}
+                    <Button
+                      variant={showVoiceControl ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => setShowVoiceControl(!showVoiceControl)}
+                      title="Voice Control"
+                      data-testid="button-voice-control"
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+
+                    {/* AI Chat Button */}
+                    <Button
+                      variant={showWorkflowChat ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => setShowWorkflowChat(!showWorkflowChat)}
+                      title="Workflow AI Assistant"
+                      data-testid="button-workflow-chat"
+                    >
+                      <Bot className="h-4 w-4" />
+                    </Button>
+                    
                     <DownloadsManager />
                   </div>
 
@@ -1003,7 +1033,12 @@ export default function Browser() {
                     </Button>
                   </div>
                   <div className="flex-1 overflow-y-auto">
-                    <GoalTracker />
+                    <GoalTracker 
+                      onEditWorkflow={(workflowId) => {
+                        setSelectedWorkflowId(workflowId);
+                        setShowWorkflowBuilder(true);
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1311,6 +1346,61 @@ export default function Browser() {
       {showPWAManager && (
         <div className="fixed top-0 right-0 w-[500px] h-full bg-background border-l shadow-lg z-50">
           <PWAManager onClose={() => setShowPWAManager(false)} />
+        </div>
+      )}
+
+      {/* Voice Control Panel */}
+      {showVoiceControl && (
+        <div className="fixed bottom-4 right-4 w-96 z-50">
+          <VoiceControl
+            onCommand={(command) => {
+              // Handle voice commands
+              if (command.action === 'create-workflow') {
+                setShowWorkflowBuilder(true);
+              } else if (command.action === 'new-tab' && browserInstance) {
+                createNewTab(browserInstance.id, 'https://www.google.com');
+              } else if (command.action === 'close-tab' && activeTab) {
+                handleCloseTab(activeTab.id);
+              } else if (command.action === 'refresh' && activeTab) {
+                handleRefresh();
+              }
+            }}
+            onTranscript={(text, isFinal) => {
+              // Handle transcript for chat
+              if (isFinal && showWorkflowChat) {
+                // Send to workflow AI chat
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* Workflow Builder Modal */}
+      {showWorkflowBuilder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-7xl h-[90vh] overflow-hidden">
+            <WorkflowBuilder
+              workflowId={selectedWorkflowId || undefined}
+              onClose={() => {
+                setShowWorkflowBuilder(false);
+                setSelectedWorkflowId(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Workflow AI Chat */}
+      {showWorkflowChat && (
+        <div className="fixed bottom-4 left-4 w-96 h-[500px] z-50">
+          <WorkflowAIChat
+            workflowId={selectedWorkflowId || undefined}
+            onWorkflowCreated={(workflow) => {
+              setSelectedWorkflowId(workflow.id);
+              setShowWorkflowBuilder(true);
+              setShowWorkflowChat(false);
+            }}
+          />
         </div>
       )}
 

@@ -122,7 +122,7 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
         }
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       const assistantMessage: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
@@ -140,7 +140,7 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
         onWorkflowCreated(data.workflow);
       }
       
-      if (voiceMode === 'voice-to-voice' && synthRef.current) {
+      if (voiceMode === 'voice-to-voice' && synthRef.current && data.response) {
         speakMessage(data.response);
       }
     },
