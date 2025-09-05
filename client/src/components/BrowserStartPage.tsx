@@ -126,7 +126,7 @@ export function BrowserStartPage({
   };
   
   return (
-    <div className="h-full bg-gradient-to-br from-background via-muted/20 to-background overflow-auto">
+    <div className="h-full bg-white overflow-auto relative z-10">
       <div className="max-w-7xl mx-auto p-8 space-y-8">
         {/* Header */}
         <motion.div 
