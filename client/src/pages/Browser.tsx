@@ -178,6 +178,7 @@ export default function Browser() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [aiAssistantCollapsed, setAiAssistantCollapsed] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -1264,6 +1265,23 @@ export default function Browser() {
               </div>
               
               {/* AI Assistant Sidebar - Right side */}
+              {/* Collapsed indicator */}
+              {aiAssistantCollapsed && (
+                <div className="absolute top-3 right-96 z-50">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0"
+                    onClick={() => setAiAssistantCollapsed(false)}
+                    title="Åpne AI Assistant"
+                  >
+                    <ChevronLeft className="h-4 w-4 text-purple-600" />
+                  </Button>
+                </div>
+              )}
+              
+              {/* Full panel */}
+              {!aiAssistantCollapsed && (
               <div className="absolute top-0 right-0 w-[320px] h-full border-l bg-background flex flex-col z-40">
                 <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
                   <div className="flex flex-col h-full">
@@ -1272,14 +1290,25 @@ export default function Browser() {
                         <Bot className="h-4 w-4 text-purple-500" />
                         AI Assistant
                       </h3>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 hover:bg-purple-500/20"
-                        title="Speak Command"
-                      >
-                        <Mic className="h-3.5 w-3.5 text-purple-600" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 hover:bg-purple-500/20"
+                          title="Speak Command"
+                        >
+                          <Mic className="h-3.5 w-3.5 text-purple-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 hover:bg-purple-500/20"
+                          onClick={() => setAiAssistantCollapsed(true)}
+                          title="Minimer AI Assistant"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex-1 overflow-auto">
                       <AIAssistant
@@ -1311,6 +1340,7 @@ export default function Browser() {
                   />
                 </div>
               </div>
+              )}
             </div>
         </TabsContent>
 
