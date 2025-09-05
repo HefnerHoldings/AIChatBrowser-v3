@@ -981,10 +981,19 @@ export default function Browser() {
               </div>
             )}
 
-            {/* Browser Viewport */}
-            <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative bg-white`}>
-              <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
-                {activeTab ? (
+            {/* Browser Viewport with sidebars */}
+            <div className={`flex-1 flex relative bg-white`}>
+              {/* Goal Tracker Sidebar - Left side */}
+              {activeView === 'browser' && (
+                <div className="w-80 border-r bg-card overflow-y-auto z-40">
+                  <GoalTracker />
+                </div>
+              )}
+              
+              {/* Main Browser Content - Center */}
+              <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative`}>
+                <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
+                  {activeTab ? (
                   <>
                     {isNavigating && (
                       <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
@@ -1057,17 +1066,43 @@ export default function Browser() {
                     </div>
                   </div>
                 )}
+                </div>
+                
+                {/* Developer Tools Panel */}
+                {showDevTools && (
+                  <div className="w-96 bg-card border-l flex flex-col">
+                    <div className="p-3 border-b flex items-center justify-between">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Code2 className="w-4 h-4" />
+                        Utviklerverktøy
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setShowDevTools(false)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 p-4 overflow-auto">
+                      <div className="space-y-4 text-sm">
+                        <div>
+                          <p className="font-medium mb-2">Nåværende side</p>
+                          <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                            <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
+                            <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
+                            <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               
-              {/* Goal Tracker Sidebar - Left side */}
-              {activeView === 'browser' && (
-                <div className="absolute top-0 left-0 w-80 h-full border-r bg-card overflow-y-auto z-40">
-                  <GoalTracker />
-                </div>
-              )}
-              
               {/* AI Assistant Sidebar - Right side */}
-              <div className="absolute top-0 right-0 w-[320px] h-full border-l bg-background flex flex-col z-40">
+              <div className="w-[320px] border-l bg-background flex flex-col z-40">
                 <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
@@ -1114,38 +1149,6 @@ export default function Browser() {
                   />
                 </div>
               </div>
-              
-              {/* Developer Tools Panel */}
-              {showDevTools && (
-                <div className="w-96 bg-card border-l flex flex-col">
-                  <div className="p-3 border-b flex items-center justify-between">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <Code2 className="w-4 h-4" />
-                      Utviklerverktøy
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setShowDevTools(false)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="flex-1 p-4 overflow-auto">
-                    <div className="space-y-4 text-sm">
-                      <div>
-                        <p className="font-medium mb-2">Nåværende side</p>
-                        <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                          <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
-                          <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
-                          <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
         </TabsContent>
 
