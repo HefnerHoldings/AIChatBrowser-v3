@@ -985,19 +985,19 @@ export default function Browser() {
 
             {/* Browser Viewport with sidebars */}
             <div className={`flex-1 relative bg-white`}>
-              {/* Goal Tracker Sidebar - Left side */}
+              {/* Workflow Progress Sidebar - Left side */}
               {activeView === 'browser' && (
                 <div className="absolute top-0 left-0 w-80 h-full border-r bg-card flex flex-col z-40">
                   <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-green-500/10 to-emerald-500/10">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
                       <Target className="h-4 w-4 text-green-500" />
-                      Goal Tracker
+                      Workflow Progress
                     </h3>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 hover:bg-green-500/20"
-                      title="View All Goals"
+                      title="View All Workflows"
                     >
                       <Trophy className="h-3.5 w-3.5 text-green-600" />
                     </Button>
