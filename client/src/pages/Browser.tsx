@@ -1267,7 +1267,7 @@ export default function Browser() {
               {/* AI Assistant Sidebar - Right side */}
               {/* Collapsed indicator */}
               {aiAssistantCollapsed && (
-                <div className="absolute top-3 right-96 z-50">
+                <div className="absolute top-3 right-0 z-50">
                   <Button
                     variant="default"
                     size="sm"
