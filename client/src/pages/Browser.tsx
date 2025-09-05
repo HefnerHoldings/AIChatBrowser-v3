@@ -1276,19 +1276,19 @@ export default function Browser() {
               {/* Collapsed indicator */}
               {aiAssistantCollapsed && (
                 <div className="absolute top-3 right-0 z-50">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0"
+                  <button
+                    type="button"
+                    className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0 inline-flex items-center justify-center"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setAiAssistantCollapsed(false);
+                      return false;
                     }}
                     title="Åpne AI Assistant"
                   >
                     <ChevronLeft className="h-4 w-4 text-purple-600" />
-                  </Button>
+                  </button>
                 </div>
               )}
               

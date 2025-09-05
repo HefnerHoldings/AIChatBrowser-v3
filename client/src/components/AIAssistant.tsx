@@ -154,9 +154,16 @@ export function AIAssistant({
     }
   }, [pageContent, currentUrl]);
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message (only within the chat container)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only scroll if there are messages and the ref exists
+    if (messages.length > 0 && messagesEndRef.current) {
+      // Scroll within the parent scroll container instead of the whole page
+      const scrollContainer = messagesEndRef.current.closest('.overflow-auto');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
   }, [messages]);
 
   const generateSmartSuggestions = () => {
