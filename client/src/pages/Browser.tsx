@@ -690,7 +690,7 @@ export default function Browser() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0 pl-80 pr-[320px]">
+        <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0">
             {/* Browser Tabs Row */}
             {!isFullscreen && (
               <div className={`flex items-center border-b ${isIncognito ? 'bg-zinc-900 border-zinc-700' : 'bg-muted/20'} px-2 py-1`}>
@@ -982,16 +982,16 @@ export default function Browser() {
             )}
 
             {/* Browser Viewport with sidebars */}
-            <div className={`flex-1 flex relative bg-white`}>
+            <div className={`flex-1 relative bg-white`}>
               {/* Goal Tracker Sidebar - Left side */}
               {activeView === 'browser' && (
-                <div className="w-80 border-r bg-card overflow-y-auto z-40">
+                <div className="absolute top-0 left-0 w-80 h-full border-r bg-card overflow-y-auto z-40">
                   <GoalTracker />
                 </div>
               )}
               
               {/* Main Browser Content - Center */}
-              <div className={`flex-1 ${showDevTools ? 'flex' : ''} relative`}>
+              <div className={`w-full h-full ${showDevTools ? 'flex' : ''} relative`}>
                 <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
                   {activeTab ? (
                   <>
@@ -1102,7 +1102,7 @@ export default function Browser() {
               </div>
               
               {/* AI Assistant Sidebar - Right side */}
-              <div className="w-[320px] border-l bg-background flex flex-col z-40">
+              <div className="absolute top-0 right-0 w-[320px] h-full border-l bg-background flex flex-col z-40">
                 <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
@@ -1153,11 +1153,11 @@ export default function Browser() {
         </TabsContent>
 
         {/* Workflow */}
-        <TabsContent value="workflow" className="flex-1 p-4">
+        <TabsContent value="workflow" className="flex-1">
           <WorkflowManager />
         </TabsContent>
 
-        <TabsContent value="data" className="flex-1 p-4">
+        <TabsContent value="data" className="flex-1">
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <Database className="h-16 w-16 mx-auto mb-4" />
@@ -1167,7 +1167,7 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="session" className="flex-1 p-4">
+        <TabsContent value="session" className="flex-1">
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <History className="h-16 w-16 mx-auto mb-4" />
@@ -1177,7 +1177,7 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="devbridge" className="flex-1 p-4">
+        <TabsContent value="devbridge" className="flex-1">
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <FileCode2 className="h-16 w-16 mx-auto mb-4" />
@@ -1187,7 +1187,7 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="work-orders" className="flex-1 p-4">
+        <TabsContent value="work-orders" className="flex-1">
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <CheckCircle className="h-16 w-16 mx-auto mb-4" />
@@ -1197,7 +1197,7 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="privacy" className="flex-1 p-4">
+        <TabsContent value="privacy" className="flex-1">
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <Shield className="h-16 w-16 mx-auto mb-4" />
@@ -1207,7 +1207,7 @@ export default function Browser() {
           </div>
         </TabsContent>
 
-        <TabsContent value="adr-risk" className="flex-1 p-4">
+        <TabsContent value="adr-risk" className="flex-1">
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <Activity className="h-16 w-16 mx-auto mb-4" />
@@ -1218,7 +1218,7 @@ export default function Browser() {
         </TabsContent>
 
         {/* AI & Testing */}
-        <TabsContent value="ai-testing" className="flex-1 p-4">
+        <TabsContent value="ai-testing" className="flex-1">
           <AITesting />
         </TabsContent>
 
