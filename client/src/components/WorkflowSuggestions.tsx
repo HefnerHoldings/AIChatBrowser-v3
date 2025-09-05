@@ -1,71 +1,129 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Sparkles,
-  TrendingUp,
-  Clock,
-  Target,
-  Zap,
-  RefreshCw,
-  ArrowRight,
-  Play,
-  Bookmark,
-  ChevronRight,
-  Search,
-  FileText,
-  Mail,
-  ShoppingCart,
-  Calendar,
-  Users,
-  Globe,
-  Database
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Sparkles, Brain, TrendingUp, Zap, Eye, FileText,
+  ShoppingCart, Search, Lock, Image, Table, List,
+  ArrowRight, Plus, CheckCircle, AlertCircle, RefreshCw,
+  Clock, Target, Play, ChevronRight, Bookmark
 } from 'lucide-react';
+import { pageAnalyzer } from '@/lib/pageAnalyzer';
 
 export interface WorkflowSuggestion {
   id: string;
-  title: string;
+  name: string;
+  title?: string; // Alias for name for compatibility
   description: string;
-  category: 'productivity' | 'research' | 'automation' | 'data' | 'communication' | 'shopping';
-  icon: React.ReactNode;
+  category?: 'productivity' | 'research' | 'automation' | 'data' | 'communication' | 'shopping';
+  icon?: React.ReactNode;
   confidence: number;
-  estimatedTime: string;
-  triggers: string[];
-  actions: string[];
-  relevance: 'high' | 'medium' | 'low';
+  estimatedTime?: string;
+  triggers?: string[];
+  actions?: string[];
+  relevance?: 'high' | 'medium' | 'low';
   lastUsed?: Date;
-  usageCount: number;
+  usageCount?: number;
+  tags: string[];
+  steps: any[];
 }
 
 interface WorkflowSuggestionsProps {
   currentUrl?: string;
+  pageContent?: string;
   userActivity?: any[];
-  onSelectWorkflow: (workflow: WorkflowSuggestion) => void;
+  onSelectWorkflow?: (workflow: WorkflowSuggestion) => void;
+  onSuggestionsChange?: (count: number) => void;
   maxSuggestions?: number;
+  className?: string;
 }
 
-export function WorkflowSuggestions({
-  currentUrl,
+const suggestionIcons = {
+  'form-automation': FileText,
+  'table-extraction': Table,
+  'list-extraction': List,
+  'search-automation': Search,
+  'login-automation': Lock,
+  'price-monitoring': ShoppingCart,
+  'article-extraction': FileText,
+  'image-download': Image
+};
+
+export function WorkflowSuggestions({ 
+  currentUrl = '', 
+  pageContent = '', 
   userActivity = [],
   onSelectWorkflow,
-  maxSuggestions = 4
+  onSuggestionsChange,
+  maxSuggestions = 4,
+  className = ''
 }: WorkflowSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<WorkflowSuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Generate contextual suggestions based on current activity
+  const [pageAnalysis, setPageAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [activeTab, setActiveTab] = useState('suggestions');
+  
+  // Analyze page content when it changes
   useEffect(() => {
-    // Only generate suggestions if we have a valid URL
-    if (currentUrl && currentUrl !== 'about:blank') {
-      generateSuggestions();
+    if ((pageContent && currentUrl) || (currentUrl && currentUrl !== 'about:blank')) {
+      analyzePageContent();
     }
-  }, [currentUrl]);
-
-  const generateSuggestions = () => {
-    setLoading(true);
+  }, [pageContent, currentUrl]);
+  
+  const analyzePageContent = async () => {
+    setIsAnalyzing(true);
     
-    // Analyze current context
+    try {
+      // Simulate async operation for realistic feel
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (pageContent) {
+        // Analyze the actual page content if provided
+        const analysis = pageAnalyzer.analyzeContent(pageContent, currentUrl);
+        setPageAnalysis(analysis);
+        
+        // Generate workflow suggestions based on page analysis
+        const workflowSuggestions = pageAnalyzer.generateWorkflowSuggestions(analysis);
+        
+        // Enhance suggestions with additional metadata
+        const enhancedSuggestions = workflowSuggestions.map((suggestion: any) => ({
+          ...suggestion,
+          title: suggestion.name, // Add title alias for compatibility
+          estimatedTime: `${suggestion.steps.length * 2} min`,
+          usageCount: Math.floor(Math.random() * 500),
+          actions: suggestion.steps.map((s: any) => s.name)
+        }));
+        
+        const finalSuggestions = enhancedSuggestions.slice(0, maxSuggestions);
+        setSuggestions(finalSuggestions);
+        // Notify parent about suggestion count
+        if (onSuggestionsChange) {
+          onSuggestionsChange(finalSuggestions.length);
+        }
+      } else {
+        // Use existing logic for URL-based suggestions
+        generateContextualSuggestions();
+      }
+      
+      // Auto-select first suggestion if available
+      if (suggestions.length > 0 && !selectedSuggestion) {
+        setSelectedSuggestion(suggestions[0].id);
+      }
+    } catch (error) {
+      console.error('Error analyzing page:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  
+  const generateContextualSuggestions = () => {
+    // Analyze current context from URL only
     const urlDomain = currentUrl ? new URL(currentUrl).hostname : '';
     const isSearchEngine = urlDomain.includes('google') || urlDomain.includes('bing');
     const isEcommerce = urlDomain.includes('amazon') || urlDomain.includes('ebay');
@@ -78,143 +136,50 @@ export function WorkflowSuggestions({
     if (isSearchEngine) {
       contextualSuggestions.push({
         id: 'research-compile',
-        title: 'Research & Compile',
-        description: 'Automatically gather and organize search results into a structured report',
+        name: 'Forskning & Sammenstilling',
+        title: 'Forskning & Sammenstilling',
+        description: 'Automatisk samle og organisere søkeresultater i en strukturert rapport',
         category: 'research',
         icon: <FileText className="h-4 w-4" />,
         confidence: 0.95,
         estimatedTime: '5-10 min',
-        triggers: ['Search performed', 'Multiple tabs open'],
-        actions: ['Extract content', 'Summarize findings', 'Create report'],
+        triggers: ['Søk utført', 'Flere faner åpne'],
+        actions: ['Ekstraher innhold', 'Oppsummer funn', 'Lag rapport'],
         relevance: 'high',
-        usageCount: 342
-      });
-      
-      contextualSuggestions.push({
-        id: 'competitor-analysis',
-        title: 'Competitor Analysis',
-        description: 'Extract and compare data from multiple competitor websites',
-        category: 'data',
-        icon: <TrendingUp className="h-4 w-4" />,
-        confidence: 0.88,
-        estimatedTime: '15-20 min',
-        triggers: ['Business search', 'Multiple domains'],
-        actions: ['Scrape data', 'Compare features', 'Generate matrix'],
-        relevance: 'medium',
-        usageCount: 156
+        usageCount: 342,
+        tags: ['research', 'data', 'report'],
+        steps: []
       });
     }
     
-    // E-commerce suggestions
-    if (isEcommerce) {
-      contextualSuggestions.push({
-        id: 'price-tracker',
-        title: 'Price Tracker',
-        description: 'Monitor price changes and get alerts when items drop in price',
-        category: 'shopping',
-        icon: <ShoppingCart className="h-4 w-4" />,
-        confidence: 0.92,
-        estimatedTime: '2 min setup',
-        triggers: ['Product page viewed', 'Price detected'],
-        actions: ['Track price', 'Set alert', 'Compare sellers'],
-        relevance: 'high',
-        usageCount: 523
-      });
-      
-      contextualSuggestions.push({
-        id: 'wholesale-finder',
-        title: 'Find Wholesale Suppliers',
-        description: 'Search for wholesale suppliers and compare bulk pricing',
-        category: 'shopping',
-        icon: <Search className="h-4 w-4" />,
-        confidence: 0.85,
-        estimatedTime: '10-15 min',
-        triggers: ['Product search', 'Business context'],
-        actions: ['Find suppliers', 'Compare prices', 'Contact vendors'],
-        relevance: 'medium',
-        usageCount: 89
-      });
+    const finalSuggestions = contextualSuggestions.slice(0, maxSuggestions);
+    setSuggestions(finalSuggestions);
+    // Notify parent about suggestion count
+    if (onSuggestionsChange) {
+      onSuggestionsChange(finalSuggestions.length);
     }
-    
-    // Email suggestions
-    if (isEmail) {
-      contextualSuggestions.push({
-        id: 'email-processor',
-        title: 'Email Batch Processor',
-        description: 'Automatically categorize, label, and respond to emails',
-        category: 'communication',
-        icon: <Mail className="h-4 w-4" />,
-        confidence: 0.90,
-        estimatedTime: '5 min',
-        triggers: ['Email inbox open', 'Multiple unread'],
-        actions: ['Categorize', 'Auto-respond', 'Archive'],
-        relevance: 'high',
-        usageCount: 278
-      });
-    }
-    
-    // Social media suggestions
-    if (isSocialMedia) {
-      contextualSuggestions.push({
-        id: 'lead-extractor',
-        title: 'Lead Extractor',
-        description: 'Extract contact information from LinkedIn profiles',
-        category: 'data',
-        icon: <Users className="h-4 w-4" />,
-        confidence: 0.87,
-        estimatedTime: '10-15 min',
-        triggers: ['LinkedIn profile', 'Search results'],
-        actions: ['Extract contacts', 'Enrich data', 'Export CSV'],
-        relevance: 'high',
-        usageCount: 412
-      });
-    }
-    
-    // Generic productivity suggestions
-    contextualSuggestions.push({
-      id: 'daily-automation',
-      title: 'Daily Routine Automation',
-      description: 'Automate your daily web tasks in one click',
-      category: 'automation',
-      icon: <Zap className="h-4 w-4" />,
-      confidence: 0.82,
-      estimatedTime: '15 min setup',
-      triggers: ['Morning routine', 'Repeated actions'],
-      actions: ['Check sites', 'Gather updates', 'Send summary'],
-      relevance: 'medium',
-      usageCount: 198
-    });
-    
-    contextualSuggestions.push({
-      id: 'meeting-scheduler',
-      title: 'Smart Meeting Scheduler',
-      description: 'Find optimal meeting times across calendars',
-      category: 'productivity',
-      icon: <Calendar className="h-4 w-4" />,
-      confidence: 0.79,
-      estimatedTime: '3 min',
-      triggers: ['Calendar access', 'Scheduling need'],
-      actions: ['Check availability', 'Send invites', 'Add to calendar'],
-      relevance: 'low',
-      usageCount: 134
-    });
-    
-    // Sort by relevance and confidence
-    const sortedSuggestions = contextualSuggestions
-      .sort((a, b) => {
-        const relevanceScore = { high: 3, medium: 2, low: 1 };
-        const scoreA = relevanceScore[a.relevance] * a.confidence;
-        const scoreB = relevanceScore[b.relevance] * b.confidence;
-        return scoreB - scoreA;
-      })
-      .slice(0, maxSuggestions);
-    
-    setTimeout(() => {
-      setSuggestions(sortedSuggestions);
-      setLoading(false);
-    }, 300);
   };
-
+  
+  const handleSelectWorkflow = (workflow: WorkflowSuggestion) => {
+    if (onSelectWorkflow) {
+      onSelectWorkflow(workflow);
+    }
+  };
+  
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.9) return 'text-green-600';
+    if (confidence >= 0.8) return 'text-blue-600';
+    if (confidence >= 0.7) return 'text-yellow-600';
+    return 'text-gray-600';
+  };
+  
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.9) return 'Høy sikkerhet';
+    if (confidence >= 0.8) return 'God match';
+    if (confidence >= 0.7) return 'Mulig match';
+    return 'Lav sikkerhet';
+  };
+  
   const getRelevanceColor = (relevance: string) => {
     switch (relevance) {
       case 'high': return 'bg-green-500/10 text-green-600 border-green-500/20';
@@ -223,163 +188,243 @@ export function WorkflowSuggestions({
       default: return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
     }
   };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'productivity': return 'bg-blue-500/10 text-blue-600';
-      case 'research': return 'bg-purple-500/10 text-purple-600';
-      case 'automation': return 'bg-orange-500/10 text-orange-600';
-      case 'data': return 'bg-cyan-500/10 text-cyan-600';
-      case 'communication': return 'bg-pink-500/10 text-pink-600';
-      case 'shopping': return 'bg-green-500/10 text-green-600';
-      default: return 'bg-gray-500/10 text-gray-600';
-    }
-  };
-
+  
   return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-purple-500" />
-          Suggested Workflows
-        </h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={generateSuggestions}
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
-
-      {/* Suggestion Cards */}
-      <div className="grid gap-2">
-        {suggestions.map((workflow) => (
-          <Card 
-            key={workflow.id} 
-            className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] border-muted"
-            onClick={() => onSelectWorkflow(workflow)}
+    <Card className={`${className} overflow-hidden`}>
+      <CardHeader className="bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
+              <Brain className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Smart Workflow-gjenkjenning</CardTitle>
+              <CardDescription className="text-xs">
+                AI analyserer siden og foreslår relevante workflows
+              </CardDescription>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={analyzePageContent}
           >
-            <CardHeader className="p-3 pb-2">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-2 flex-1">
-                  <div className={`p-1.5 rounded ${getCategoryColor(workflow.category)}`}>
-                    {workflow.icon}
+            <RefreshCw className={`h-4 w-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-4">
+        {isAnalyzing ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="w-2 h-2 bg-purple-600 rounded-full"
+              />
+              <span className="text-sm text-muted-foreground">Analyserer sideinnhold...</span>
+            </div>
+            <Progress value={33} className="h-2" />
+          </div>
+        ) : suggestions.length > 0 ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="suggestions">
+                <Zap className="w-4 h-4 mr-1" />
+                Forslag ({suggestions.length})
+              </TabsTrigger>
+              <TabsTrigger value="analysis">
+                <Eye className="w-4 h-4 mr-1" />
+                Analyse
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="suggestions" className="space-y-3">
+              <ScrollArea className="h-[400px] pr-3">
+                <AnimatePresence mode="wait">
+                  {suggestions.map((suggestion, index) => {
+                    const Icon = suggestionIcons[suggestion.id as keyof typeof suggestionIcons] || Sparkles;
+                    const isSelected = selectedSuggestion === suggestion.id;
+                    
+                    return (
+                      <motion.div
+                        key={suggestion.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card 
+                          className={`mb-3 cursor-pointer transition-all hover:shadow-md ${
+                            isSelected ? 'ring-2 ring-purple-500' : ''
+                          }`}
+                          onClick={() => setSelectedSuggestion(suggestion.id)}
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-2">
+                                <Icon className="w-5 h-5 text-purple-600" />
+                                <CardTitle className="text-sm font-medium">
+                                  {suggestion.name || suggestion.title}
+                                </CardTitle>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-medium ${getConfidenceColor(suggestion.confidence)}`}>
+                                  {Math.round(suggestion.confidence * 100)}%
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {getConfidenceLabel(suggestion.confidence)}
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardDescription className="text-xs mt-2">
+                              {suggestion.description}
+                            </CardDescription>
+                          </CardHeader>
+                          
+                          {isSelected && (
+                            <CardContent className="pt-0 pb-3">
+                              <div className="space-y-2">
+                                {/* Workflow Info */}
+                                {suggestion.estimatedTime && (
+                                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {suggestion.estimatedTime}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Target className="h-3 w-3" />
+                                      {suggestion.steps.length} steg
+                                    </span>
+                                    {suggestion.usageCount > 0 && (
+                                      <span className="flex items-center gap-1">
+                                        <TrendingUp className="h-3 w-3" />
+                                        {suggestion.usageCount} bruk
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Tags */}
+                                <div className="flex flex-wrap gap-1">
+                                  {suggestion.tags.map((tag: string) => (
+                                    <Badge key={tag} variant="secondary" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                
+                                {/* Action Buttons */}
+                                <div className="flex items-center justify-between mt-3">
+                                  <Button 
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Add to bookmarks/favorites
+                                    }}
+                                  >
+                                    <Bookmark className="h-3 w-3 mr-1" />
+                                    Lagre
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    className="h-7 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSelectWorkflow(suggestion);
+                                    }}
+                                  >
+                                    <Play className="h-3 w-3 mr-1" />
+                                    Start
+                                    <ChevronRight className="h-3 w-3 ml-0.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </ScrollArea>
+            </TabsContent>
+            
+            <TabsContent value="analysis" className="space-y-4">
+              {pageAnalysis && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Elementer funnet</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {pageAnalysis.elements.map((element: any, index: number) => (
+                        <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                          <Badge variant="outline">{element.count}</Badge>
+                          <span className="text-xs capitalize">{element.type}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-sm font-semibold line-clamp-1">
-                      {workflow.title}
-                    </CardTitle>
-                    <CardDescription className="text-xs mt-0.5 line-clamp-2">
-                      {workflow.description}
-                    </CardDescription>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Mønstre identifisert</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {pageAnalysis.patterns.map((pattern: string) => (
+                        <Badge key={pattern} variant="secondary" className="text-xs">
+                          {pattern.replace(/-/g, ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Mulige handlinger</h4>
+                    <ul className="space-y-1">
+                      {pageAnalysis.suggestedActions.map((action: string, index: number) => (
+                        <li key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <ArrowRight className="w-3 h-3" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-                <Badge 
-                  variant="outline" 
-                  className={`text-xs ml-2 ${getRelevanceColor(workflow.relevance)}`}
-                >
-                  {Math.round(workflow.confidence * 100)}%
-                </Badge>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="p-3 pt-1">
-              {/* Workflow Info */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {workflow.estimatedTime}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Target className="h-3 w-3" />
-                  {workflow.actions.length} actions
-                </span>
-                {workflow.usageCount > 0 && (
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {workflow.usageCount} uses
-                  </span>
-                )}
-              </div>
-              
-              {/* Action Tags */}
-              <div className="flex flex-wrap gap-1 mb-2">
-                {workflow.actions.slice(0, 3).map((action, idx) => (
-                  <Badge 
-                    key={idx} 
-                    variant="secondary" 
-                    className="text-xs px-1.5 py-0"
-                  >
-                    {action}
-                  </Badge>
-                ))}
-                {workflow.actions.length > 3 && (
-                  <Badge 
-                    variant="secondary" 
-                    className="text-xs px-1.5 py-0"
-                  >
-                    +{workflow.actions.length - 3} more
-                  </Badge>
-                )}
-              </div>
-              
-              {/* Launch Button */}
-              <div className="flex items-center justify-between mt-2">
-                <Button 
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Add to bookmarks/favorites
-                  }}
-                >
-                  <Bookmark className="h-3 w-3 mr-1" />
-                  Save
-                </Button>
-                <Button 
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectWorkflow(workflow);
-                  }}
-                >
-                  <Play className="h-3 w-3 mr-1" />
-                  Start
-                  <ChevronRight className="h-3 w-3 ml-0.5" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-8 text-muted-foreground">
-          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-          <span className="text-sm">Analyzing context...</span>
-        </div>
-      )}
-      
-      {/* Empty State */}
-      {!loading && suggestions.length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-6 text-center">
-            <Sparkles className="h-8 w-8 text-muted-foreground/50 mb-2" />
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              No suggestions available
+              Ingen workflow-forslag tilgjengelig
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Start browsing to get personalized workflow recommendations
+              Naviger til en nettside for å få intelligente forslag
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+      </CardContent>
+      
+      {suggestions.length > 0 && (
+        <CardFooter className="bg-muted/50 py-2 px-4">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              <span className="text-xs text-muted-foreground">
+                {suggestions.length} relevante workflows funnet
+              </span>
+            </div>
+            {pageAnalysis && (
+              <Badge variant="outline" className="text-xs">
+                {pageAnalysis.elements.length} elementer analysert
+              </Badge>
+            )}
+          </div>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }

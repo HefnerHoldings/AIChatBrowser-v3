@@ -176,6 +176,8 @@ export default function Browser() {
   const [showVoiceControl, setShowVoiceControl] = useState(false);
   const [showActionRecorder, setShowActionRecorder] = useState(false);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [pageContent, setPageContent] = useState<string>('');
+  const [suggestionsCount, setSuggestionsCount] = useState(0);
   
   // Initialize panel states from localStorage
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
@@ -328,7 +330,7 @@ export default function Browser() {
       );
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       setIsNavigating(false);
       
       // Update tab URL
@@ -344,6 +346,22 @@ export default function Browser() {
           ...browserInstance,
           tabs: updatedTabs
         });
+        
+        // Extract page content for smart workflow recognition
+        try {
+          const response = await apiRequest(
+            'GET',
+            `/api/browser-engine/instance/${browserInstance.id}/tab/${activeTab.id}/content`
+          );
+          const contentData = await response.json();
+          if (contentData?.content) {
+            setPageContent(contentData.content);
+          }
+        } catch (error) {
+          console.log('Could not extract page content');
+          // Use simulated content if extraction fails
+          setPageContent(`<html><body><h1>${updatedTab.title || 'Page'}</h1></body></html>`);
+        }
       }
     },
     onError: () => {
@@ -1130,6 +1148,11 @@ export default function Browser() {
                         <h3 className="font-semibold text-sm flex items-center gap-2">
                           <Target className="h-4 w-4 text-green-500" />
                           Workflow Progress
+                          {suggestionsCount > 0 && (
+                            <Badge className="bg-purple-500 text-white text-xs px-1.5 py-0">
+                              {suggestionsCount} forslag
+                            </Badge>
+                          )}
                         </h3>
                         <div className="flex items-center gap-1">
                           <Button
@@ -1376,7 +1399,7 @@ export default function Browser() {
                     <div className="flex-1 overflow-auto">
                       <AIAssistant
                         currentUrl={activeTab?.url}
-                        pageContent=""
+                        pageContent={pageContent}
                         onNavigate={(url) => {
                           if (activeTab) {
                             setUrlInput(url);
@@ -1391,7 +1414,15 @@ export default function Browser() {
                 <div className="flex-1 bg-muted/5 overflow-auto p-2">
                   <WorkflowSuggestions
                     currentUrl={activeTab?.url}
+                    pageContent={pageContent}
+                    onSuggestionsChange={(count) => setSuggestionsCount(count)}
                     onSelectWorkflow={(workflow) => {
+                      // Open workflow builder with the selected workflow
+                      setShowWorkflowBuilder(true);
+                      if (workflow?.steps) {
+                        // Pass workflow to builder
+                        console.log('Opprettet workflow med', workflow.steps.length, 'steg');
+                      }
                       console.log('Selected workflow:', workflow);
                       // Handle workflow selection
                       toast({
