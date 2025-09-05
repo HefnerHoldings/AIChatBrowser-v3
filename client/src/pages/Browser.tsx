@@ -36,8 +36,10 @@ import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
-import { VoiceControl } from '@/components/VoiceControl';
+import { VoiceControl, VoiceControlPanel } from '@/components/VoiceControl';
 import { ActionRecorder } from '@/components/ActionRecorder';
+import { ResizableSidebar } from '@/components/ResizableSidebar';
+import { RightSidebarTools } from '@/components/RightSidebarTools';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { 
   ArrowLeft, 
@@ -175,6 +177,7 @@ export default function Browser() {
   const [showWorkflowChat, setShowWorkflowChat] = useState(false);
   const [showVoiceControl, setShowVoiceControl] = useState(false);
   const [showActionRecorder, setShowActionRecorder] = useState(false);
+  const [rightToolsCollapsed, setRightToolsCollapsed] = useState(false);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [pageContent, setPageContent] = useState<string>('');
   const [suggestionsCount, setSuggestionsCount] = useState(0);
@@ -192,6 +195,14 @@ export default function Browser() {
     const saved = localStorage.getItem('aiAssistantCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('leftSidebarWidth');
+    return saved ? parseInt(saved) : 320;
+  });
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('rightSidebarWidth');
+    return saved ? parseInt(saved) : 380;
+  });
   
   // Save panel states to localStorage when they change
   useEffect(() => {
@@ -205,6 +216,14 @@ export default function Browser() {
   useEffect(() => {
     localStorage.setItem('aiAssistantCollapsed', JSON.stringify(aiAssistantCollapsed));
   }, [aiAssistantCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem('leftSidebarWidth', leftSidebarWidth.toString());
+  }, [leftSidebarWidth]);
+
+  useEffect(() => {
+    localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
+  }, [rightSidebarWidth]);
   
   // Keyboard shortcuts for panels
   useEffect(() => {
@@ -224,6 +243,10 @@ export default function Browser() {
         case 'a':
           e.preventDefault();
           setAiAssistantCollapsed(prev => !prev);
+          break;
+        case 't':
+          e.preventDefault();
+          setRightToolsCollapsed(prev => !prev);
           break;
       }
     };
@@ -993,37 +1016,15 @@ export default function Browser() {
                       <Package className="h-4 w-4" />
                     </Button>
                     
-                    {/* Voice Control Button */}
+                    {/* Tools Panel Toggle Button */}
                     <Button
-                      variant={showVoiceControl ? "default" : "ghost"}
+                      variant={!rightToolsCollapsed ? "default" : "ghost"}
                       size="icon"
-                      onClick={() => setShowVoiceControl(!showVoiceControl)}
-                      title="Voice Control"
-                      data-testid="button-voice-control"
-                    >
-                      <Mic className="h-4 w-4" />
-                    </Button>
-
-                    {/* AI Chat Button */}
-                    <Button
-                      variant={showWorkflowChat ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => setShowWorkflowChat(!showWorkflowChat)}
-                      title="Workflow AI Assistant"
-                      data-testid="button-workflow-chat"
+                      onClick={() => setRightToolsCollapsed(!rightToolsCollapsed)}
+                      title="Verktøypanel (Alt+T)"
+                      data-testid="button-tools-panel"
                     >
                       <Bot className="h-4 w-4" />
-                    </Button>
-
-                    {/* Action Recorder Button */}
-                    <Button
-                      variant={showActionRecorder ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => setShowActionRecorder(!showActionRecorder)}
-                      title="Action Recorder - Ta opp handlinger"
-                      data-testid="button-action-recorder"
-                    >
-                      <Video className="h-4 w-4" />
                     </Button>
                     
                     <DownloadsManager />
@@ -1119,7 +1120,7 @@ export default function Browser() {
 
             {/* Browser Viewport with sidebars */}
             <div className={`flex-1 relative bg-white`}>
-              {/* Workflow Progress Sidebar - Left side */}
+              {/* Workflow Progress Sidebar - Left side with resizable feature */}
               {activeView === 'browser' && (
                 <>
                   {/* Collapsed indicator */}
@@ -1129,11 +1130,7 @@ export default function Browser() {
                         variant="default"
                         size="sm"
                         className="rounded-r-lg rounded-l-none h-8 w-6 px-0 bg-green-500/10 hover:bg-green-500/20 border-l-0"
-                        onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setLeftPanelCollapsed(false);
-                    }}
+                        onClick={() => setLeftPanelCollapsed(false)}
                         title="Åpne Workflow Progress (Alt+W)"
                       >
                         <ChevronRight className="h-4 w-4 text-green-600" />
@@ -1141,44 +1138,49 @@ export default function Browser() {
                     </div>
                   )}
                   
-                  {/* Full panel */}
-                  {!leftPanelCollapsed && (
-                    <div className="absolute top-0 left-0 w-80 h-full border-r bg-card flex flex-col z-40">
-                      <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-                        <h3 className="font-semibold text-sm flex items-center gap-2">
-                          <Target className="h-4 w-4 text-green-500" />
-                          Workflow Progress
-                          {suggestionsCount > 0 && (
-                            <Badge className="bg-purple-500 text-white text-xs px-1.5 py-0">
-                              {suggestionsCount} forslag
-                            </Badge>
-                          )}
-                        </h3>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 hover:bg-green-500/20"
-                            title="View All Workflows"
-                          >
-                            <Trophy className="h-3.5 w-3.5 text-green-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 hover:bg-green-500/20"
-                            onClick={() => setLeftPanelCollapsed(true)}
-                            title="Minimer panel (Alt+W)"
-                          >
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex-1 overflow-y-auto">
-                        <GoalTracker />
+                  {/* Resizable panel */}
+                  <ResizableSidebar
+                    side="left"
+                    defaultWidth={leftSidebarWidth}
+                    minWidth={280}
+                    maxWidth={500}
+                    collapsed={leftPanelCollapsed}
+                    onCollapsedChange={setLeftPanelCollapsed}
+                  >
+                    <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <Target className="h-4 w-4 text-green-500" />
+                        Workflow Progress
+                        {suggestionsCount > 0 && (
+                          <Badge className="bg-purple-500 text-white text-xs px-1.5 py-0">
+                            {suggestionsCount} forslag
+                          </Badge>
+                        )}
+                      </h3>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 hover:bg-green-500/20"
+                          title="View All Workflows"
+                        >
+                          <Trophy className="h-3.5 w-3.5 text-green-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 hover:bg-green-500/20"
+                          onClick={() => setLeftPanelCollapsed(true)}
+                          title="Minimer panel (Alt+W)"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                  )}
+                    <div className="flex-1 overflow-y-auto">
+                      <GoalTracker />
+                    </div>
+                  </ResizableSidebar>
                 </>
               )}
               
@@ -1346,95 +1348,60 @@ export default function Browser() {
                 )}
               </div>
               
-              {/* AI Assistant Sidebar - Right side */}
+              {/* Unified Tools Sidebar - Right side with resizable feature */}
               {/* Collapsed indicator */}
-              {aiAssistantCollapsed && (
+              {rightToolsCollapsed && (
                 <div className="absolute top-3 right-0 z-50">
-                  <button
-                    type="button"
-                    className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0 inline-flex items-center justify-center"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setAiAssistantCollapsed(false);
-                      return false;
-                    }}
-                    title="Åpne AI Assistant (Alt+A)"
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0"
+                    onClick={() => setRightToolsCollapsed(false)}
+                    title="Åpne verktøypanel (Alt+T)"
                   >
                     <ChevronLeft className="h-4 w-4 text-purple-600" />
-                  </button>
+                  </Button>
                 </div>
               )}
               
-              {/* Full panel */}
-              {!aiAssistantCollapsed && (
-              <div className="absolute top-0 right-0 w-[320px] h-full border-l bg-background flex flex-col z-40">
-                <div className="h-[380px] border-b shadow-lg bg-gradient-to-b from-background to-muted/20">
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-purple-500/10 to-blue-500/10">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 hover:bg-purple-500/20"
-                          onClick={() => setAiAssistantCollapsed(true)}
-                          title="Minimer AI Assistant (Alt+A)"
-                        >
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
-                        <h3 className="font-semibold text-sm flex items-center gap-2">
-                          <Bot className="h-4 w-4 text-purple-500" />
-                          AI Assistant
-                        </h3>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 hover:bg-purple-500/20"
-                        title="Speak Command"
-                      >
-                        <Mic className="h-3.5 w-3.5 text-purple-600" />
-                      </Button>
-                    </div>
-                    <div className="flex-1 overflow-auto">
-                      <AIAssistant
-                        currentUrl={activeTab?.url}
-                        pageContent={pageContent}
-                        onNavigate={(url) => {
-                          if (activeTab) {
-                            setUrlInput(url);
-                            navigateMutation.mutate({ tabId: activeTab.id, url });
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {/* Workflow Suggestions */}
-                <div className="flex-1 bg-muted/5 overflow-auto p-2">
-                  <WorkflowSuggestions
-                    currentUrl={activeTab?.url}
-                    pageContent={pageContent}
-                    onSuggestionsChange={(count) => setSuggestionsCount(count)}
-                    onSelectWorkflow={(workflow) => {
-                      // Open workflow builder with the selected workflow
-                      setShowWorkflowBuilder(true);
-                      if (workflow?.steps) {
-                        // Pass workflow to builder
-                        console.log('Opprettet workflow med', workflow.steps.length, 'steg');
-                      }
-                      console.log('Selected workflow:', workflow);
-                      // Handle workflow selection
-                      toast({
-                        title: "Workflow Started",
-                        description: `Starting ${workflow.title}...`,
-                      });
-                    }}
-                    maxSuggestions={3}
-                  />
-                </div>
-              </div>
-              )}
+              <ResizableSidebar
+                side="right"
+                defaultWidth={rightSidebarWidth}
+                minWidth={320}
+                maxWidth={600}
+                collapsed={rightToolsCollapsed}
+                onCollapsedChange={setRightToolsCollapsed}
+              >
+                <RightSidebarTools
+                  collapsed={false}
+                  onCollapsedChange={setRightToolsCollapsed}
+                  currentUrl={activeTab?.url}
+                  pageContent={pageContent}
+                  activeTab={activeTab}
+                  browserInstance={browserInstance}
+                  onNavigate={(url) => {
+                    if (activeTab) {
+                      setUrlInput(url);
+                      navigateMutation.mutate({ tabId: activeTab.id, url });
+                    }
+                  }}
+                  onWorkflowCreated={(workflow) => {
+                    setShowWorkflowBuilder(true);
+                    if (workflow?.steps) {
+                      console.log('Opprettet workflow med', workflow.steps.length, 'steg');
+                    }
+                    toast({
+                      title: "Workflow Started",
+                      description: `Starting ${workflow.title}...`,
+                    });
+                  }}
+                  onRecordedActionsChange={(actions) => {
+                    // Handle recorded actions if needed
+                  }}
+                  showDevTools={showDevTools}
+                  onShowDevToolsChange={setShowDevTools}
+                />
+              </ResizableSidebar>
             </div>
         </TabsContent>
 
@@ -1582,31 +1549,6 @@ export default function Browser() {
         </div>
       )}
 
-      {/* Voice Control Panel */}
-      {showVoiceControl && (
-        <div className="fixed bottom-4 right-4 w-96 z-50">
-          <VoiceControl
-            onCommand={(command) => {
-              // Handle voice commands
-              if (command.action === 'create-workflow') {
-                setShowWorkflowBuilder(true);
-              } else if (command.action === 'new-tab' && browserInstance) {
-                createNewTab(browserInstance.id, 'https://www.google.com');
-              } else if (command.action === 'close-tab' && activeTab) {
-                handleCloseTab(activeTab.id);
-              } else if (command.action === 'refresh' && activeTab) {
-                handleRefresh();
-              }
-            }}
-            onTranscript={(text, isFinal) => {
-              // Handle transcript for chat
-              if (isFinal && showWorkflowChat) {
-                // Send to workflow AI chat
-              }
-            }}
-          />
-        </div>
-      )}
 
       {/* Workflow Builder Modal */}
       {showWorkflowBuilder && (
@@ -1623,38 +1565,7 @@ export default function Browser() {
         </div>
       )}
 
-      {/* Workflow AI Chat */}
-      {showWorkflowChat && (
-        <div className="fixed bottom-4 left-4 w-96 h-[500px] z-50">
-          <WorkflowAIChat
-            workflowId={selectedWorkflowId || undefined}
-            onWorkflowCreated={(workflow) => {
-              setSelectedWorkflowId(workflow.id);
-              setShowWorkflowBuilder(true);
-              setShowWorkflowChat(false);
-            }}
-          />
-        </div>
-      )}
 
-      {/* Action Recorder Panel */}
-      {showActionRecorder && (
-        <div className="fixed bottom-4 right-96 mr-8 w-96 z-50">
-          <ActionRecorder
-            onWorkflowGenerated={(workflow) => {
-              // Handle generated workflow
-              console.log('Generated workflow:', workflow);
-              setShowWorkflowBuilder(true);
-              setShowActionRecorder(false);
-              // Could integrate with workflow builder here
-              toast({
-                title: 'Workflow generert',
-                description: 'Workflow er opprettet basert på dine handlinger',
-              });
-            }}
-          />
-        </div>
-      )}
 
       {showFindBar && (
         <FindBar
