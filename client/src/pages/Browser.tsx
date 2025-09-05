@@ -691,85 +691,6 @@ export default function Browser() {
         </TabsList>
 
         <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0">
-            {/* Browser Tabs Row */}
-            {!isFullscreen && (
-              <div className={`flex items-center border-b ${isIncognito ? 'bg-zinc-900 border-zinc-700' : 'bg-muted/20'} px-2 py-1`}>
-                <div className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-thin">
-                  {browserInstance && browserInstance.tabs.length > 0 ? (
-                    browserInstance.tabs.map(tab => (
-                      <div
-                        key={tab.id}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[120px] max-w-[200px] group relative transition-all ${
-                          activeTab?.id === tab.id 
-                            ? 'bg-background border-t border-l border-r shadow-sm' 
-                            : 'bg-muted/30 hover:bg-muted/50 border border-transparent'
-                        }`}
-                        onClick={() => handleTabSwitch(tab.id)}
-                        onMouseEnter={(e) => {
-                          if (hoverTimeout) clearTimeout(hoverTimeout);
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setHoverTimeout(setTimeout(() => {
-                            setHoveredTab(tab.id);
-                            setHoverPosition({ x: rect.left, y: rect.bottom });
-                          }, 500));
-                        }}
-                        onMouseLeave={() => {
-                          if (hoverTimeout) clearTimeout(hoverTimeout);
-                          setHoveredTab(null);
-                        }}
-                      >
-                        {tab.favicon ? (
-                          <img src={tab.favicon} alt="" className="w-3 h-3 shrink-0" />
-                        ) : (
-                          <Globe className="w-3 h-3 text-muted-foreground shrink-0" />
-                        )}
-                        <span className="flex-1 text-xs truncate">
-                          {tab.title || 'Ny fane'}
-                        </span>
-                        {tab.isLoading && (
-                          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCloseTab(tab.id);
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-muted-foreground px-3 py-1">
-                      Ingen faner åpne
-                    </div>
-                  )}
-                </div>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 ml-1 shrink-0"
-                  onClick={handleNewTab}
-                  title="Ny fane (Ctrl+T)"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            {/* Tab Preview */}
-            {hoveredTab && browserInstance && !isFullscreen && (
-              <TabPreview
-                tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
-                position={hoverPosition}
-                isActive={hoveredTab === activeTab?.id}
-              />
-            )}
-
             {/* Navigation Bar */}
             {!isFullscreen && (
               <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
@@ -957,6 +878,85 @@ export default function Browser() {
                   </DropdownMenu>
                 </div>
               </div>
+            )}
+
+            {/* Browser Tabs Row */}
+            {!isFullscreen && (
+              <div className={`flex items-center border-b ${isIncognito ? 'bg-zinc-900 border-zinc-700' : 'bg-muted/20'} px-2 py-1`}>
+                <div className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-thin">
+                  {browserInstance && browserInstance.tabs.length > 0 ? (
+                    browserInstance.tabs.map(tab => (
+                      <div
+                        key={tab.id}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[120px] max-w-[200px] group relative transition-all ${
+                          activeTab?.id === tab.id 
+                            ? 'bg-background border-t border-l border-r shadow-sm' 
+                            : 'bg-muted/30 hover:bg-muted/50 border border-transparent'
+                        }`}
+                        onClick={() => handleTabSwitch(tab.id)}
+                        onMouseEnter={(e) => {
+                          if (hoverTimeout) clearTimeout(hoverTimeout);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setHoverTimeout(setTimeout(() => {
+                            setHoveredTab(tab.id);
+                            setHoverPosition({ x: rect.left, y: rect.bottom });
+                          }, 500));
+                        }}
+                        onMouseLeave={() => {
+                          if (hoverTimeout) clearTimeout(hoverTimeout);
+                          setHoveredTab(null);
+                        }}
+                      >
+                        {tab.favicon ? (
+                          <img src={tab.favicon} alt="" className="w-3 h-3 shrink-0" />
+                        ) : (
+                          <Globe className="w-3 h-3 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="flex-1 text-xs truncate">
+                          {tab.title || 'Ny fane'}
+                        </span>
+                        {tab.isLoading && (
+                          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseTab(tab.id);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground px-3 py-1">
+                      Ingen faner åpne
+                    </div>
+                  )}
+                </div>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 ml-1 shrink-0"
+                  onClick={handleNewTab}
+                  title="Ny fane (Ctrl+T)"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            {/* Tab Preview */}
+            {hoveredTab && browserInstance && !isFullscreen && (
+              <TabPreview
+                tab={browserInstance.tabs.find(t => t.id === hoveredTab)!}
+                position={hoverPosition}
+                isActive={hoveredTab === activeTab?.id}
+              />
             )}
                 
             {/* Bookmarks bar */}
