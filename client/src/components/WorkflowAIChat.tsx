@@ -300,7 +300,15 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
     utterance.pitch = 1.0;
     
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      // Auto-start recording again in voice-to-voice mode
+      if (voiceMode === 'voice-to-voice' && recognitionRef.current) {
+        setTimeout(() => {
+          startRecording();
+        }, 500); // Small delay before starting to listen again
+      }
+    };
     
     synthRef.current.speak(utterance);
   };
@@ -334,30 +342,37 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
           </div>
           
           {/* Voice Mode Selector */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
             <Button
               size="sm"
-              variant={voiceMode === 'text' ? 'default' : 'outline'}
+              variant={voiceMode === 'text' ? 'default' : 'ghost'}
               onClick={() => setVoiceMode('text')}
               data-testid="button-text-mode"
+              title="Tekstmodus"
             >
               <MessageSquare className="w-4 h-4" />
+              <span className="ml-1 text-xs">Tekst</span>
             </Button>
             <Button
               size="sm"
-              variant={voiceMode === 'voice-to-text' ? 'default' : 'outline'}
+              variant={voiceMode === 'voice-to-text' ? 'default' : 'ghost'}
               onClick={() => setVoiceMode('voice-to-text')}
               data-testid="button-voice-to-text"
+              title="Tale til tekst"
             >
               <Mic className="w-4 h-4" />
+              <span className="ml-1 text-xs">Tale→Tekst</span>
             </Button>
             <Button
               size="sm"
-              variant={voiceMode === 'voice-to-voice' ? 'default' : 'outline'}
+              variant={voiceMode === 'voice-to-voice' ? 'default' : 'ghost'}
               onClick={() => setVoiceMode('voice-to-voice')}
               data-testid="button-voice-to-voice"
+              title="Full stemmekontroll - AI svarer med stemme"
+              className={voiceMode === 'voice-to-voice' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600' : ''}
             >
               <Headphones className="w-4 h-4" />
+              <span className="ml-1 text-xs">AI-Stemme</span>
             </Button>
           </div>
         </div>
@@ -468,6 +483,25 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
         </div>
       </ScrollArea>
       
+      {/* Voice-to-Voice Status Indicator */}
+      {voiceMode === 'voice-to-voice' && (
+        <div className="px-4 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-t">
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <Headphones className="w-4 h-4 text-purple-600" />
+            <span className="text-purple-600 font-medium">
+              Voice-to-Voice modus aktiv - {isSpeaking ? 'AI snakker...' : isRecording ? 'Lytter...' : 'Klar til å lytte'}
+            </span>
+            {(isSpeaking || isRecording) && (
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="w-2 h-2 bg-purple-600 rounded-full"
+              />
+            )}
+          </div>
+        </div>
+      )}
+      
       {/* Input Area */}
       <CardFooter className="border-t p-4">
         <div className="flex items-center gap-2 w-full">
@@ -478,6 +512,8 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder={
               voiceMode === 'voice-to-voice' 
+                ? 'AI-Stemme modus - Trykk mikrofon eller vent på auto-lytting...'
+                : voiceMode === 'voice-to-text'
                 ? 'Trykk mikrofon for å snakke...'
                 : 'Beskriv hva du vil automatisere...'
             }

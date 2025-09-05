@@ -204,6 +204,32 @@ export default function Browser() {
     localStorage.setItem('aiAssistantCollapsed', JSON.stringify(aiAssistantCollapsed));
   }, [aiAssistantCollapsed]);
   
+  // Keyboard shortcuts for panels
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Alt key is pressed
+      if (!e.altKey) return;
+      
+      switch(e.key.toLowerCase()) {
+        case 'w':
+          e.preventDefault();
+          setLeftPanelCollapsed(prev => !prev);
+          break;
+        case 'd':
+          e.preventDefault();
+          setRightPanelCollapsed(prev => !prev);
+          break;
+        case 'a':
+          e.preventDefault();
+          setAiAssistantCollapsed(prev => !prev);
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
   
@@ -1090,7 +1116,7 @@ export default function Browser() {
                       e.stopPropagation();
                       setLeftPanelCollapsed(false);
                     }}
-                        title="Åpne Workflow Progress"
+                        title="Åpne Workflow Progress (Alt+W)"
                       >
                         <ChevronRight className="h-4 w-4 text-green-600" />
                       </Button>
@@ -1119,7 +1145,7 @@ export default function Browser() {
                             size="icon"
                             className="h-7 w-7 hover:bg-green-500/20"
                             onClick={() => setLeftPanelCollapsed(true)}
-                            title="Minimer panel"
+                            title="Minimer panel (Alt+W)"
                           >
                             <ChevronLeft className="h-3.5 w-3.5" />
                           </Button>
@@ -1243,7 +1269,7 @@ export default function Browser() {
                       e.stopPropagation();
                       setRightPanelCollapsed(false);
                     }}
-                          title="Åpne Utviklerverktøy"
+                          title="Åpne Utviklerverktøy (Alt+D)"
                         >
                           <ChevronLeft className="h-4 w-4 text-blue-600" />
                         </Button>
@@ -1264,7 +1290,7 @@ export default function Browser() {
                               size="icon"
                               className="h-7 w-7 hover:bg-blue-500/20"
                               onClick={() => setRightPanelCollapsed(true)}
-                              title="Minimer panel"
+                              title="Minimer panel (Alt+D)"
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
@@ -1310,7 +1336,7 @@ export default function Browser() {
                       setAiAssistantCollapsed(false);
                       return false;
                     }}
-                    title="Åpne AI Assistant"
+                    title="Åpne AI Assistant (Alt+A)"
                   >
                     <ChevronLeft className="h-4 w-4 text-purple-600" />
                   </button>
@@ -1329,7 +1355,7 @@ export default function Browser() {
                           size="icon"
                           className="h-7 w-7 hover:bg-purple-500/20"
                           onClick={() => setAiAssistantCollapsed(true)}
-                          title="Minimer AI Assistant"
+                          title="Minimer AI Assistant (Alt+A)"
                         >
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Button>

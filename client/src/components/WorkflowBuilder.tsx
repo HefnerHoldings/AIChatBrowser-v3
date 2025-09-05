@@ -66,6 +66,8 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
   const [workflowDescription, setWorkflowDescription] = useState('');
   const [workflowType, setWorkflowType] = useState('data-extraction');
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   
   // Load existing workflow if editing
   const { data: workflow } = useQuery({
@@ -122,12 +124,14 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
       }
     },
     onSuccess: () => {
+      setHasUnsavedChanges(false);
+      setLastAutoSave(new Date());
       toast({
         title: 'Workflow Saved',
-        description: 'Your workflow has been saved successfully.'
+        description: lastAutoSave ? 'Auto-saved successfully' : 'Your workflow has been saved successfully.'
       });
       queryClient.invalidateQueries({ queryKey: ['/api/workflows'] });
-      if (onClose) onClose();
+      if (!lastAutoSave && onClose) onClose();
     },
     onError: () => {
       toast({
@@ -137,6 +141,29 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
       });
     }
   });
+  
+  // Track changes
+  useEffect(() => {
+    if (workflow && (workflowName !== workflow.name || 
+                    workflowDescription !== (workflow.description || '') ||
+                    workflowType !== workflow.type ||
+                    JSON.stringify(steps) !== JSON.stringify(workflow.steps || []))) {
+      setHasUnsavedChanges(true);
+    }
+  }, [workflowName, workflowDescription, workflowType, steps, workflow]);
+  
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!hasUnsavedChanges || !workflowId) {
+      return;
+    }
+    
+    const autoSaveInterval = setInterval(() => {
+      saveWorkflowMutation.mutate();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(autoSaveInterval);
+  }, [hasUnsavedChanges, workflowId, saveWorkflowMutation]);
   
   const addStep = (type: WorkflowStep['type']) => {
     const newStep: WorkflowStep = {
@@ -152,6 +179,7 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
     };
     setSteps([...steps, newStep]);
     setSelectedStep(newStep);
+    setHasUnsavedChanges(true);
   };
   
   const removeStep = (stepId: string) => {
@@ -159,6 +187,7 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
     if (selectedStep?.id === stepId) {
       setSelectedStep(null);
     }
+    setHasUnsavedChanges(true);
   };
   
   const updateStep = (stepId: string, updates: Partial<WorkflowStep>) => {
@@ -207,10 +236,15 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
             rows={2}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {lastAutoSave && (
+            <span className="text-xs text-muted-foreground">
+              Auto-lagret {lastAutoSave.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
           <Button onClick={() => saveWorkflowMutation.mutate()} disabled={saveWorkflowMutation.isPending}>
             <Save className="w-4 h-4 mr-2" />
-            Save
+            {hasUnsavedChanges ? 'Lagre endringer' : 'Lagret'}
           </Button>
           {onClose && (
             <Button variant="outline" onClick={onClose}>
