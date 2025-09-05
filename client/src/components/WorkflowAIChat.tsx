@@ -14,6 +14,9 @@ import {
   MessageSquare, Headphones, Zap, Wand2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adaptiveSpeech } from '@/lib/adaptiveSpeech';
+import type { EmotionDetection, SpeechContext } from '@/lib/adaptiveSpeech';
+import { SpeechSettings } from '@/components/SpeechSettings';
 
 interface Message {
   id: string;
@@ -56,6 +59,11 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceMode, setVoiceMode] = useState<'text' | 'voice-to-text' | 'voice-to-voice'>('text');
+  const [userEmotion, setUserEmotion] = useState<EmotionDetection | null>(null);
+  const [speechRate, setSpeechRate] = useState(1.0);
+  const [speechPitch, setSpeechPitch] = useState(1.0);
+  const [speechStats, setSpeechStats] = useState<any>(null);
+  const [showSpeechSettings, setShowSpeechSettings] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Voice recognition setup
@@ -78,6 +86,15 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
         
         if (event.results[0].isFinal) {
           setInputValue(transcript);
+          
+          // Detect emotion from speech (simplified - would need real audio analysis)
+          const emotion = adaptiveSpeech.detectEmotion({
+            rate: speechRate,
+            pitch: speechPitch,
+            volume: 0.8
+          });
+          setUserEmotion(emotion);
+          
           if (voiceMode === 'voice-to-voice') {
             handleSendMessage(transcript);
           }
@@ -141,7 +158,14 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
       }
       
       if (voiceMode === 'voice-to-voice' && synthRef.current && data.response) {
+        // Analyze context for adaptive speech
+        const context = adaptiveSpeech.analyzeTextContext(data.response);
         speakMessage(data.response);
+        
+        // Learn from interaction
+        setTimeout(() => {
+          adaptiveSpeech.learnFromFeedback(true, context);
+        }, 3000);
       }
     },
     onError: () => {
@@ -190,7 +214,14 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
       ));
       
       if (voiceMode === 'voice-to-voice' && synthRef.current) {
+        // Analyze context for adaptive speech
+        const context = adaptiveSpeech.analyzeTextContext(response.content);
         speakMessage(response.content);
+        
+        // Learn from interaction
+        setTimeout(() => {
+          adaptiveSpeech.learnFromFeedback(true, context);
+        }, 3000);
       }
     }, 1500);
   };
@@ -291,26 +322,34 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
     }
   };
   
-  const speakMessage = (text: string) => {
-    if (!synthRef.current) return;
+  const speakMessage = async (text: string) => {
+    setIsSpeaking(true);
     
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'nb-NO';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
+    try {
+      // Use adaptive speech system for more natural responses
+      await adaptiveSpeech.speak(text, undefined, userEmotion || undefined);
+      
+      // Update stats
+      const stats = adaptiveSpeech.getAnalytics();
+      setSpeechStats(stats);
+    } catch (error) {
+      // Fallback to basic speech synthesis
+      if (synthRef.current) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'nb-NO';
+        utterance.rate = speechRate;
+        utterance.pitch = speechPitch;
+        synthRef.current.speak(utterance);
+      }
+    } finally {
       setIsSpeaking(false);
       // Auto-start recording again in voice-to-voice mode
       if (voiceMode === 'voice-to-voice' && recognitionRef.current) {
         setTimeout(() => {
           startRecording();
-        }, 500); // Small delay before starting to listen again
+        }, 500);
       }
-    };
-    
-    synthRef.current.speak(utterance);
+    }
   };
   
   const stopSpeaking = () => {
@@ -341,8 +380,9 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
             </div>
           </div>
           
-          {/* Voice Mode Selector */}
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+          {/* Voice Mode Selector and Settings */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
             <Button
               size="sm"
               variant={voiceMode === 'text' ? 'default' : 'ghost'}
@@ -374,9 +414,30 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
               <Headphones className="w-4 h-4" />
               <span className="ml-1 text-xs">AI-Stemme</span>
             </Button>
+            </div>
+            {voiceMode !== 'text' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowSpeechSettings(!showSpeechSettings)}
+                title="Stemmeinnstillinger"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
+      
+      {/* Speech Settings Panel */}
+      {showSpeechSettings && (
+        <div className="border-b p-4 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+          <SpeechSettings 
+            className="shadow-none border-0 bg-transparent" 
+            onClose={() => setShowSpeechSettings(false)}
+          />
+        </div>
+      )}
       
       {/* Messages Area */}
       <ScrollArea ref={scrollRef} className="flex-1 p-4">
@@ -490,6 +551,15 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
             <Headphones className="w-4 h-4 text-purple-600" />
             <span className="text-purple-600 font-medium">
               Voice-to-Voice modus aktiv - {isSpeaking ? 'AI snakker...' : isRecording ? 'Lytter...' : 'Klar til å lytte'}
+              {userEmotion && (
+                <span className="text-xs ml-2">
+                  ({userEmotion.emotion === 'confused' ? 'Forvirret?' : 
+                    userEmotion.emotion === 'happy' ? 'Glad' : 
+                    userEmotion.emotion === 'angry' ? 'Frustrert?' : 
+                    userEmotion.emotion === 'sad' ? 'Lei seg?' : 'Nøytral'} - 
+                   Tilpasser stemme...)
+                </span>
+              )}
             </span>
             {(isSpeaking || isRecording) && (
               <motion.div
@@ -499,6 +569,24 @@ export function WorkflowAIChat({ workflowId, onWorkflowCreated, className }: Wor
               />
             )}
           </div>
+          
+          {/* Adaptive Speech Stats */}
+          {speechStats && voiceMode === 'voice-to-voice' && (
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+              <div className="bg-purple-500/10 rounded px-2 py-1">
+                <span className="text-purple-600 font-medium">Kompleksitet:</span>
+                <span className="ml-1">{speechStats.avgComplexity.toFixed(1)}</span>
+              </div>
+              <div className="bg-purple-500/10 rounded px-2 py-1">
+                <span className="text-purple-600 font-medium">Vanlig type:</span>
+                <span className="ml-1">{speechStats.mostCommonType}</span>
+              </div>
+              <div className="bg-purple-500/10 rounded px-2 py-1">
+                <span className="text-purple-600 font-medium">Lengde:</span>
+                <span className="ml-1">{speechStats.avgResponseLength}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
       
