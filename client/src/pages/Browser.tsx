@@ -38,6 +38,7 @@ import { WorkflowBuilder } from '@/components/WorkflowBuilder';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
 import { VoiceControl } from '@/components/VoiceControl';
 import { ActionRecorder } from '@/components/ActionRecorder';
+import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -207,8 +208,8 @@ export default function Browser() {
           activeTabId: ''
         });
         
-        // Create initial tab
-        await createNewTab(data.instanceId, 'https://www.google.com');
+        // Create initial tab with start page
+        await createNewTab(data.instanceId, 'about:home');
       }
     },
     onError: (error) => {
@@ -406,7 +407,7 @@ export default function Browser() {
 
   const handleNewTab = () => {
     if (browserInstance) {
-      createNewTab(browserInstance.id, 'https://www.google.com');
+      createNewTab(browserInstance.id, 'about:home');
     }
   };
 
@@ -434,7 +435,7 @@ export default function Browser() {
       const remainingTabs = browserInstance.tabs.filter(tab => tab.id !== tabId);
       
       if (remainingTabs.length === 0) {
-        await createNewTab(browserInstance.id, 'https://www.google.com');
+        await createNewTab(browserInstance.id, 'about:home');
       } else {
         setBrowserInstance({
           ...browserInstance,
@@ -536,8 +537,17 @@ export default function Browser() {
   };
 
   const handleHome = () => {
-    if (activeTab) {
-      navigateMutation.mutate({ tabId: activeTab.id, url: 'https://www.google.com' });
+    if (activeTab && browserInstance) {
+      const homeUrl = 'about:home';
+      setUrlInput(homeUrl);
+      const updatedTabs = browserInstance.tabs.map(tab => 
+        tab.id === activeTab.id ? { ...tab, url: homeUrl, title: 'Ny fane' } : tab
+      );
+      setBrowserInstance({
+        ...browserInstance,
+        tabs: updatedTabs
+      });
+      setActiveTab({ ...activeTab, url: homeUrl, title: 'Ny fane' });
     }
   };
   
@@ -1078,48 +1088,65 @@ export default function Browser() {
                         height: `${100 * (100 / zoomLevel)}%`
                       }}
                     >
-                      <WebView
-                        url={activeTab.url}
-                        onUrlChange={(newUrl) => {
-                          setUrlInput(newUrl);
-                          if (browserInstance) {
-                            const updatedTabs = browserInstance.tabs.map(tab => 
-                              tab.id === activeTab.id ? { ...tab, url: newUrl } : tab
-                            );
-                            setBrowserInstance({
-                              ...browserInstance,
-                              tabs: updatedTabs
+                      {activeTab.url === 'about:home' ? (
+                        <BrowserStartPage
+                          onNavigate={(url) => {
+                            setUrlInput(url);
+                            if (browserInstance && activeTab) {
+                              navigateMutation.mutate({ tabId: activeTab.id, url });
+                            }
+                          }}
+                          onStartWorkflow={() => {
+                            setShowWorkflowBuilder(true);
+                          }}
+                          onOpenSettings={() => {
+                            window.location.href = '/settings';
+                          }}
+                        />
+                      ) : (
+                        <WebView
+                          url={activeTab.url}
+                          onUrlChange={(newUrl) => {
+                            setUrlInput(newUrl);
+                            if (browserInstance) {
+                              const updatedTabs = browserInstance.tabs.map(tab => 
+                                tab.id === activeTab.id ? { ...tab, url: newUrl } : tab
+                              );
+                              setBrowserInstance({
+                                ...browserInstance,
+                                tabs: updatedTabs
+                              });
+                            }
+                          }}
+                          onTitleChange={(newTitle) => {
+                            if (browserInstance) {
+                              const updatedTabs = browserInstance.tabs.map(tab => 
+                                tab.id === activeTab.id ? { ...tab, title: newTitle } : tab
+                              );
+                              setBrowserInstance({
+                                ...browserInstance,
+                                tabs: updatedTabs
+                              });
+                              setActiveTab(prev => prev ? { ...prev, title: newTitle } : null);
+                            }
+                          }}
+                          onLoadStart={() => {
+                            setIsNavigating(true);
+                          }}
+                          onLoadEnd={() => {
+                            setIsNavigating(false);
+                          }}
+                          onError={(error) => {
+                            toast({
+                              title: 'Innlastingsfeil',
+                              description: error,
+                              variant: 'destructive'
                             });
-                          }
-                        }}
-                        onTitleChange={(newTitle) => {
-                          if (browserInstance) {
-                            const updatedTabs = browserInstance.tabs.map(tab => 
-                              tab.id === activeTab.id ? { ...tab, title: newTitle } : tab
-                            );
-                            setBrowserInstance({
-                              ...browserInstance,
-                              tabs: updatedTabs
-                            });
-                            setActiveTab(prev => prev ? { ...prev, title: newTitle } : null);
-                          }
-                        }}
-                        onLoadStart={() => {
-                          setIsNavigating(true);
-                        }}
-                        onLoadEnd={() => {
-                          setIsNavigating(false);
-                        }}
-                        onError={(error) => {
-                          toast({
-                            title: 'Innlastingsfeil',
-                            description: error,
-                            variant: 'destructive'
-                          });
-                        }}
-                        isActive={true}
-                        tabId={activeTab.id}
-                      />
+                          }}
+                          isActive={true}
+                          tabId={activeTab.id}
+                        />
+                      )}
                     </div>
                   </>
                 ) : (
