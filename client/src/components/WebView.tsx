@@ -156,7 +156,7 @@ export function WebView({
             body: JSON.stringify({ url: targetUrl })
           });
           
-          if (response.ok) {
+          if (response && response.ok) {
             const contentType = response.headers.get('content-type');
             
             if (contentType?.includes('text/html')) {
@@ -221,6 +221,15 @@ export function WebView({
           }
         } catch (error) {
           console.error('Proxy load failed:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
+          
+          // Check if it's a network error
+          const isNetworkError = errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
+          const errorTitle = isNetworkError ? '🔌 Nettverksfeil' : '⚠️ Kunne ikke laste siden';
+          const errorDescription = isNetworkError 
+            ? 'Kunne ikke koble til proxy-serveren. Sjekk at serveren kjører.'
+            : `Feil ved lasting av ${targetUrl}`;
+          
           setProxyContent(`
             <html>
               <head>
@@ -243,9 +252,9 @@ export function WebView({
               </head>
               <body>
                 <div class="error-container">
-                  <h2>⚠️ Kunne ikke laste siden</h2>
-                  <p>${targetUrl}</p>
-                  <p style="color: #999; font-size: 0.9rem;">${error instanceof Error ? error.message : 'Ukjent feil'}</p>
+                  <h2>${errorTitle}</h2>
+                  <p>${errorDescription}</p>
+                  <p style="color: #999; font-size: 0.9rem;">${errorMessage}</p>
                 </div>
               </body>
             </html>
