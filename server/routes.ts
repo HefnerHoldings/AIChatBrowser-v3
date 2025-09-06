@@ -7,6 +7,7 @@ import { BrowserEngineType, browserEngine } from "./browser-engine";
 import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
 import { createQASuite, TestType, TestStatus } from "./qa-suite";
 import { createSelectorStudio, SelectorType, DomainProfile } from "./selector-studio";
+import { registerOrganizationRoutes } from "./organizationRoutes";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -2819,6 +2820,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Register organization and user profile routes
+  registerOrganizationRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

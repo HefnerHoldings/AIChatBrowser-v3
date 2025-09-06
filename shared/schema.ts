@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, jsonb, timestamp, integer, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, jsonb, timestamp, integer, boolean, real, index, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -424,3 +425,204 @@ export type WorkflowStepConfig = typeof workflowStepConfigs.$inferSelect;
 export type InsertWorkflowAIChat = z.infer<typeof insertWorkflowAIChatSchema>;
 export type InsertWorkflowVoiceSession = z.infer<typeof insertWorkflowVoiceSessionSchema>;
 export type InsertWorkflowStepConfig = z.infer<typeof insertWorkflowStepConfigSchema>;
+
+// ========== User Profile & Organization Tables ==========
+
+// Session storage table.
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Organizations (Companies) table
+export const organizations = pgTable("organizations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  domain: text("domain"),
+  industry: text("industry"),
+  size: varchar("size"), // small, medium, large, enterprise
+  logo: text("logo"),
+  address: text("address"),
+  country: text("country"),
+  timezone: varchar("timezone").default("Europe/Oslo"),
+  billingEmail: text("billing_email"),
+  plan: varchar("plan").default("basic"), // basic, professional, enterprise
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// User storage table with extended profile support
+// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  userType: varchar("user_type").default("personal"), // personal, employee, admin
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  department: varchar("department"),
+  position: varchar("position"),
+  phoneNumber: varchar("phone_number"),
+  timezone: varchar("timezone").default("Europe/Oslo"),
+  language: varchar("language").default("no"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Work schedules for employees
+export const workSchedules = pgTable("work_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  dayOfWeek: integer("day_of_week").notNull(), // 0=Sunday, 6=Saturday
+  startTime: varchar("start_time").notNull(), // HH:MM format
+  endTime: varchar("end_time").notNull(), // HH:MM format
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Activity tracking for employees
+export const activityTracking = pgTable("activity_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  url: text("url"),
+  domain: text("domain"),
+  title: text("title"),
+  category: varchar("category"), // work, social, entertainment, news, shopping, etc.
+  timeSpent: integer("time_spent"), // in seconds
+  isWorkRelated: boolean("is_work_related").default(false),
+  isDuringWorkHours: boolean("is_during_work_hours").default(false),
+  trackingBlocked: boolean("tracking_blocked").default(false),
+  blockedReason: text("blocked_reason"),
+  keystrokes: integer("keystrokes").default(0),
+  mouseClicks: integer("mouse_clicks").default(0),
+  scrollDistance: integer("scroll_distance").default(0),
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+});
+
+// Productivity metrics
+export const productivityMetrics = pgTable("productivity_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  date: timestamp("date").notNull(),
+  productivityScore: real("productivity_score").default(0), // 0-100
+  focusTime: integer("focus_time").default(0), // in seconds
+  breakTime: integer("break_time").default(0),
+  totalActiveTime: integer("total_active_time").default(0),
+  categorySummary: jsonb("category_summary").default({}), // time per category
+  topSites: jsonb("top_sites").default([]), // most visited sites
+  aiInsights: jsonb("ai_insights"), // AI-generated insights
+  goals: jsonb("goals").default([]),
+  achievements: jsonb("achievements").default([]),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Privacy settings for users
+export const privacySettings = pgTable("privacy_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique().references(() => users.id),
+  allowTracking: boolean("allow_tracking").default(true),
+  allowScreenshots: boolean("allow_screenshots").default(false),
+  allowKeyLogging: boolean("allow_key_logging").default(false),
+  shareWithManager: boolean("share_with_manager").default(true),
+  shareProductivityScore: boolean("share_productivity_score").default(true),
+  blurSensitiveContent: boolean("blur_sensitive_content").default(true),
+  blockedDomains: jsonb("blocked_domains").default([]),
+  notifyOnTracking: boolean("notify_on_tracking").default(true),
+  pauseReasons: jsonb("pause_reasons").default([]), // History of pause reasons
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Tracking notifications log
+export const trackingNotifications = pgTable("tracking_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  type: varchar("type").notNull(), // tracking_started, tracking_stopped, privacy_breach, etc.
+  message: text("message").notNull(),
+  acknowledged: boolean("acknowledged").default(false),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Insert schemas for new tables
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWorkScheduleSchema = createInsertSchema(workSchedules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertActivityTrackingSchema = createInsertSchema(activityTracking).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertProductivityMetricSchema = createInsertSchema(productivityMetrics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPrivacySettingsSchema = createInsertSchema(privacySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTrackingNotificationSchema = createInsertSchema(trackingNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for new tables
+export type Organization = typeof organizations.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof users.$inferInsert;
+export type WorkSchedule = typeof workSchedules.$inferSelect;
+export type ActivityTracking = typeof activityTracking.$inferSelect;
+export type ProductivityMetric = typeof productivityMetrics.$inferSelect;
+export type PrivacySettings = typeof privacySettings.$inferSelect;
+export type TrackingNotification = typeof trackingNotifications.$inferSelect;
+
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+export type InsertWorkSchedule = z.infer<typeof insertWorkScheduleSchema>;
+export type InsertActivityTracking = z.infer<typeof insertActivityTrackingSchema>;
+export type InsertProductivityMetric = z.infer<typeof insertProductivityMetricSchema>;
+export type InsertPrivacySettings = z.infer<typeof insertPrivacySettingsSchema>;
+export type InsertTrackingNotification = z.infer<typeof insertTrackingNotificationSchema>;
+
+// Define relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [users.organizationId],
+    references: [organizations.id],
+  }),
+  workSchedules: many(workSchedules),
+  activityTracking: many(activityTracking),
+  productivityMetrics: many(productivityMetrics),
+  privacySettings: one(privacySettings),
+  trackingNotifications: many(trackingNotifications),
+}));
+
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  users: many(users),
+  workSchedules: many(workSchedules),
+  activityTracking: many(activityTracking),
+  productivityMetrics: many(productivityMetrics),
+  trackingNotifications: many(trackingNotifications),
+}));
