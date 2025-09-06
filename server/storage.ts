@@ -445,7 +445,7 @@ export class DatabaseStorage implements IStorage {
 
   // Browser History
   async getBrowserHistory(): Promise<BrowserHistory[]> {
-    return await db.select().from(browserHistory).orderBy(desc(browserHistory.visitedAt)).limit(100);
+    return await db.select().from(browserHistory).orderBy(desc(browserHistory.lastVisited)).limit(100);
   }
 
   async addToHistory(insertHistory: InsertBrowserHistory): Promise<BrowserHistory> {
