@@ -192,12 +192,13 @@ export function BrowserStartPage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="w-full"
         >
-          <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
             <Zap className="h-6 w-6 text-yellow-500" />
             Hurtighandlinger
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
@@ -206,20 +207,20 @@ export function BrowserStartPage({
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <Card 
-                    className="cursor-pointer hover:shadow-lg transition-all"
+                    className="cursor-pointer hover:shadow-xl transition-all hover:border-primary/50 h-full"
                     onClick={action.action}
                     data-testid={`quick-action-${index}`}
                   >
-                    <CardContent className="p-6">
-                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center mb-3`}>
-                        <Icon className="h-6 w-6 text-white" />
+                    <CardContent className="p-6 flex flex-col items-center text-center">
+                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 shadow-lg`}>
+                        <Icon className="h-7 w-7 text-white" />
                       </div>
-                      <h3 className="font-semibold mb-1">{action.title}</h3>
-                      <p className="text-sm text-muted-foreground">{action.description}</p>
+                      <h3 className="font-semibold text-base mb-2">{action.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{action.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -228,42 +229,44 @@ export function BrowserStartPage({
           </div>
         </motion.div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           {/* Recent Sites */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
+            className="lg:col-span-1"
           >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+            <Card className="h-full overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5 text-primary" />
                   Nylig besøkt
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-64">
-                  <div className="space-y-2">
+              <CardContent className="pt-0">
+                <ScrollArea className="h-[280px]">
+                  <div className="space-y-1">
                     {recentSites.map((site, index) => (
                       <motion.div
                         key={site.url}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 + index * 0.05 }}
+                        transition={{ delay: 0.2 + index * 0.03 }}
                       >
                         <Button
                           variant="ghost"
-                          className="w-full justify-start gap-3 hover:bg-accent"
+                          className="w-full justify-start gap-2 h-auto py-2 px-3 hover:bg-accent/50"
                           onClick={() => onNavigate(site.url)}
                           data-testid={`recent-site-${index}`}
                         >
-                          <Globe className="h-4 w-4 text-muted-foreground" />
-                          <div className="flex-1 text-left">
-                            <div className="font-medium">{site.title}</div>
-                            <div className="text-xs text-muted-foreground">{site.url}</div>
+                          <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="font-medium text-sm truncate">{site.title}</div>
+                            <div className="text-xs text-muted-foreground truncate">{site.url}</div>
                           </div>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs shrink-0">
                             {site.visits}
                           </Badge>
                         </Button>
@@ -280,17 +283,18 @@ export function BrowserStartPage({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="lg:col-span-1"
           >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="h-full overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Sparkles className="h-5 w-5 text-purple-500" />
                   Foreslåtte workflows
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-64">
-                  <div className="space-y-3">
+              <CardContent className="pt-0">
+                <ScrollArea className="h-[280px]">
+                  <div className="space-y-2">
                     {suggestedWorkflows.map((workflow, index) => {
                       const Icon = workflow.icon;
                       return (
@@ -298,19 +302,19 @@ export function BrowserStartPage({
                           key={workflow.title}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 + index * 0.05 }}
-                          whileHover={{ x: 5 }}
-                          className="p-3 rounded-lg border hover:bg-accent cursor-pointer transition-all"
+                          transition={{ delay: 0.3 + index * 0.03 }}
+                          whileHover={{ x: 3 }}
+                          className="p-3 rounded-lg border hover:border-primary/50 hover:bg-accent/50 cursor-pointer transition-all"
                           onClick={() => onStartWorkflow?.()}
                           data-testid={`workflow-suggestion-${index}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-md bg-purple-500/10">
-                              <Icon className="h-4 w-4 text-purple-500" />
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20">
+                              <Icon className="h-4 w-4 text-purple-600" />
                             </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium mb-1">{workflow.title}</h4>
-                              <p className="text-xs text-muted-foreground mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm mb-1">{workflow.title}</h4>
+                              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                                 {workflow.description}
                               </p>
                               <div className="flex items-center gap-2">
@@ -335,47 +339,69 @@ export function BrowserStartPage({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
+            className="lg:col-span-1"
           >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="h-full overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <HelpCircle className="h-5 w-5 text-blue-500" />
                   Tips & funksjoner
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="space-y-3">
-                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <div className="flex items-start gap-2">
-                      <Rocket className="h-4 w-4 text-blue-500 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-medium mb-1">Hurtigtaster</p>
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-blue-500/20">
+                        <Rocket className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm mb-1">Hurtigtaster</p>
                         <p className="text-xs text-muted-foreground">
-                          Bruk <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+T</kbd> for ny fane
+                          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+T</kbd> ny fane • 
+                          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono ml-1">Ctrl+W</kbd> lukk fane
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <div className="flex items-start gap-2">
-                      <Shield className="h-4 w-4 text-green-500 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-medium mb-1">Privat modus</p>
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-green-500/20">
+                        <Shield className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm mb-1">Privat modus</p>
                         <p className="text-xs text-muted-foreground">
-                          Surf inkognito med beskyttet data
+                          Surf inkognito med beskyttet data og ingen sporing
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                    <div className="flex items-start gap-2">
-                      <Target className="h-4 w-4 text-purple-500 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-medium mb-1">AI-automatisering</p>
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-purple-500/20">
+                        <Target className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm mb-1">AI-automatisering</p>
                         <p className="text-xs text-muted-foreground">
-                          Ta opp handlinger og la AI lage workflows
+                          Ta opp handlinger og la AI lage workflows automatisk
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-orange-500/20">
+                        <Code2 className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm mb-1">Utviklermodus</p>
+                        <p className="text-xs text-muted-foreground">
+                          Inspiser elementer og test API-er direkte
                         </p>
                       </div>
                     </div>
@@ -383,12 +409,12 @@ export function BrowserStartPage({
                   
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full mt-4"
                     onClick={() => onOpenSettings?.()}
                     data-testid="open-settings"
                   >
                     <Settings className="h-4 w-4 mr-2" />
-                    Innstillinger
+                    Åpne innstillinger
                   </Button>
                 </div>
               </CardContent>
