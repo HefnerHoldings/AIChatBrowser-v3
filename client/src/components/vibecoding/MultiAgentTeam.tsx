@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MultiAgentOrchestrator } from './MultiAgentOrchestrator';
 import { 
   Brain,
   Users,
@@ -102,6 +103,12 @@ const OBJECTIVE_FUNCTIONS = {
 };
 
 export function MultiAgentTeam() {
+  // Bruk den nye Multi-Agent Orchestrator
+  return <MultiAgentOrchestrator />;
+}
+
+// Original implementasjon bevart for referanse
+function MultiAgentTeamOriginal() {
   const [agents, setAgents] = useState<Agent[]>([
     {
       role: AgentRole.LEADER,
