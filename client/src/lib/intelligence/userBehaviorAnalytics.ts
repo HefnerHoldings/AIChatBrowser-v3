@@ -240,6 +240,12 @@ export class UserBehaviorAnalytics {
 
   recordAction(action: UserAction) {
     this.actions.push(action);
+    
+    // Limit in-memory storage to prevent memory bloat
+    if (this.actions.length > 200) {
+      this.actions = this.actions.slice(-150); // Keep last 150 actions
+    }
+    
     this.contextState.recentActions = this.actions.slice(-10);
     this.userProfile.statistics.totalActions++;
     
@@ -255,8 +261,21 @@ export class UserBehaviorAnalytics {
     // Update predictions
     this.updatePredictions();
     
-    // Store in local storage for persistence
-    this.persist();
+    // Limit learningModel arrays
+    if (this.userProfile.learningModel.insights.length > 30) {
+      this.userProfile.learningModel.insights = this.userProfile.learningModel.insights.slice(-25);
+    }
+    if (this.userProfile.learningModel.recommendations.length > 20) {
+      this.userProfile.learningModel.recommendations = this.userProfile.learningModel.recommendations.slice(-15);
+    }
+    if (this.userProfile.learningModel.predictions.length > 20) {
+      this.userProfile.learningModel.predictions = this.userProfile.learningModel.predictions.slice(-15);
+    }
+    
+    // Store in local storage for persistence (with throttling)
+    if (this.actions.length % 5 === 0) { // Only persist every 5th action
+      this.persist();
+    }
   }
 
   recordWorkflow(workflowId: string, type: string, success: boolean) {
@@ -684,12 +703,67 @@ export class UserBehaviorAnalytics {
   }
 
   private persist() {
-    // Save to localStorage
-    localStorage.setItem('userBehaviorAnalytics', JSON.stringify({
-      actions: this.actions.slice(-1000), // Keep last 1000 actions
-      patterns: Array.from(this.patterns.entries()),
-      userProfile: this.userProfile
-    }));
+    try {
+      // Prepare data with aggressive size limits
+      const dataToStore = {
+        actions: this.actions.slice(-100), // Reduce to last 100 actions
+        patterns: Array.from(this.patterns.entries()).slice(-50), // Keep last 50 patterns
+        userProfile: {
+          ...this.userProfile,
+          learningModel: {
+            ...this.userProfile.learningModel,
+            insights: this.userProfile.learningModel.insights.slice(-20), // Keep last 20 insights
+            recommendations: this.userProfile.learningModel.recommendations.slice(-10), // Keep last 10 recommendations
+            predictions: this.userProfile.learningModel.predictions.slice(-10) // Keep last 10 predictions
+          }
+        }
+      };
+
+      // Try to save to localStorage
+      const serialized = JSON.stringify(dataToStore);
+      
+      // Check size before saving (localStorage typically has 5-10MB limit)
+      if (serialized.length > 2000000) { // If over 2MB, reduce further
+        const minimalData = {
+          actions: this.actions.slice(-50),
+          patterns: Array.from(this.patterns.entries()).slice(-20),
+          userProfile: {
+            id: this.userProfile.id,
+            email: this.userProfile.email,
+            preferences: this.userProfile.preferences,
+            statistics: this.userProfile.statistics
+          }
+        };
+        localStorage.setItem('userBehaviorAnalytics', JSON.stringify(minimalData));
+      } else {
+        localStorage.setItem('userBehaviorAnalytics', serialized);
+      }
+    } catch (error) {
+      // Handle quota exceeded or other storage errors
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn('Storage quota exceeded, clearing old analytics data');
+        
+        // Clear old data and try again with minimal data
+        try {
+          localStorage.removeItem('userBehaviorAnalytics');
+          const minimalData = {
+            actions: this.actions.slice(-20),
+            patterns: [],
+            userProfile: {
+              id: this.userProfile.id,
+              email: this.userProfile.email,
+              preferences: this.userProfile.preferences
+            }
+          };
+          localStorage.setItem('userBehaviorAnalytics', JSON.stringify(minimalData));
+        } catch (retryError) {
+          console.error('Failed to save analytics even with minimal data:', retryError);
+          // Continue operation without persistence
+        }
+      } else {
+        console.error('Failed to persist analytics data:', error);
+      }
+    }
   }
 
   private emit(event: AnalyticsEvent) {

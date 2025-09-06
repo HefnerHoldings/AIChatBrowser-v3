@@ -888,13 +888,16 @@ export default function Browser() {
             )}
 
             {/* Tab Preview */}
-            {hoveredTab && browserInstance && !isFullscreen && (
-              <TabPreview
-                tab={browserInstance.tabs.find(t => t.id === hoveredTab)}
-                position={hoverPosition}
-                isActive={hoveredTab === activeTab?.id}
-              />
-            )}
+            {hoveredTab && browserInstance && !isFullscreen && (() => {
+              const tab = browserInstance.tabs.find(t => t.id === hoveredTab);
+              return tab ? (
+                <TabPreview
+                  tab={tab}
+                  position={hoverPosition}
+                  isActive={hoveredTab === activeTab?.id}
+                />
+              ) : null;
+            })()}
 
             {/* Navigation Bar */}
             {!isFullscreen && (
