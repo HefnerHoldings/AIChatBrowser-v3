@@ -35,6 +35,7 @@ import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder';
+import { AdaptiveSidebar } from '@/components/AdaptiveSidebar';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
 import { VoiceControl, VoiceControlPanel } from '@/components/VoiceControl';
 import { ActionRecorder } from '@/components/ActionRecorder';
@@ -1138,49 +1139,13 @@ export default function Browser() {
                     </div>
                   )}
                   
-                  {/* Resizable panel */}
-                  <ResizableSidebar
+                  {/* Adaptive Left Sidebar */}
+                  <AdaptiveSidebar 
                     side="left"
-                    defaultWidth={leftSidebarWidth}
-                    minWidth={280}
-                    maxWidth={500}
-                    collapsed={leftPanelCollapsed}
-                    onCollapsedChange={setLeftPanelCollapsed}
-                  >
-                    <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-                      <h3 className="font-semibold text-sm flex items-center gap-2">
-                        <Target className="h-4 w-4 text-green-500" />
-                        Workflow Progress
-                        {suggestionsCount > 0 && (
-                          <Badge className="bg-purple-500 text-white text-xs px-1.5 py-0">
-                            {suggestionsCount} forslag
-                          </Badge>
-                        )}
-                      </h3>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 hover:bg-green-500/20"
-                          title="View All Workflows"
-                        >
-                          <Trophy className="h-3.5 w-3.5 text-green-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 hover:bg-green-500/20"
-                          onClick={() => setLeftPanelCollapsed(true)}
-                          title="Minimer panel (Alt+W)"
-                        >
-                          <ChevronLeft className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto">
-                      <GoalTracker />
-                    </div>
-                  </ResizableSidebar>
+                    isOpen={!leftPanelCollapsed}
+                    onToggle={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
+                    className="absolute left-0 top-0 h-full z-40"
+                  />
                 </>
               )}
               
@@ -1348,60 +1313,13 @@ export default function Browser() {
                 )}
               </div>
               
-              {/* Unified Tools Sidebar - Right side with resizable feature */}
-              {/* Collapsed indicator */}
-              {rightToolsCollapsed && (
-                <div className="absolute top-3 right-0 z-50">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-purple-500/10 hover:bg-purple-500/20 border-r-0"
-                    onClick={() => setRightToolsCollapsed(false)}
-                    title="Åpne verktøypanel (Alt+T)"
-                  >
-                    <ChevronLeft className="h-4 w-4 text-purple-600" />
-                  </Button>
-                </div>
-              )}
-              
-              <ResizableSidebar
+              {/* Adaptive Right Sidebar */}
+              <AdaptiveSidebar 
                 side="right"
-                defaultWidth={rightSidebarWidth}
-                minWidth={320}
-                maxWidth={600}
-                collapsed={rightToolsCollapsed}
-                onCollapsedChange={setRightToolsCollapsed}
-              >
-                <RightSidebarTools
-                  collapsed={false}
-                  onCollapsedChange={setRightToolsCollapsed}
-                  currentUrl={activeTab?.url}
-                  pageContent={pageContent}
-                  activeTab={activeTab}
-                  browserInstance={browserInstance}
-                  onNavigate={(url) => {
-                    if (activeTab) {
-                      setUrlInput(url);
-                      navigateMutation.mutate({ tabId: activeTab.id, url });
-                    }
-                  }}
-                  onWorkflowCreated={(workflow) => {
-                    setShowWorkflowBuilder(true);
-                    if (workflow?.steps) {
-                      console.log('Opprettet workflow med', workflow.steps.length, 'steg');
-                    }
-                    toast({
-                      title: "Workflow Started",
-                      description: `Starting ${workflow.title}...`,
-                    });
-                  }}
-                  onRecordedActionsChange={(actions) => {
-                    // Handle recorded actions if needed
-                  }}
-                  showDevTools={showDevTools}
-                  onShowDevToolsChange={setShowDevTools}
-                />
-              </ResizableSidebar>
+                isOpen={!rightToolsCollapsed}
+                onToggle={() => setRightToolsCollapsed(!rightToolsCollapsed)}
+                className="absolute right-0 top-0 h-full z-40"
+              />
             </div>
         </TabsContent>
 
