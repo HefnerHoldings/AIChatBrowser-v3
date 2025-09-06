@@ -1130,18 +1130,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Proxying request to:', url);
 
-      // Use node's fetch to get the page content
-      const response = await fetch(url, {
+      // Validate and normalize URL
+      let targetUrl = url;
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = 'https://' + targetUrl;
+      }
+
+      // Use node's fetch to get the page content with better error handling
+      const response = await fetch(targetUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'no-NO,no;q=0.9,en;q=0.8',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'no-NO,no;q=0.9,en-US;q=0.8,en;q=0.7',
           'Accept-Encoding': 'gzip, deflate, br',
-          'DNT': '1',
-          'Connection': 'keep-alive',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
           'Upgrade-Insecure-Requests': '1'
         },
-        redirect: 'follow'
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
       
       const contentType = response.headers.get('content-type');
@@ -1151,7 +1162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let html = await response.text();
         
         // Parse the URL to get origin
-        const urlObj = new URL(url);
+        const urlObj = new URL(targetUrl);
         const baseUrl = urlObj.origin;
         
         // More comprehensive URL replacements
@@ -1188,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = html.replace('</head>', customStyle + '</head>');
         
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('X-Proxied-URL', url);
+        res.setHeader('X-Proxied-URL', targetUrl);
         res.send(html);
       } else if (contentType?.includes('application/json')) {
         const json = await response.json();

@@ -474,7 +474,7 @@ export function WebView({
         setIsProxyMode(true);
         // Reload the current page with proxy enabled
         if (pageInfo.url) {
-          navigate(pageInfo.url);
+          loadUrl(pageInfo.url);
         }
       }
     };
