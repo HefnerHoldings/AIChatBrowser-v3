@@ -44,6 +44,10 @@ import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { RightSidebarTools } from '@/components/RightSidebarTools';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { MadEasyLogo } from '@/components/MadEasyLogo';
+import { SidebarContainer } from '@/components/SidebarContainer';
+import { AIChatOverlay } from '@/components/AIChatOverlay';
+import { DraggableToolPanel } from '@/components/DraggableToolPanel';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -1139,38 +1143,31 @@ export default function Browser() {
               </div>
             )}
 
-            {/* Browser Viewport with sidebars */}
-            <div className={`flex-1 relative bg-white`}>
-              {/* Workflow Progress Sidebar - Left side with resizable feature */}
-              {activeView === 'browser' && (
-                <>
-                  {/* Collapsed indicator */}
-                  {leftPanelCollapsed && (
-                    <div className="absolute top-3 left-0 z-50">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="rounded-r-lg rounded-l-none h-8 w-6 px-0 bg-green-500/10 hover:bg-green-500/20 border-l-0"
-                        onClick={() => setLeftPanelCollapsed(false)}
-                        title="Åpne Workflow Progress (Alt+W)"
-                      >
-                        <ChevronRight className="h-4 w-4 text-green-600" />
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* Adaptive Left Sidebar */}
+            {/* Browser Viewport with new sidebar system */}
+            <SidebarContainer
+              leftSidebar={
+                activeView === 'browser' && (
                   <AdaptiveSidebar 
                     side="left"
-                    isOpen={!leftPanelCollapsed}
-                    onToggle={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
-                    className="absolute left-0 top-0 h-full z-40"
+                    isOpen={true}
+                    onToggle={() => {}}
+                    className="h-full"
                   />
-                </>
-              )}
-              
+                )
+              }
+              rightSidebar={
+                activeView === 'browser' && (
+                  <AdaptiveSidebar 
+                    side="right"
+                    isOpen={true}
+                    onToggle={() => {}}
+                    className="h-full"
+                  />
+                )
+              }
+            >
               {/* Main Browser Content - Center */}
-              <div className={`w-full h-full ${showDevTools ? 'flex' : ''} relative`}>
+              <div className={`w-full h-full ${showDevTools ? 'flex' : ''} relative bg-white`}>
                 <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
                   {activeTab ? (
                   <>
@@ -1332,15 +1329,7 @@ export default function Browser() {
                   </>
                 )}
               </div>
-              
-              {/* Adaptive Right Sidebar */}
-              <AdaptiveSidebar 
-                side="right"
-                isOpen={!rightToolsCollapsed}
-                onToggle={() => setRightToolsCollapsed(!rightToolsCollapsed)}
-                className="absolute right-0 top-0 h-full z-40"
-              />
-            </div>
+            </SidebarContainer>
         </TabsContent>
 
         {/* Workflow */}
@@ -1566,6 +1555,9 @@ export default function Browser() {
           onClose={() => setShowRenderingEngine(false)}
         />
       )}
+      
+      {/* AI Chat Overlay - vises kun hvis ikke i sidemenyene */}
+      <AIChatOverlay />
       </div>
     </div>
   );
