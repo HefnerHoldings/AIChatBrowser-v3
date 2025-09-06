@@ -95,11 +95,17 @@ export function PWAManager({ onClose }: PWAManagerProps) {
                                document.referrer.includes('android-app://');
     setIsStandalone(isInStandaloneMode);
     
-    // Check if installed
-    if ('getInstalledRelatedApps' in navigator) {
-      (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
-        setIsInstalled(apps.length > 0);
-      });
+    // Check if installed (only in top-level browsing contexts)
+    if ('getInstalledRelatedApps' in navigator && window.top === window.self) {
+      try {
+        (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
+          setIsInstalled(apps.length > 0);
+        }).catch((error: any) => {
+          console.log('Could not check installed apps:', error);
+        });
+      } catch (error) {
+        console.log('getInstalledRelatedApps not available in this context');
+      }
     }
     
     // Listen for beforeinstallprompt

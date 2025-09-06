@@ -37,7 +37,7 @@ import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder';
 import { AdaptiveSidebar } from '@/components/AdaptiveSidebar';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
-import { VoiceControl, VoiceControlPanel } from '@/components/VoiceControl';
+import { VoiceControl } from '@/components/VoiceControl';
 import { ActionRecorder } from '@/components/ActionRecorder';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { RightSidebarTools } from '@/components/RightSidebarTools';
@@ -235,19 +235,19 @@ export default function Browser() {
       switch(e.key.toLowerCase()) {
         case 'w':
           e.preventDefault();
-          setLeftPanelCollapsed(prev => !prev);
+          setLeftPanelCollapsed((prev: boolean) => !prev);
           break;
         case 'd':
           e.preventDefault();
-          setRightPanelCollapsed(prev => !prev);
+          setRightPanelCollapsed((prev: boolean) => !prev);
           break;
         case 'a':
           e.preventDefault();
-          setAiAssistantCollapsed(prev => !prev);
+          setAiAssistantCollapsed((prev: boolean) => !prev);
           break;
         case 't':
           e.preventDefault();
-          setRightToolsCollapsed(prev => !prev);
+          setRightToolsCollapsed((prev: boolean) => !prev);
           break;
       }
     };
