@@ -154,6 +154,47 @@
     animation: pulse-subtle 2s infinite;
   }
   
+  /* MadEasy Logo animations */
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      filter: drop-shadow(0 0 3px rgba(139, 92, 246, 0.5));
+    }
+    50% {
+      filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.8));
+    }
+  }
+
+  @keyframes orbit {
+    from {
+      transform: rotate(0deg) translateX(30px) rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg) translateX(30px) rotate(-360deg);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-orbit {
+    animation: orbit 10s linear infinite;
+    transform-origin: center;
+  }
+  
   .glassmorphism {
     background: rgba(59, 130, 246, 0.1);
     backdrop-filter: blur(10px);

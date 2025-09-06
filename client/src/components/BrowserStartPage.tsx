@@ -12,6 +12,7 @@ import {
   Play, Database, Code2, Layers, Target
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { MadEasyLogo } from '@/components/MadEasyLogo';
 
 interface QuickAction {
   icon: React.ElementType;
@@ -126,20 +127,42 @@ export function BrowserStartPage({
   };
   
   return (
-    <div className="h-full bg-white overflow-auto relative z-10">
+    <div className="h-full bg-gradient-to-br from-background via-background to-purple-950/10 overflow-auto relative z-10">
       <div className="max-w-7xl mx-auto p-8 space-y-8">
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4 py-12"
+          className="text-center space-y-6 py-12"
         >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            MadEasy Browser
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Din AI-drevne browser med automatisering og workflows
+          {/* Animated Logo */}
+          <div className="flex justify-center mb-6">
+            <MadEasyLogo size="xlarge" animated={true} showText={true} />
+          </div>
+          
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Fremtidens nettleser med innebygget AI-intelligens, automatisering og avanserte workflows
           </p>
+          
+          {/* Feature badges */}
+          <div className="flex justify-center gap-3 flex-wrap">
+            <Badge variant="outline" className="px-3 py-1">
+              <Sparkles className="h-3 w-3 mr-1" />
+              AI-drevet
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1">
+              <Shield className="h-3 w-3 mr-1" />
+              CORS-fri
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1">
+              <Workflow className="h-3 w-3 mr-1" />
+              Automatisering
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1">
+              <Zap className="h-3 w-3 mr-1" />
+              Produktivitet
+            </Badge>
+          </div>
           
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto relative">

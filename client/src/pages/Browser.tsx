@@ -43,6 +43,7 @@ import { ActionRecorder } from '@/components/ActionRecorder';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { RightSidebarTools } from '@/components/RightSidebarTools';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
+import { MadEasyLogo } from '@/components/MadEasyLogo';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -789,6 +790,7 @@ export default function Browser() {
         {/* Main Navigation Tabs */}
         <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
         <TabsList className="w-full rounded-none justify-start px-4 bg-card">
+          <MadEasyLogo size="small" className="mr-3" />
           <TabsTrigger value="browser" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
             Browser
