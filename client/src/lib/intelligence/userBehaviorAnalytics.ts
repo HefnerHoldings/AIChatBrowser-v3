@@ -604,8 +604,13 @@ export class UserBehaviorAnalytics {
   }
 
   private getElementIdentifier(element: HTMLElement): string {
+    // Handle className properly - it might be SVGAnimatedString for SVG elements
+    const className = typeof element.className === 'string' 
+      ? element.className 
+      : element.className?.baseVal || '';
+    
     return element.id || 
-           element.className.split(' ')[0] || 
+           (className ? className.split(' ')[0] : '') || 
            element.tagName.toLowerCase();
   }
 
