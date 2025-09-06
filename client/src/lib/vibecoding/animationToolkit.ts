@@ -285,7 +285,7 @@ export class AnimationOrchestrator {
     return animations.reduce((promise, { element, keyframes, options }) => {
       return promise.then(() => {
         const animation = this.animate(element, keyframes, options);
-        return animation.finished;
+        return animation.finished.then(() => {});
       });
     }, Promise.resolve());
   }
@@ -299,7 +299,7 @@ export class AnimationOrchestrator {
   ): Promise<void[]> {
     const promises = animations.map(({ element, keyframes, options }) => {
       const animation = this.animate(element, keyframes, options);
-      return animation.finished;
+      return animation.finished.then(() => {});
     });
 
     return Promise.all(promises);
