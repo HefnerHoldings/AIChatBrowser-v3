@@ -34,6 +34,7 @@ import { AITesting } from '@/components/AITesting';
 import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
+import { ProductivityInsights } from '@/components/ProductivityInsights';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder';
 import { AdaptiveSidebar } from '@/components/AdaptiveSidebar';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
@@ -95,7 +96,8 @@ import {
   Trophy,
   Video,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Brain
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -173,6 +175,7 @@ export default function Browser() {
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const [activeView, setActiveView] = useState('browser');
+  const [showProductivityInsights, setShowProductivityInsights] = useState(false);
   const [showExtensionsAPI, setShowExtensionsAPI] = useState(false);
   const [showPWAManager, setShowPWAManager] = useState(false);
   const [showWorkflowBuilder, setShowWorkflowBuilder] = useState(false);
@@ -818,6 +821,10 @@ export default function Browser() {
             <Bot className="h-4 w-4" />
             AI Testing
           </TabsTrigger>
+          <TabsTrigger value="productivity" className="flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            Produktivitet
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0">
@@ -1402,6 +1409,11 @@ export default function Browser() {
         {/* AI & Testing */}
         <TabsContent value="ai-testing" className="flex-1">
           <AITesting />
+        </TabsContent>
+
+        {/* Productivity Insights */}
+        <TabsContent value="productivity" className="flex-1 p-0">
+          <ProductivityInsights />
         </TabsContent>
 
         {/* Vibecoding Platform Tab */}
