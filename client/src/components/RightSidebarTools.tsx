@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Bot, Mic, Video, Code2, ChevronRight, 
-  Settings, Brain, MessageSquare, Wand2
+  Settings, Brain, MessageSquare, Wand2, Sparkles
 } from 'lucide-react';
 import { WorkflowAIChat } from './WorkflowAIChat';
 import { ActionRecorder } from './ActionRecorder';
@@ -13,6 +13,7 @@ import { VoiceControl } from './VoiceControl';
 import { AIAssistant } from './AIAssistant';
 import { WorkflowSuggestions } from './WorkflowSuggestions';
 import { DevToolsPanel } from './DevToolsPanel';
+import { VibecodingPanel } from './VibecodingPanel';
 
 interface RightSidebarToolsProps {
   collapsed: boolean;
@@ -77,6 +78,13 @@ export function RightSidebarTools({
             <Tabs value={activeToolTab} onValueChange={setActiveToolTab} className="w-full">
               <TabsList className="w-full justify-start rounded-none bg-transparent h-9 p-0 border-t">
                 <TabsTrigger 
+                  value="vibecoding" 
+                  className="rounded-none data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1 px-3"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  <span className="text-xs">Vibe</span>
+                </TabsTrigger>
+                <TabsTrigger 
                   value="ai-assistant" 
                   className="rounded-none data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1 px-3"
                 >
@@ -117,6 +125,10 @@ export function RightSidebarTools({
 
               {/* Tab content */}
               <div className="flex-1 overflow-hidden">
+                <TabsContent value="vibecoding" className="m-0 h-full">
+                  <VibecodingPanel />
+                </TabsContent>
+
                 <TabsContent value="ai-assistant" className="m-0 h-full">
                   <div className="h-full flex flex-col">
                     {/* AI Assistant */}
