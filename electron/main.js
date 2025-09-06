@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, session, ipcMain, Menu, protocol, net, webContents } = require('electron');
 const path = require('path');
 const url = require('url');
 
@@ -19,6 +19,7 @@ function createWindow() {
       webSecurity: false, // Disable CORS - this is what makes Electron special!
       allowRunningInsecureContent: true,
       experimentalFeatures: true,
+      webviewTag: true, // Aktiverer webview for innebygd nettleser
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, '../attached_assets/icon.png'),
@@ -32,7 +33,22 @@ function createWindow() {
     // Remove restrictive headers
     delete details.requestHeaders['X-Frame-Options'];
     delete details.requestHeaders['Content-Security-Policy'];
+    delete details.requestHeaders['Origin'];
+    delete details.requestHeaders['Referer'];
     callback({ requestHeaders: details.requestHeaders });
+  });
+
+  // Fjern CORS-headere fra responser
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Access-Control-Allow-Origin': ['*'],
+        'Access-Control-Allow-Methods': ['*'],
+        'Access-Control-Allow-Headers': ['*'],
+        'Access-Control-Allow-Credentials': ['true']
+      }
+    });
   });
 
   // Allow all permissions (notifications, media, etc)
@@ -162,12 +178,30 @@ app.on('activate', () => {
 });
 
 // IPC handlers for advanced browser features
-ipcMain.handle('fetch-without-cors', async (event, url) => {
-  // This can fetch ANY URL without CORS restrictions
+ipcMain.handle('fetch-without-cors', async (event, targetUrl, options = {}) => {
+  // This can fetch ANY URL without CORS restrictions using Electron's net module
   try {
-    const response = await fetch(url);
+    const response = await net.fetch(targetUrl, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'User-Agent': 'MadEasy Browser/3.0 (Electron)'
+      }
+    });
+    
     const text = await response.text();
-    return { success: true, data: text };
+    const headers = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    
+    return { 
+      success: true, 
+      data: text,
+      status: response.status,
+      statusText: response.statusText,
+      headers: headers
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -188,3 +222,27 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   event.preventDefault();
   callback(true); // Accept the certificate
 });
+
+// Håndter webview-tagger for innebygd nettleser
+mainWindow.webContents.on('did-attach-webview', (event, webviewContents) => {
+  // Fjern CORS for webviews også
+  webviewContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
+    delete details.requestHeaders['Origin'];
+    delete details.requestHeaders['Referer'];
+    callback({ requestHeaders: details.requestHeaders });
+  });
+
+  webviewContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Access-Control-Allow-Origin': ['*']
+      }
+    });
+  });
+});
+
+// Tillat alle tillatelser for webviews
+app.commandLine.appendSwitch('disable-web-security');
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+app.commandLine.appendSwitch('allow-running-insecure-content');

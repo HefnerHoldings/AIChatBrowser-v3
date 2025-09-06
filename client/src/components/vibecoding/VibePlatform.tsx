@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { VibeProfiler } from './VibeProfiler';
+import { VibeProfilerV3 } from './VibeProfilerV3';
 import { SandboxRuntime } from './SandboxRuntime';
 import { EditorRunner } from './EditorRunner';
 import { Marketplace } from './Marketplace';
@@ -76,7 +76,7 @@ export function VibePlatform() {
         </TabsContent>
 
         <TabsContent value="profiles" className="flex-1 m-0 overflow-auto">
-          <VibeProfiler />
+          <VibeProfilerV3 />
         </TabsContent>
 
         <TabsContent value="marketplace" className="flex-1 m-0 overflow-auto">
