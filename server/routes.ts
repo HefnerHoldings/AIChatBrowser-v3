@@ -1118,6 +1118,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple proxy endpoint for fetching external web pages
+  app.post("/api/browser-proxy/fetch", async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        res.status(400).json({ error: 'URL is required' });
+        return;
+      }
+
+      // Use node's fetch to get the page content
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('text/html')) {
+        const html = await response.text();
+        
+        // Inject base tag to handle relative URLs
+        const modifiedHtml = html.replace(
+          '<head>',
+          `<head><base href="${new URL(url).origin}/">`
+        );
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(modifiedHtml);
+      } else {
+        // For non-HTML content, proxy it directly
+        const buffer = await response.arrayBuffer();
+        res.setHeader('Content-Type', contentType || 'application/octet-stream');
+        res.send(Buffer.from(buffer));
+      }
+      
+    } catch (error) {
+      console.error('Proxy fetch error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch URL',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Browser Content Proxy - Fetch and serve web page content
   app.get("/api/browser-proxy/:instanceId/:tabId", async (req, res) => {
     try {
@@ -1125,7 +1171,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const engine = browserManager.getEngine(instanceId);
       
       if (!engine) {
-        res.status(404).json({ error: 'Browser instance not found' });
+        // If no browser engine, return a simple message
+        res.send(`
+          <html>
+            <head>
+              <title>Browser Not Ready</title>
+              <style>
+                body { 
+                  font-family: system-ui, -apple-system, sans-serif; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  height: 100vh; 
+                  margin: 0;
+                  background: #1a1a1a;
+                  color: #e0e0e0;
+                }
+                .message { text-align: center; }
+                button {
+                  margin-top: 20px;
+                  padding: 10px 20px;
+                  background: #007bff;
+                  color: white;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="message">
+                <h2>Nettleseren er ikke klar</h2>
+                <p>Vennligst vent mens vi initialiserer nettleseren...</p>
+                <button onclick="window.location.reload()">Prøv igjen</button>
+              </div>
+            </body>
+          </html>
+        `);
         return;
       }
       
@@ -1135,7 +1217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // Get the page content as HTML
+      // Try to get the page content
       const content = await engine.getPageContent(tabId);
       
       if (!content) {
@@ -1160,7 +1242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </head>
             <body>
               <div class="message">
-                <h2>Loading page content...</h2>
+                <h2>Laster innhold...</h2>
                 <p>URL: ${tab.url}</p>
               </div>
             </body>
@@ -1195,7 +1277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </head>
           <body>
             <div>
-              <h2>Failed to load page</h2>
+              <h2>Kunne ikke laste siden</h2>
               <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
             </div>
           </body>

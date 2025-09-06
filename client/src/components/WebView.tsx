@@ -86,7 +86,7 @@ export function WebView({
   const [loadProgress, setLoadProgress] = useState(0);
   const [history, setHistory] = useState<NavigationEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [isProxyMode, setIsProxyMode] = useState(false);
+  const [isProxyMode, setIsProxyMode] = useState(true); // Enable proxy by default for external sites
   const [proxyContent, setProxyContent] = useState('');
   const [networkStatus, setNetworkStatus] = useState(navigator.onLine);
   const [blockedResources, setBlockedResources] = useState<string[]>([]);
@@ -155,26 +155,33 @@ export function WebView({
           securityState: determineSecurityState(targetUrl)
         }));
       } else if (needsProxy) {
-        // Use browser proxy endpoint for cross-origin requests
-        const browserInstanceId = localStorage.getItem('browserInstanceId');
-        if (browserInstanceId && tabId && iframeRef.current) {
-          // First navigate the backend browser to the URL
-          await fetch(`/api/browser-engine/instance/${browserInstanceId}/tab/${tabId}/navigate`, {
+        // Use simple proxy for cross-origin requests
+        try {
+          // Fetch the content through our proxy
+          const response = await fetch('/api/browser-proxy/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: targetUrl })
           });
           
-          // Then load the proxied content in iframe
-          const proxyUrl = `/api/browser-proxy/${browserInstanceId}/${tabId}`;
-          iframeRef.current.src = proxyUrl;
-          
-          setPageInfo(prev => ({
-            ...prev,
-            url: targetUrl,
-            loadState: 'loaded',
-            securityState: determineSecurityState(targetUrl)
-          }));
+          if (response.ok) {
+            const html = await response.text();
+            setProxyContent(html);
+            setPageInfo(prev => ({
+              ...prev,
+              url: targetUrl,
+              loadState: 'loaded',
+              securityState: determineSecurityState(targetUrl)
+            }));
+          } else {
+            throw new Error('Failed to load page');
+          }
+        } catch (error) {
+          console.error('Proxy load failed:', error);
+          // Fallback: try to load in iframe directly (may fail due to CORS)
+          if (iframeRef.current) {
+            iframeRef.current.src = targetUrl;
+          }
         }
       } else {
         // Direct iframe load for same-origin or about: URLs

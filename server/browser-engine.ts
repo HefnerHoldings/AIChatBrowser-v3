@@ -501,6 +501,88 @@ export class NativeBrowserEngine extends EventEmitter {
     }
   }
 
+  // Get tab information
+  getTab(tabId: string): any {
+    if (this.isSimulated) {
+      const tab = this.simulatedTabs.get(tabId);
+      if (tab) {
+        return {
+          id: tabId,
+          url: tab.url,
+          title: tab.title,
+          isLoading: tab.loadState === 'loading'
+        };
+      }
+      return null;
+    }
+    
+    const page = this.pages.get(tabId);
+    if (page) {
+      return {
+        id: tabId,
+        url: page.url(),
+        title: 'Page',
+        isLoading: false
+      };
+    }
+    return null;
+  }
+
+  // Get page content as HTML
+  async getPageContent(tabId: string): Promise<string | null> {
+    if (this.isSimulated) {
+      const tab = this.simulatedTabs.get(tabId);
+      if (tab && tab.url && tab.url !== 'about:blank') {
+        // For simulated mode, return a basic HTML page
+        return `
+          <html>
+            <head>
+              <title>${tab.title || 'Loading...'}</title>
+              <style>
+                body { 
+                  font-family: system-ui, -apple-system, sans-serif;
+                  padding: 20px;
+                  background: #f0f0f0;
+                }
+                .container {
+                  max-width: 800px;
+                  margin: 0 auto;
+                  background: white;
+                  padding: 30px;
+                  border-radius: 10px;
+                  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                h1 { color: #333; }
+                p { color: #666; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>Simulated Page</h1>
+                <p>URL: ${tab.url}</p>
+                <p>This is a simulated browser page. In production, real content would be loaded here.</p>
+              </div>
+            </body>
+          </html>
+        `;
+      }
+      return null;
+    }
+    
+    const page = this.pages.get(tabId);
+    if (page) {
+      try {
+        // Get the full page HTML content
+        const content = await page.content();
+        return content;
+      } catch (error) {
+        console.error('Error getting page content:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
   // Take screenshot
   async screenshot(tabId: string, options?: any): Promise<Buffer> {
     if (this.isSimulated) {
