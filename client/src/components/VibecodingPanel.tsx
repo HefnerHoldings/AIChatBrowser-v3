@@ -25,6 +25,7 @@ import { MultiAgentOrchestrator, AgentRole } from '@/lib/vibecoding/multiAgentOr
 import { VibeProfiler } from '@/lib/vibecoding/vibeProfiler';
 import { GoalTracker } from '@/lib/vibecoding/goalTracker';
 import { InterAgentMessaging } from '@/lib/vibecoding/interAgentMessaging';
+import { AnimationShowcase } from '@/components/AnimationShowcase';
 
 export function VibecodingPanel() {
   const [orchestrator] = useState(() => new MultiAgentOrchestrator());
@@ -173,6 +174,10 @@ export function VibecodingPanel() {
           <TabsTrigger value="profile" className="gap-1">
             <Settings className="h-4 w-4" />
             Profile
+          </TabsTrigger>
+          <TabsTrigger value="animations" className="gap-1">
+            <Sparkles className="h-4 w-4" />
+            Animate
           </TabsTrigger>
         </TabsList>
 
@@ -435,6 +440,10 @@ export function VibecodingPanel() {
                   ))}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="animations" className="mt-0">
+              <AnimationShowcase />
             </TabsContent>
           </div>
         </ScrollArea>
