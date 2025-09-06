@@ -145,18 +145,10 @@ export function WebView({
                         !targetUrl.startsWith('data:');
       
       if (needsProxy && isProxyMode) {
-        // Fetch through proxy/CORS bypass
-        const response = await fetchWithProxy(targetUrl);
-        setProxyContent(response);
-        setPageInfo(prev => ({
-          ...prev,
-          url: targetUrl,
-          loadState: 'loaded',
-          securityState: determineSecurityState(targetUrl)
-        }));
-      } else if (needsProxy) {
         // Use simple proxy for cross-origin requests
         try {
+          setPageInfo(prev => ({ ...prev, loadState: 'loading' }));
+          
           // Fetch the content through our proxy
           const response = await fetch('/api/browser-proxy/fetch', {
             method: 'POST',
@@ -165,24 +157,150 @@ export function WebView({
           });
           
           if (response.ok) {
-            const html = await response.text();
-            setProxyContent(html);
-            setPageInfo(prev => ({
-              ...prev,
-              url: targetUrl,
-              loadState: 'loaded',
-              securityState: determineSecurityState(targetUrl)
-            }));
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType?.includes('text/html')) {
+              const html = await response.text();
+              setProxyContent(html);
+              setPageInfo(prev => ({
+                ...prev,
+                url: targetUrl,
+                loadState: 'loaded',
+                securityState: determineSecurityState(targetUrl)
+              }));
+            } else {
+              // For non-HTML content, create a download link
+              const blob = await response.blob();
+              const downloadUrl = URL.createObjectURL(blob);
+              const filename = targetUrl.split('/').pop() || 'download';
+              
+              setProxyContent(`
+                <html>
+                  <head>
+                    <style>
+                      body {
+                        font-family: system-ui, -apple-system, sans-serif;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        margin: 0;
+                        background: #1a1a1a;
+                        color: #e0e0e0;
+                      }
+                      .download-container {
+                        text-align: center;
+                        padding: 2rem;
+                        background: rgba(255, 255, 255, 0.05);
+                        border-radius: 10px;
+                      }
+                      a {
+                        display: inline-block;
+                        margin-top: 1rem;
+                        padding: 0.75rem 1.5rem;
+                        background: #007bff;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                      }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="download-container">
+                      <h2>📄 Fil klar for nedlasting</h2>
+                      <p>Type: ${contentType}</p>
+                      <p>Filnavn: ${filename}</p>
+                      <a href="${downloadUrl}" download="${filename}">Last ned fil</a>
+                    </div>
+                  </body>
+                </html>
+              `);
+            }
           } else {
             throw new Error('Failed to load page');
           }
         } catch (error) {
           console.error('Proxy load failed:', error);
-          // Fallback: try to load in iframe directly (may fail due to CORS)
-          if (iframeRef.current) {
-            iframeRef.current.src = targetUrl;
-          }
+          setProxyContent(`
+            <html>
+              <head>
+                <style>
+                  body {
+                    font-family: system-ui, -apple-system, sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                    margin: 0;
+                    background: #1a1a1a;
+                    color: #ff4444;
+                  }
+                  .error-container {
+                    text-align: center;
+                    padding: 2rem;
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="error-container">
+                  <h2>⚠️ Kunne ikke laste siden</h2>
+                  <p>${targetUrl}</p>
+                  <p style="color: #999; font-size: 0.9rem;">${error instanceof Error ? error.message : 'Ukjent feil'}</p>
+                </div>
+              </body>
+            </html>
+          `);
+          setPageInfo(prev => ({
+            ...prev,
+            url: targetUrl,
+            loadState: 'error',
+            securityState: 'insecure'
+          }));
         }
+      } else if (needsProxy) {
+        // If proxy mode is disabled but needed, show a message
+        setProxyContent(`
+          <html>
+            <head>
+              <style>
+                body {
+                  font-family: system-ui, -apple-system, sans-serif;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  height: 100vh;
+                  margin: 0;
+                  background: #1a1a1a;
+                  color: #e0e0e0;
+                }
+                .info-container {
+                  text-align: center;
+                  padding: 2rem;
+                  max-width: 500px;
+                }
+                button {
+                  margin-top: 1rem;
+                  padding: 0.75rem 1.5rem;
+                  background: #007bff;
+                  color: white;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="info-container">
+                <h2>🔒 Proxy-modus kreves</h2>
+                <p>Denne siden krever proxy-modus for å kunne vises på grunn av CORS-restriksjoner.</p>
+                <p>URL: ${targetUrl}</p>
+                <button onclick="window.parent.postMessage({type: 'enableProxy'}, '*')">
+                  Aktiver Proxy-modus
+                </button>
+              </div>
+            </body>
+          </html>
+        `);
       } else {
         // Direct iframe load for same-origin or about: URLs
         if (iframeRef.current) {
@@ -352,12 +470,18 @@ export function WebView({
           favicon: event.data.favicon
         }));
         onTitleChange(event.data.title || 'Ny fane');
+      } else if (event.data.type === 'enableProxy') {
+        setIsProxyMode(true);
+        // Reload the current page with proxy enabled
+        if (pageInfo.url) {
+          navigate(pageInfo.url);
+        }
       }
     };
     
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onTitleChange]);
+  }, [onTitleChange, pageInfo.url]);
 
   // Load initial URL
   useEffect(() => {

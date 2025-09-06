@@ -1128,26 +1128,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      console.log('Proxying request to:', url);
+
       // Use node's fetch to get the page content
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'no-NO,no;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
+        },
+        redirect: 'follow'
       });
       
       const contentType = response.headers.get('content-type');
+      console.log('Response content-type:', contentType);
       
       if (contentType?.includes('text/html')) {
-        const html = await response.text();
+        let html = await response.text();
         
-        // Inject base tag to handle relative URLs
-        const modifiedHtml = html.replace(
-          '<head>',
-          `<head><base href="${new URL(url).origin}/">`
-        );
+        // Parse the URL to get origin
+        const urlObj = new URL(url);
+        const baseUrl = urlObj.origin;
+        
+        // More comprehensive URL replacements
+        html = html
+          // Add base tag for relative URLs
+          .replace(/<head[^>]*>/i, `$&<base href="${baseUrl}/">`)
+          // Replace protocol-relative URLs
+          .replace(/src="\/\//g, 'src="https://')
+          .replace(/href="\/\//g, 'href="https://')
+          // Replace root-relative URLs  
+          .replace(/src="\//g, `src="${baseUrl}/`)
+          .replace(/href="\//g, `href="${baseUrl}/`)
+          // Remove integrity checks that might fail
+          .replace(/integrity="[^"]*"/g, '')
+          // Remove CSP that might block resources
+          .replace(/<meta[^>]*Content-Security-Policy[^>]*>/gi, '');
+        
+        // Add custom CSS to make content more readable
+        const customStyle = `
+          <style>
+            /* Custom proxy styles */
+            body { 
+              max-width: 100% !important; 
+              overflow-x: hidden !important;
+            }
+            /* Hide cookie banners and popups */
+            [class*="cookie"], [class*="consent"], [class*="gdpr"], 
+            [id*="cookie"], [id*="consent"], [id*="gdpr"] {
+              display: none !important;
+            }
+          </style>
+        `;
+        
+        html = html.replace('</head>', customStyle + '</head>');
         
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(modifiedHtml);
+        res.setHeader('X-Proxied-URL', url);
+        res.send(html);
+      } else if (contentType?.includes('application/json')) {
+        const json = await response.json();
+        res.json(json);
       } else {
         // For non-HTML content, proxy it directly
         const buffer = await response.arrayBuffer();
@@ -1157,10 +1202,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error('Proxy fetch error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch URL',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      
+      // Return a user-friendly error page
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html lang="no">
+        <head>
+          <meta charset="UTF-8">
+          <title>Kunne ikke laste siden</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .error-container {
+              text-align: center;
+              padding: 2rem;
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 10px;
+              backdrop-filter: blur(10px);
+            }
+            h1 { font-size: 3rem; margin: 0 0 1rem 0; }
+            p { font-size: 1.2rem; opacity: 0.9; }
+            .error-details {
+              margin-top: 1rem;
+              padding: 1rem;
+              background: rgba(0, 0, 0, 0.2);
+              border-radius: 5px;
+              font-family: monospace;
+              font-size: 0.9rem;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="error-container">
+            <h1>⚠️ Kunne ikke laste siden</h1>
+            <p>Vi kunne ikke hente innholdet fra den forespurte URL-en.</p>
+            <div class="error-details">
+              URL: ${req.body.url || 'Ukjent'}<br>
+              Feil: ${error instanceof Error ? error.message : 'Ukjent feil'}
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
     }
   });
 
