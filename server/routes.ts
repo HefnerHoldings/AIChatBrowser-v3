@@ -1117,6 +1117,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Browser Content Proxy - Fetch and serve web page content
+  app.get("/api/browser-proxy/:instanceId/:tabId", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.params;
+      const engine = browserManager.getEngine(instanceId);
+      
+      if (!engine) {
+        res.status(404).json({ error: 'Browser instance not found' });
+        return;
+      }
+      
+      const tab = engine.getTab(tabId);
+      if (!tab) {
+        res.status(404).json({ error: 'Tab not found' });
+        return;
+      }
+      
+      // Get the page content as HTML
+      const content = await engine.getPageContent(tabId);
+      
+      if (!content) {
+        // Return a simple loading page if content is not available
+        res.send(`
+          <html>
+            <head>
+              <title>Loading...</title>
+              <style>
+                body { 
+                  font-family: system-ui, -apple-system, sans-serif; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  height: 100vh; 
+                  margin: 0;
+                  background: #1a1a1a;
+                  color: #e0e0e0;
+                }
+                .message { text-align: center; }
+              </style>
+            </head>
+            <body>
+              <div class="message">
+                <h2>Loading page content...</h2>
+                <p>URL: ${tab.url}</p>
+              </div>
+            </body>
+          </html>
+        `);
+        return;
+      }
+      
+      // Send the HTML content with proper headers
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Allow iframe from same origin
+      res.send(content);
+      
+    } catch (error) {
+      console.error('Proxy error:', error);
+      res.status(500).send(`
+        <html>
+          <head>
+            <title>Error</title>
+            <style>
+              body { 
+                font-family: system-ui; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                margin: 0;
+                background: #1a1a1a;
+                color: #ff4444;
+              }
+            </style>
+          </head>
+          <body>
+            <div>
+              <h2>Failed to load page</h2>
+              <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+  });
+
   // Native Browser Engine endpoints
   app.post("/api/browser-engine/instance", async (req, res) => {
     try {

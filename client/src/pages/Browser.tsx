@@ -284,6 +284,9 @@ export default function Browser() {
     },
     onSuccess: async (data) => {
       if (data.instanceId) {
+        // Store browser instance ID for WebView to use with proxy
+        localStorage.setItem('browserInstanceId', data.instanceId);
+        
         setBrowserInstance({
           id: data.instanceId,
           tabs: [],

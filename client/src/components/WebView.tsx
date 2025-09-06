@@ -154,8 +154,30 @@ export function WebView({
           loadState: 'loaded',
           securityState: determineSecurityState(targetUrl)
         }));
+      } else if (needsProxy) {
+        // Use browser proxy endpoint for cross-origin requests
+        const browserInstanceId = localStorage.getItem('browserInstanceId');
+        if (browserInstanceId && tabId && iframeRef.current) {
+          // First navigate the backend browser to the URL
+          await fetch(`/api/browser-engine/instance/${browserInstanceId}/tab/${tabId}/navigate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: targetUrl })
+          });
+          
+          // Then load the proxied content in iframe
+          const proxyUrl = `/api/browser-proxy/${browserInstanceId}/${tabId}`;
+          iframeRef.current.src = proxyUrl;
+          
+          setPageInfo(prev => ({
+            ...prev,
+            url: targetUrl,
+            loadState: 'loaded',
+            securityState: determineSecurityState(targetUrl)
+          }));
+        }
       } else {
-        // Direct iframe load
+        // Direct iframe load for same-origin or about: URLs
         if (iframeRef.current) {
           iframeRef.current.src = targetUrl;
         }
