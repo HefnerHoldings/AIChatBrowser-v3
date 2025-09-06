@@ -70,7 +70,7 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   
   // Load existing workflow if editing
-  const { data: workflow } = useQuery({
+  const { data: workflow } = useQuery<any>({
     queryKey: ['/api/workflows', workflowId],
     enabled: !!workflowId
   });
@@ -123,7 +123,7 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
         return await apiRequest('/api/workflows', 'POST', workflowData);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setHasUnsavedChanges(false);
       setLastAutoSave(new Date());
       toast({
@@ -131,7 +131,10 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
         description: lastAutoSave ? 'Auto-saved successfully' : 'Your workflow has been saved successfully.'
       });
       queryClient.invalidateQueries({ queryKey: ['/api/workflows'] });
-      if (!lastAutoSave && onClose) onClose();
+      if (!lastAutoSave && !workflowId && data?.id) {
+        // Update workflowId after creating new workflow
+        window.history.replaceState({}, '', `/workflows/${data.id}`);
+      }
     },
     onError: () => {
       toast({
@@ -139,6 +142,67 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
         description: 'Failed to save workflow. Please try again.',
         variant: 'destructive'
       });
+    }
+  });
+  
+  // Execute workflow mutation
+  const executeWorkflowMutation = useMutation({
+    mutationFn: async () => {
+      if (!workflowId) {
+        // Save workflow first if not saved
+        const savedWorkflow: any = await saveWorkflowMutation.mutateAsync();
+        const id = savedWorkflow?.id || workflowId;
+        if (!id) throw new Error('No workflow ID available');
+        
+        // Save step configurations to database
+        for (let i = 0; i < steps.length; i++) {
+          await apiRequest('/api/workflows/step-config', 'POST', {
+            workflowId: id,
+            stepIndex: i,
+            type: steps[i].type,
+            name: steps[i].name,
+            config: steps[i].config,
+            errorHandling: steps[i].errorHandling
+          });
+        }
+        
+        return await apiRequest(`/api/workflows/${id}/execute`, 'POST');
+      }
+      
+      // Save step configurations if workflow already exists
+      for (let i = 0; i < steps.length; i++) {
+        await apiRequest('/api/workflows/step-config', 'POST', {
+          workflowId,
+          stepIndex: i,
+          type: steps[i].type,
+          name: steps[i].name,
+          config: steps[i].config,
+          errorHandling: steps[i].errorHandling
+        });
+      }
+      
+      return await apiRequest(`/api/workflows/${workflowId}/execute`, 'POST');
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: 'Workflow Executed',
+        description: `${data.workflow} completed successfully with ${data.results?.length || 0} steps.`
+      });
+      
+      // Show results in console for debugging
+      console.log('Workflow execution results:', data.results);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Execution Failed',
+        description: error.message || 'Failed to execute workflow. Please try again.',
+        variant: 'destructive'
+      });
+      
+      // Show partial results if available
+      if (error.partialResults) {
+        console.log('Partial results:', error.partialResults);
+      }
     }
   });
   
@@ -245,6 +309,15 @@ export function WorkflowBuilder({ workflowId, onClose }: WorkflowBuilderProps) {
           <Button onClick={() => saveWorkflowMutation.mutate()} disabled={saveWorkflowMutation.isPending}>
             <Save className="w-4 h-4 mr-2" />
             {hasUnsavedChanges ? 'Lagre endringer' : 'Lagret'}
+          </Button>
+          <Button 
+            onClick={() => executeWorkflowMutation.mutate()} 
+            disabled={executeWorkflowMutation.isPending || steps.length === 0}
+            variant="default"
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            {executeWorkflowMutation.isPending ? 'Kjører...' : 'Kjør Workflow'}
           </Button>
           {onClose && (
             <Button variant="outline" onClick={onClose}>

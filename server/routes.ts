@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { windowsAPI } from "./windows-api";
 import { browserManager } from "./browser-manager";
-import { BrowserEngineType } from "./browser-engine";
+import { BrowserEngineType, browserEngine } from "./browser-engine";
 import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
 import { createQASuite, TestType, TestStatus } from "./qa-suite";
 import { createSelectorStudio, SelectorType, DomainProfile } from "./selector-studio";
@@ -266,6 +266,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to update step configuration" });
       }
+    }
+  });
+
+  // Execute Workflow with Browser Engine
+  app.post("/api/workflows/:workflowId/execute", async (req, res) => {
+    try {
+      const { workflowId } = req.params;
+      
+      // Get workflow and its steps
+      const workflow = await storage.getWorkflow(workflowId);
+      if (!workflow) {
+        res.status(404).json({ message: "Workflow not found" });
+        return;
+      }
+      
+      const steps = await storage.getWorkflowStepConfigs(workflowId);
+      if (!steps || steps.length === 0) {
+        res.status(400).json({ message: "No steps configured for this workflow" });
+        return;
+      }
+      
+      // Initialize browser engine if not already done
+      try {
+        await browserEngine.initialize();
+      } catch (e) {
+        // Already initialized or initialization error
+        console.log('Browser engine initialization:', e);
+      }
+      
+      // Create a new tab for workflow execution
+      const tab = await browserEngine.createTab();
+      const tabId = tab.id;
+      
+      const results: any[] = [];
+      let error: string | null = null;
+      
+      try {
+        // Execute each step sequentially
+        for (const step of steps.sort((a, b) => a.stepIndex - b.stepIndex)) {
+          const stepConfig = typeof step.config === 'string' 
+            ? JSON.parse(step.config) 
+            : step.config;
+          
+          switch (step.type) {
+            case 'navigate':
+              await browserEngine.navigate(tabId, stepConfig.url);
+              results.push({ step: step.name, type: 'navigate', url: stepConfig.url });
+              break;
+              
+            case 'click':
+              await browserEngine.executeScript(tabId, `
+                document.querySelector('${stepConfig.selector}')?.click();
+              `);
+              results.push({ step: step.name, type: 'click', selector: stepConfig.selector });
+              break;
+              
+            case 'fill':
+              await browserEngine.executeScript(tabId, `
+                const element = document.querySelector('${stepConfig.selector}');
+                if (element) {
+                  element.value = '${stepConfig.value}';
+                  element.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+              `);
+              results.push({ step: step.name, type: 'fill', selector: stepConfig.selector });
+              break;
+              
+            case 'extract':
+              const data = await browserEngine.executeScript(tabId, `
+                const elements = document.querySelectorAll('${stepConfig.selector}');
+                Array.from(elements).map(el => ({
+                  text: el.textContent?.trim(),
+                  href: el.href,
+                  src: el.src,
+                  value: el.value
+                }));
+              `);
+              results.push({ step: step.name, type: 'extract', data });
+              break;
+              
+            case 'wait':
+              await new Promise(resolve => setTimeout(resolve, stepConfig.duration || 1000));
+              results.push({ step: step.name, type: 'wait', duration: stepConfig.duration });
+              break;
+              
+            default:
+              results.push({ step: step.name, type: step.type, status: 'skipped' });
+          }
+        }
+        
+        // Update workflow status
+        await storage.updateWorkflow(workflowId, { 
+          status: 'active'
+        });
+        
+      } catch (err) {
+        error = err instanceof Error ? err.message : 'Unknown error occurred';
+      } finally {
+        // Close the tab
+        await browserEngine.closeTab(tabId);
+      }
+      
+      if (error) {
+        res.status(500).json({ 
+          message: "Workflow execution failed", 
+          error,
+          partialResults: results 
+        });
+      } else {
+        res.json({ 
+          message: "Workflow executed successfully",
+          results,
+          workflow: workflow.name 
+        });
+      }
+      
+    } catch (error) {
+      console.error('Workflow execution error:', error);
+      res.status(500).json({ 
+        message: "Failed to execute workflow",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
