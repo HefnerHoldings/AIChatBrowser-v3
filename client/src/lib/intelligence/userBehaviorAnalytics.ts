@@ -51,7 +51,7 @@ export interface UserProfile {
     expertise: 'beginner' | 'intermediate' | 'advanced' | 'expert';
     domains: string[];
     tools: string[];
-    shortcuts: Record<string, string>;
+    shortcuts: Record<string, number>;
   };
   statistics: {
     totalActions: number;
@@ -65,6 +65,12 @@ export interface UserProfile {
     patterns: UserPattern[];
     insights: UserInsight[];
     recommendations: Recommendation[];
+    predictions: Array<{
+      id: string;
+      type: string;
+      confidence: number;
+      timestamp: Date;
+    }>;
   };
 }
 
@@ -143,7 +149,8 @@ export class UserBehaviorAnalytics {
       learningModel: {
         patterns: [],
         insights: [],
-        recommendations: []
+        recommendations: [],
+        predictions: []
       }
     };
   }
