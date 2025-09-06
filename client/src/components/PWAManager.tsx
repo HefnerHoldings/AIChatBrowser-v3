@@ -153,8 +153,8 @@ export function PWAManager({ onClose }: PWAManagerProps) {
       });
       
       // Trigger background sync
-      if (syncEnabled && registration) {
-        registration.sync.register('sync-data');
+      if (syncEnabled && registration && 'sync' in registration) {
+        (registration as any).sync.register('sync-data');
       }
     };
     
@@ -393,7 +393,11 @@ export function PWAManager({ onClose }: PWAManagerProps) {
     if (!registration || !syncEnabled) return;
     
     try {
-      await registration.sync.register('sync-data');
+      if ('sync' in registration) {
+        await (registration as any).sync.register('sync-data');
+      } else {
+        throw new Error('Background sync not supported');
+      }
       
       setSyncStatus(prev => ({
         ...prev,
@@ -453,7 +457,11 @@ export function PWAManager({ onClose }: PWAManagerProps) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
-    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   };
 
   return (
