@@ -30,6 +30,7 @@ import {
   TooltipTrigger 
 } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { useElectron } from '@/hooks/useElectron';
 
 interface WebViewProps {
   url: string;
@@ -71,6 +72,7 @@ export function WebView({
   tabId
 }: WebViewProps) {
   const { toast } = useToast();
+  const { isElectron, fetchNoCORS } = useElectron();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const proxyFrameRef = useRef<HTMLDivElement>(null);
   const [pageInfo, setPageInfo] = useState<PageInfo>({

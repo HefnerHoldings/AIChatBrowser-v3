@@ -1,0 +1,29 @@
+{
+  "appId": "com.madeasy.browser",
+  "productName": "MadEasy Browser",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "mac": {
+    "category": "public.app-category.productivity",
+    "icon": "attached_assets/icon.icns"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "attached_assets/icon.ico"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "attached_assets/icon.png",
+    "category": "Network"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}
