@@ -64,6 +64,7 @@ import {
   Folder,
   History,
   Settings,
+  User,
   EyeOff,
   Eye,
   Code2,
@@ -1092,6 +1093,10 @@ export default function Browser() {
                             Ny inkognito-vindu
                           </>
                         )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
+                        <User className="mr-2 h-4 w-4" />
+                        Min Profil
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
                         <Settings className="mr-2 h-4 w-4" />
