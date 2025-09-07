@@ -35,7 +35,7 @@ import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { ProductivityInsights } from '@/components/ProductivityInsights';
-import { WorkflowBuilder } from '@/components/WorkflowBuilder';
+import { WorkflowBuilder } from '@/components/WorkflowBuilder/WorkflowBuilder';
 import { AdaptiveSidebar } from '@/components/AdaptiveSidebar';
 import { WorkflowAIChat } from '@/components/WorkflowAIChat';
 import { VoiceControl } from '@/components/VoiceControl';
@@ -482,6 +482,9 @@ export default function Browser() {
         } else if (e.key === 'h') {
           e.preventDefault();
           setShowHistory(!showHistory);
+        } else if (e.key === 'w') {
+          e.preventDefault();
+          setShowWorkflowBuilder(!showWorkflowBuilder);
         }
       } else if (e.key === 'F12') {
         e.preventDefault();
@@ -1334,7 +1337,24 @@ export default function Browser() {
 
         {/* Workflow */}
         <TabsContent value="workflow" className="flex-1">
-          <WorkflowManager />
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h2 className="text-2xl font-bold">Workflow Automatisering</h2>
+                <p className="text-muted-foreground">Bygg kraftige workflows med visuell editor, AI-assistanse og voice kontroll</p>
+              </div>
+              <Button
+                onClick={() => setShowWorkflowBuilder(true)}
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+              >
+                <Layers className="h-4 w-4 mr-2" />
+                Åpne Visual Workflow Builder
+              </Button>
+            </div>
+            <div className="flex-1">
+              <WorkflowManager />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="data" className="flex-1">
@@ -1486,13 +1506,20 @@ export default function Browser() {
       {showWorkflowBuilder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background rounded-lg w-full max-w-7xl h-[90vh] overflow-hidden">
-            <WorkflowBuilder
-              workflowId={selectedWorkflowId || undefined}
-              onClose={() => {
-                setShowWorkflowBuilder(false);
-                setSelectedWorkflowId(null);
-              }}
-            />
+            <div className="relative h-full">
+              <Button
+                className="absolute top-4 right-4 z-10"
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setShowWorkflowBuilder(false);
+                  setSelectedWorkflowId(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <WorkflowBuilder />
+            </div>
           </div>
         </div>
       )}
