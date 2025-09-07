@@ -8,6 +8,7 @@ import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
 import { createQASuite, TestType, TestStatus } from "./qa-suite";
 import { createSelectorStudio, SelectorType, DomainProfile } from "./selector-studio";
 import { registerOrganizationRoutes } from "./organizationRoutes";
+import { registerOutreachRoutes } from "./outreach/api-routes";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -3168,6 +3169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register organization and user profile routes
   registerOrganizationRoutes(app);
+  
+  // Register outreach engine routes
+  registerOutreachRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
