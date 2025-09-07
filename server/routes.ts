@@ -3016,6 +3016,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Chat endpoints
+  app.get("/api/ai-chat/sessions", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      const sessions = aiService.getAllSessions();
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-chat/message", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      const { sessionId, message, context } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const response = await aiService.sendMessage(
+        sessionId || "default",
+        message,
+        context
+      );
+
+      res.json({ message: response });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-chat/speech-to-text", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      
+      // Handle audio upload
+      if (!req.body || !req.body.audio) {
+        return res.status(400).json({ error: "Audio data is required" });
+      }
+
+      // Convert base64 or blob to buffer
+      const audioBuffer = Buffer.from(req.body.audio, "base64");
+      const text = await aiService.speechToText(audioBuffer);
+
+      res.json({ text });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-chat/text-to-speech", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      const { text } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      const audioBuffer = await aiService.textToSpeech(text);
+      
+      if (!audioBuffer) {
+        return res.status(500).json({ error: "Could not generate speech" });
+      }
+
+      // Convert buffer to base64 for frontend
+      const audioBase64 = audioBuffer.toString("base64");
+      const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
+
+      res.json({ audioUrl });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-chat/analyze-page", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      const { content, url } = req.body;
+      
+      if (!content || !url) {
+        return res.status(400).json({ error: "Content and URL are required" });
+      }
+
+      const analysis = await aiService.analyzePage(content, url);
+      res.json(analysis);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-chat/suggest-workflow", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      const { intention, context } = req.body;
+      
+      if (!intention) {
+        return res.status(400).json({ error: "Intention is required" });
+      }
+
+      const workflow = await aiService.suggestWorkflow(intention, context);
+      res.json(workflow);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/ai-chat/session/:sessionId", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service");
+      const { sessionId } = req.params;
+      
+      aiService.clearSession(sessionId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Browser context for AI
+  app.get("/api/browser-engine/context", async (req, res) => {
+    try {
+      // Get current browser context from active tab
+      const activeInstance = browserManager.getActiveInstance();
+      
+      if (!activeInstance) {
+        return res.json({
+          url: "",
+          title: "",
+          selectedText: ""
+        });
+      }
+
+      const activeTab = activeInstance.tabs.find(tab => tab.isActive);
+      
+      res.json({
+        url: activeTab?.url || "",
+        title: activeTab?.title || "",
+        selectedText: "", // TODO: Implement text selection tracking
+        viewport: {
+          width: 1280,
+          height: 720
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Register organization and user profile routes
   registerOrganizationRoutes(app);
 

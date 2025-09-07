@@ -1,0 +1,348 @@
+Outreach‑motoren fungerer – fra kilder og arkitektur til scoring, generering, utsendelse, måling og læring. Alt er skrevet for implementering i et moderne sky‑miljø og holder seg til offentlige/lisensierte kilder og offisielle API‑er.
+
+1) Mål og verdiløfte
+
+Mål: Oppdage ferske, bekreftbare signaler om en bedrift (anmeldelser, pris/PR, lanseringer, milepæler), forvandle dem til naturlige, personlige 1:1‑meldinger (e‑post/SMS/WhatsApp), og eskalere smart om mottaker ikke svarer.
+
+Verdiløfte: Relevante, tidssensitive henvendelser som dokumenteres med kilde + dato, gir høyere svarrate (typisk +5–12 % vs. generisk outreach).
+
+2) Hovedprinsipper (compliant by design)
+
+Kilder: Offentlige sider, offisielle API‑er eller lisensierte dataleverandører.
+
+Sporbarhet: Hver “hook” må ha URL, kildenavn, publiseringsdato.
+
+Dataminimering: Kun virksomhetsdata, ikke sensitiv persondata.
+
+Guardrails: LLM bruker kun dokumentert evidens; “human‑in‑the‑loop” ved lav tillit.
+
+Opt‑out & policy: B2B‑grunnlag (berettiget interesse) + enkel avmelding, stilleperioder, frekvensgrenser.
+
+3) Arkitektur (oversikt)
+[Connectors] → [Ingest & Queue] → [Normalizer] → [Evidence Store & Index]
+                                          ↓
+                                 [Hook Miner & Ranker]
+                                          ↓
+                                   [Compliance Gate]
+                                          ↓
+                             [Persona/Value Mapper]
+                                          ↓
+                                [Message Planner]
+                                          ↓
+                  [Generator (RAG)] → [Verifier] → [Polisher]
+                                          ↓
+                          [Channel Variants (SMS/WA)]
+                                          ↓
+                               [Send Orchestrator]
+                                          ↓
+                       [Telemetry, A/B, Insights, Learning]
+                                          ↓
+                                 [Ops & Admin UI]
+
+
+Kjernekomponenter
+
+Connectors: GBP/Reviews, Trustpilot, News/RSS, Meta/YouTube/X for offentlige sider, egne nettsider/nyhetsrom, app‑butikker der relevant.
+
+Evidence Store: Lagret som normaliserte “bevis” + rå‑snapshot (for revisjon/RAG).
+
+Hook Miner & Ranker: Oppdager hendelser og velger 1–2 mest aktuelle “hooks”.
+
+Generator (RAG): LLM som kun får bruke innhold fra valgt evidens.
+
+Send Orchestrator: Planlegger e‑post/SMS/WA‑sekvens med frekvensgrenser og samtykkesjekk.
+
+Telemetry & Learning: Måling, eksperimenter, kontinuerlig forbedring.
+
+4) Datakilder (eksempler)
+
+Anmeldelser: Google Business Profile (Reviews), Trustpilot, Yelp (off. APIer/leverandører).
+
+Presse/PR/nyheter: Off. feeds (RSS/Sitemap), lisensiert nyhets‑API.
+
+SoMe (offentlige firmaprofiler): Meta Graph (Pages), YouTube Data, X/Twitter v2.
+
+Egne sider: Blogg/nyhetsrom/case med RSS/sitemaps + schema.org (NewsArticle/Review).
+
+(Valgfritt) Førstepartsdata: Når kunden selv kobler på (OAuth/eksport), f.eks. e‑handel/CRM.
+
+5) Dataflyt per prospekt (ende‑til‑ende)
+
+For hver bedrift (prospekt):
+
+5.1 Innhenting
+
+Input: Navn, domene, bransje, evt. off. SoMe‑lenker.
+
+Prosess: Connectors henter siste endringer (If‑Modified‑Since/ETag) og/eller webhooks fra leverandører.
+
+Output: raw_records (per kilde, med timestamp og original payload).
+
+5.2 Normalisering
+
+Felt‑mapping → Evidence med: evidence_id, source, url, title, snippet, published_at, language, authority, hash.
+
+Dedup basert på (url+title+snippet)‑hash, canonical‑URL, UTM‑stripping.
+
+5.3 Hendelsesklassifisering
+
+LLM klassifiserer event_type (review_win, award, product_launch, pr_feature, milestone, case_post, …), sentiment, relevance, specificity, og lager en nøktern summary (uten nye påstander).
+
+5.4 Hook‑uttrekk
+
+Velger 1–2 bevis < 7–14 dager → bygger hook: type, overskrift, ev. sitat, referanser, “freshness_days”.
+
+5.5 Rangering & terskler
+
+Skår = 0.35×recency + 0.25×relevance + 0.2×authority + 0.1×specificity + 0.1×sentimentPos.
+
+Auto‑OK: skår ≥ 0.78. Review: 0.60–0.78. Avvis: < 0.60 eller for gammel.
+
+5.6 Compliance‑gate
+
+Sjekker språk/tema/kilde. Avviser negative/ sensitive vinklinger og tvilsomme kilder.
+
+Output: APPROVE | REVIEW | REJECT med begrunnelse.
+
+5.7 Persona & verdi
+
+Velger 2–3 verdipunkter (per bransje/rolle) som naturlig henger sammen med hooken (eks.: “bruk ferske anmeldelser i e‑post/SMS → +5–10 % konvertering”).
+
+5.8 Meldingsplan
+
+Lager emnelinje‑ideer, disposisjon (Anerkjennelse → Hvorfor nå → Verdi → CTA), og CTA (f.eks. 15‑min prat / få demo).
+
+5.9 Generering (RAG‑grounding)
+
+LLM får kun Evidence (tittel/utdrag/dato/URL) + plan + verdipunkter → skriver 90–130 ord på norsk, inkluderer kildenavn + dato i brødtekst eller PS.
+
+5.10 Verifisering & polering
+
+Verifier: Sjekker at alle påstander støttes av Evidence; foreslår fikser ved avvik.
+
+Polisher: Språkstrammer (kortere, naturlig), uten nye fakta.
+
+5.11 Kanalvarianter
+
+Genererer kort SMS (≤300 tegn + “STOPP”) og WhatsApp‑tekst som viser til e‑posten.
+
+5.12 Plan & utsendelse
+
+Standard eskalering:
+
+Dag 0: E‑post #1
+
+Dag 4–5: E‑post #2 (konkret leveranse + pris “fra 2.990 kr/mnd”)
+
+Dag 7–8: SMS/WA (kort påminnelse, peker til mail #2)
+
+Dag 11–12: E‑post #3 (case + tid/implementering + pris)
+
+Dag 14: LinkedIn touch
+
+Dag 20: E‑post #4 (last call)
+
+Send Orchestrator sjekker samtykke pr. kanal, stilleperioder og frekvensgrenser (f.eks. maks én kontakt/14 dager per domene).
+
+5.13 Telemetri & læring
+
+Samler levering/åpning/klikk/svar/møte.
+
+A/B analyserer emne/CTA/åpning; anbefaler neste test per segment/bransje.
+
+Oppdaterer ranker og malbibliotek med vinnere.
+
+6) Datamodell (kjerneobjekter)
+
+Prospect
+
+prospect_id, company_name, domain, industry, region, language_pref, contact_roles[].
+
+Evidence
+
+evidence_id, prospect_id, source (google_review/trustpilot/news/rss/fb_page/ig_post/x_tweet/yt_video…),
+url, title, snippet, published_at, language, authority (0–1), hash, quotes[].
+
+Hook
+
+hook_id, prospect_id, hook_type, headline, quote?, evidence_refs[], freshness_days, score, confidence.
+
+MessageVariant
+
+variant_id, hook_id, subject, body_text, language, voice_profile, generator_meta, confidence.
+
+SendSchedule
+
+schedule_id, prospect_id, steps[] (dag, kanal, mal), caps (quiet hours, per‑domene‑frekvens), consent_ok.
+
+Metrics
+
+pr. melding/sekvens: delivered, opens, clicks, replies, meetings, attributed_pipeline.
+
+7) Scoring & terskler (pseudokode)
+def score_hook(hook):
+    recency = recency_score(hook.freshness_days)     # 1.0<48t, 0.8≤7d, 0.5≤30d, 0.2 ellers
+    relevance = hook.meta.relevance                  # 0..1 fra klassifisering
+    authority = avg_authority(hook.evidence_refs)    # 0..1 kildevekting
+    specificity = hook.meta.specificity              # 0..1 (nevner konkret produkt/filial)
+    sentimentPos = 1.0 if hook.meta.sentiment=='positive' else 0.7 if hook.meta.sentiment=='neutral' else 0.2
+    return 0.35*recency + 0.25*relevance + 0.2*authority + 0.1*specificity + 0.1*sentimentPos
+
+
+Auto‑OK: score ≥ 0.78 og freshness_days ≤ 14 → direkte til generering.
+Review: 0.60–0.78 eller ukjent kilde → menneskelig QA.
+Avvis: ellers.
+
+8) Prompter (kortbibliotek)
+
+Alle “JSON‑prompter” skal returnere ren JSON uten ekstra tekst.
+
+(A) Hendelsesklassifisering
+
+{
+  "event_type": "review_win|award|product_launch|pr_feature|milestone|case_post|other",
+  "sentiment": "positive|neutral|negative",
+  "specificity": 0.0,
+  "relevance": 0.0,
+  "summary": "1–2 setninger uten nye påstander"
+}
+
+
+(B) Hook‑uttrekk
+
+{
+  "hook_type": "review_win|award|launch|milestone|pr_feature|case_post",
+  "headline": "kort, faktabasert",
+  "quote": "valgfri",
+  "evidence_refs": ["ev_123","ev_456"],
+  "freshness_days": 3
+}
+
+
+(C) Compliance‑gate
+
+{"status":"APPROVE|REVIEW|REJECT","reasons":["..."]}
+
+
+(D) Meldingsplan
+
+{
+  "subject_options": ["...", "...", "..."],
+  "outline": ["Anerkjennelse","Hvorfor nå","Verdi (1–2 setn.)","CTA"],
+  "cta": "15-min prat / send demo"
+}
+
+
+(E) Generering (tekst)
+
+SUBJECT: ...
+BODY:
+Hei [Navn],
+... (90–130 ord, naturlig norsk, inkluder kildenavn + dato) ...
+– [Avsender]
+
+
+(F) Verifisering
+
+{"verdict":"PASS|FAIL","unsupported_claims":["..."],"suggested_fixes":["..."]}
+
+
+(G) Kanalvarianter
+
+{"sms":"≤300 tegn inkl. 'Svar STOPP for å slippe meldinger'","whatsapp":"kort, vennlig, referer til e‑posten"}
+
+9) API‑flate (eksempler)
+
+POST /prospects/{id}/evidence:ingest
+Payload: liste av normaliserte evidence‑objekter.
+
+POST /prospects/{id}/hooks:mine
+Returnerer topp‑hooks (score, evidence_refs).
+
+POST /hooks/{id}/message:generate
+Input: ønsket språk/voice; Output: subject, body, sms, whatsapp.
+
+POST /send:enqueue
+Input: prospect_id, channel, payload, headers{hook_id,evidence_ids}.
+
+POST /metrics:ingest
+Webhook fra e‑post/SMS‑leverandør: delivered/open/click/reply.
+
+10) Utsendelsesregler (policy)
+
+Quiet hours: f.eks. 21:00–07:00 lokalt.
+
+Frekvens: maks 1 kontakt per firma hver 14. dag.
+
+Suppression: avmeldte domener/adresser og “ikke kontakte”‑liste.
+
+Samtykke pr. kanal: sms/whatsapp krever eksplisitt samtykke; e‑post B2B med klar avmelding.
+
+11) Drift & kvalitet
+
+Retry & DLQ: Eksponentiell backoff (2s, 5s, 15s, 60s, 5m). Feil til dead‑letter med årsak.
+Idempotens: Naturlige nøkler (URL‑hash/evidence_id), dedupe_key i meldinger.
+Observability: Dashbord for ingest‑feil, kø‑lag, hook‑score, OR/CTR/Reply per hook‑type.
+SLA: Ingest→hook < 30 min; signal→send < 24 t; event‑latens < 60 sek.
+Sikkerhet: Kryptert i transitt og i ro; RBAC/SSO; audit‑logg; EU‑hosting.
+Compliance: DPIA; kildelister; “Hvorfor fikk jeg denne?”‑side som viser kilder/datoer.
+
+12) KPI‑er (målbare)
+
+Kvalitet: Andel meldinger med kilde+dato (mål: 100 %), QA‑passrate.
+
+Respons: Åpningsrate, svarrate, bookede møter.
+
+Tempo: Tid fra signal → første melding.
+
+Læring: Antall vinnende varianter per bransje/rolle/hook.
+
+Kost: Kost per personalisert utsendelse (data + LLM), margin.
+
+13) Infrastruktur (typisk oppsett)
+
+Kø/stream: GCP Pub/Sub eller AWS SQS/Kinesis.
+
+Compute: Cloud Functions/Lambda (connectors, klassifisering, send).
+
+Lagring: Postgres/Cloud SQL (metadata), GCS/S3 (snapshots), Redis (cache).
+
+LLM/RAG: Vektorindeks (FAISS/PGVector) per prospekt; modell via leverandør.
+
+Mailer/SMS/WA: Integrasjon mot etablert ESP/SMS‑gateway/WhatsApp BSP.
+
+CI/CD: Terraform + GitHub Actions; feature toggles.
+
+14) Eksempel – fra signal til e‑post (konkret)
+
+Oppdagelse: Ny artikkel i kundens nyhetsrom (RSS: 26. aug).
+
+Evidence: Lagres med tittel, utdrag, URL, publisert dato, kilde=nyhetsrom.
+
+Klassifisering: event_type=award, relevance=0.92, specificity=0.87, sentiment=positive.
+
+Hook: “Vant ‘Nordic Commerce Award’ (26. aug)”, evidence_refs=[ev_1], freshness=1 dag.
+
+Score: 0.84 → Auto‑OK.
+
+Plan: Emnelinjer + outline + CTA (“15‑min – viser mini‑kampanje rundt prisen”).
+
+Generering (RAG): 110 ord, inkluderer “(Nyhetsrom, 26. aug)”.
+
+Verifisering: PASS; Polering: kortere setninger.
+
+Send: E‑post #1 dag 0; SMS dag 7 hvis ingen respons.
+
+Måling: OR 58 %, 2 svar, 1 møte → Lagres. Neste test: variere CTA.
+
+15) Begrensninger & risikohåndtering
+
+Kildedekning: Ikke alle bransjer har gode offentlige signaler → fallback til evergreen‑hooks (case/innhold) + førstepartsdata (med hjemmel).
+
+Hallusinasjon: Adresseres med RAG + Verifier + menneskelig QA under terskel.
+
+Leveranse: Senderpolicy, hygiene, IP‑oppvarming, frekvensgrenser.
+
+Kort oppsummert
+
+Outreach‑motoren er en signal‑drevet, evidens‑basert pipeline som oppdager ferske, relevante hendelser, gjør dem om til naturlige, dokumenterte 1:1‑meldinger og lærer av resultatene. Den er bygget for skalerbarhet, etterprøvbarhet og compliance, og kan tilbys både “as‑a‑service” og via API til MarketingPlatform og deres kunder.
