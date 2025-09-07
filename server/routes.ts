@@ -1270,7 +1270,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/browser-proxy/:instanceId/:tabId", async (req, res) => {
     try {
       const { instanceId, tabId } = req.params;
-      const engine = browserManager.getEngine(instanceId);
+      // const engine = browserManager.getEngine(instanceId); // TODO: Implement getEngine method
+      const engine = null; // Temporarily disabled
       
       if (!engine) {
         // If no browser engine, return a simple message
