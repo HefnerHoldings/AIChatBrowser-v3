@@ -99,26 +99,25 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
         )}
       </Button>
 
-      {/* Control Buttons - Only when expanded */}
-      {!isCollapsed && (
+      {/* Control Buttons - Only when expanded and on left side */}
+      {!isCollapsed && side === 'left' && (
         <>
-          {/* Sidebar Type Selector Dropdown - Only on left side */}
-          {side === 'left' && (
-            <DropdownMenu>
+          {/* Sidebar Type Selector Dropdown */}
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
                   "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-                  side === 'left' ? 'right-[88px]' : 'left-[88px]'
+                  "right-[88px]"
                 )}
                 title="Velg sidebar type"
               >
                 <Layers className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align={side === 'left' ? 'start' : 'end'}>
+            <DropdownMenuContent align="start">
               <DropdownMenuLabel>Velg Sidebar Type</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {availableSidebars.map((sidebarType: SidebarType) => (
@@ -136,7 +135,6 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          )}
           
           {/* Mode Toggle Button */}
           <Button
@@ -145,7 +143,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
             onClick={toggleMode}
             className={cn(
               "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-              side === 'left' ? 'right-12' : 'left-12'
+              "right-12"
             )}
             title={isFloating ? 'Bytt til massive modus' : 'Bytt til floating modus'}
           >
