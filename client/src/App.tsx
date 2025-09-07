@@ -5,11 +5,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { SidebarManagerProvider } from "@/contexts/SidebarManagerContext";
+import { initializeSidebars } from "@/lib/sidebar-initializer";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Browser from "@/pages/Browser";
 import Settings from "@/pages/Settings";
 import UserProfile from "@/pages/UserProfile";
+
+// Initialize sidebars on app start
+initializeSidebars();
 
 function Router() {
   return (

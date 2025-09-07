@@ -46,15 +46,15 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SidebarConfig>({
     left: {
       side: 'left',
-      primary: 'workflow',
+      primary: 'lead-scraping',
       mode: 'single',
-      collapsed: true
+      collapsed: false
     },
     right: {
       side: 'right',
-      primary: 'developer',
+      primary: 'data-analytics',
       mode: 'single',
-      collapsed: true
+      collapsed: false
     },
     floating: [],
     customSidebars: []

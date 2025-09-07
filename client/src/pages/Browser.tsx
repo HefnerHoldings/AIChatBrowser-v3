@@ -156,7 +156,7 @@ interface HistoryItem {
 
 export default function Browser() {
   const { toast } = useToast();
-  const { config } = useSidebarManager();
+  const { config, toggleSidebar } = useSidebarManager();
   const [browserInstance, setBrowserInstance] = useState<BrowserInstance | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
@@ -1034,13 +1034,8 @@ export default function Browser() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => {
-                            // Skjul begge
-                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
-                            const rightSidebar = document.querySelector('[data-sidebar="right"]');
-                            if (leftSidebar?.querySelector('.lucide-chevron-left')) {
-                              leftSidebar.querySelector('button')?.click();
-                            }
-                            setShowDevTools(false);
+                            if (!config.left.collapsed) toggleSidebar('left');
+                            if (!config.right.collapsed) toggleSidebar('right');
                           }}
                         >
                           <EyeOff className="mr-2 h-4 w-4" />
@@ -1048,38 +1043,26 @@ export default function Browser() {
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => {
-                            // Vis kun venstre
-                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
-                            if (leftSidebar?.querySelector('.lucide-chevron-right')) {
-                              leftSidebar.querySelector('button')?.click();
-                            }
-                            setShowDevTools(false);
+                            if (config.left.collapsed) toggleSidebar('left');
+                            if (!config.right.collapsed) toggleSidebar('right');
                           }}
                         >
                           <ChevronLeft className="mr-2 h-4 w-4" />
-                          Kun venstre (Workflow)
+                          Kun venstre sidebar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => {
-                            // Vis kun høyre
-                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
-                            if (leftSidebar?.querySelector('.lucide-chevron-left')) {
-                              leftSidebar.querySelector('button')?.click();
-                            }
-                            setShowDevTools(true);
+                            if (!config.left.collapsed) toggleSidebar('left');
+                            if (config.right.collapsed) toggleSidebar('right');
                           }}
                         >
                           <ChevronRight className="mr-2 h-4 w-4" />
-                          Kun høyre (Developer)
+                          Kun høyre sidebar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => {
-                            // Vis begge
-                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
-                            if (leftSidebar?.querySelector('.lucide-chevron-right')) {
-                              leftSidebar.querySelector('button')?.click();
-                            }
-                            setShowDevTools(true);
+                            if (config.left.collapsed) toggleSidebar('left');
+                            if (config.right.collapsed) toggleSidebar('right');
                           }}
                         >
                           <Layers className="mr-2 h-4 w-4" />
@@ -1092,15 +1075,22 @@ export default function Browser() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        const leftSidebar = document.querySelector('[data-sidebar="left"]');
-                        if (leftSidebar) {
-                          leftSidebar.querySelector('button')?.click();
-                        }
-                      }}
-                      title="Workflow verktøy (venstre sidebar)"
+                      onClick={() => toggleSidebar('left')}
+                      title="Venstre sidebar"
+                      className={!config.left.collapsed ? 'bg-accent' : ''}
                     >
-                      <Layers className="h-4 w-4" />
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    {/* Right Sidebar Toggle */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleSidebar('right')}
+                      title="Høyre sidebar"
+                      className={!config.right.collapsed ? 'bg-accent' : ''}
+                    >
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                     
                     <Button
