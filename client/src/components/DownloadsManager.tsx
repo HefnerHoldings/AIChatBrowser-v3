@@ -21,7 +21,8 @@ export function DownloadsManager({ onDownloadClick }: DownloadsManagerProps) {
   // Hent nedlastinger fra API
   const { data: downloads = [] } = useQuery<DownloadType[]>({
     queryKey: ['/api/downloads'],
-    refetchInterval: 2000, // Oppdater hvert 2. sekund for å vise progresjon
+    // Polling deaktivert - kan aktiveres ved behov
+    // refetchInterval: 30000, // Oppdater hvert 30. sekund hvis nødvendig
   });
 
   // Slett nedlasting mutation

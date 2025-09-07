@@ -8,7 +8,6 @@ import { BrowserToolsSidebar } from './BrowserToolsSidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { SidebarSwitcher } from './SidebarSwitcher';
 import { 
   Search, 
   Code2, 
@@ -127,13 +126,8 @@ export function DynamicSidebar({
   // Single sidebar mode
   if (mode === 'single' || secondary.length === 0) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="px-3 py-2 border-b">
-          <SidebarSwitcher side={side} currentType={primary} />
-        </div>
-        <div className="flex-1 overflow-hidden">
-          {renderSidebar(primary)}
-        </div>
+      <div className="h-full">
+        {renderSidebar(primary)}
       </div>
     );
   }
@@ -141,11 +135,8 @@ export function DynamicSidebar({
   // Split mode - show multiple sidebars side by side
   if (mode === 'split') {
     return (
-      <div className="h-full flex flex-col">
-        <div className="px-3 py-2 border-b">
-          <SidebarSwitcher side={side} currentType={primary} />
-        </div>
-        <ResizablePanelGroup direction="vertical" className="flex-1">
+      <div className="h-full">
+        <ResizablePanelGroup direction="vertical" className="h-full">
           <ResizablePanel defaultSize={50}>
             {renderSidebar(primary)}
           </ResizablePanel>
@@ -167,9 +158,6 @@ export function DynamicSidebar({
     const allSidebars = [primary, ...secondary];
     return (
       <div className="h-full flex flex-col">
-        <div className="px-3 py-2 border-b">
-          <SidebarSwitcher side={side} currentType={primary} />
-        </div>
         <Tabs defaultValue={primary} className="flex-1 flex flex-col">
           <TabsList className="mx-3 mt-3">
             {allSidebars.map(type => (
@@ -194,9 +182,6 @@ export function DynamicSidebar({
     const allSidebars = [primary, ...secondary];
     return (
       <div className="h-full flex flex-col">
-        <div className="px-3 py-2 border-b">
-          <SidebarSwitcher side={side} currentType={primary} />
-        </div>
         <Accordion type="single" defaultValue={primary} className="flex-1 overflow-auto">
           {allSidebars.map(type => (
             <AccordionItem key={type} value={type}>
