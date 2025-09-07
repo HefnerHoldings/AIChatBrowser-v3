@@ -77,6 +77,7 @@ class SimulatedTab {
   canGoForward: boolean = false;
   history: string[] = [];
   historyIndex: number = 0;
+  loadState: 'idle' | 'loading' | 'complete' = 'idle';
 
   constructor(id: string, url: string = 'about:blank') {
     this.id = id;
