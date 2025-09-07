@@ -34,6 +34,7 @@ export function CollapsibleSidebar({
 
   return (
     <div
+      data-sidebar={side}
       className={cn(
         'relative transition-all duration-300 flex-shrink-0',
         isCollapsed ? collapsedWidth : width,

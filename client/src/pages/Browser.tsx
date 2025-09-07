@@ -111,6 +111,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -1014,6 +1015,91 @@ export default function Browser() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-1">
+                    {/* Sidebar Layout Selector */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Sidebar layouts"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuLabel>Sidebar Oppsett</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            // Skjul begge
+                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
+                            const rightSidebar = document.querySelector('[data-sidebar="right"]');
+                            if (leftSidebar?.querySelector('.lucide-chevron-left')) {
+                              leftSidebar.querySelector('button')?.click();
+                            }
+                            setShowDevTools(false);
+                          }}
+                        >
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          Skjul alle sidebars
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            // Vis kun venstre
+                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
+                            if (leftSidebar?.querySelector('.lucide-chevron-right')) {
+                              leftSidebar.querySelector('button')?.click();
+                            }
+                            setShowDevTools(false);
+                          }}
+                        >
+                          <ChevronLeft className="mr-2 h-4 w-4" />
+                          Kun venstre (Workflow)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            // Vis kun høyre
+                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
+                            if (leftSidebar?.querySelector('.lucide-chevron-left')) {
+                              leftSidebar.querySelector('button')?.click();
+                            }
+                            setShowDevTools(true);
+                          }}
+                        >
+                          <ChevronRight className="mr-2 h-4 w-4" />
+                          Kun høyre (Developer)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            // Vis begge
+                            const leftSidebar = document.querySelector('[data-sidebar="left"]');
+                            if (leftSidebar?.querySelector('.lucide-chevron-right')) {
+                              leftSidebar.querySelector('button')?.click();
+                            }
+                            setShowDevTools(true);
+                          }}
+                        >
+                          <Layers className="mr-2 h-4 w-4" />
+                          Begge sidebars
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    {/* Left Sidebar Toggle */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const leftSidebar = document.querySelector('[data-sidebar="left"]');
+                        if (leftSidebar) {
+                          leftSidebar.querySelector('button')?.click();
+                        }
+                      }}
+                      title="Workflow verktøy (venstre sidebar)"
+                    >
+                      <Layers className="h-4 w-4" />
+                    </Button>
+                    
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1044,12 +1130,22 @@ export default function Browser() {
                       <Package className="h-4 w-4" />
                     </Button>
                     
+                    {/* Right Sidebar Toggle - Developer Tools */}
+                    <Button
+                      variant={showDevTools ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => setShowDevTools(!showDevTools)}
+                      title="Developer sidebar (høyre)"
+                    >
+                      <Code2 className="h-4 w-4" />
+                    </Button>
+                    
                     {/* Tools Panel Toggle Button */}
                     <Button
                       variant={!rightToolsCollapsed ? "default" : "ghost"}
                       size="icon"
                       onClick={() => setRightToolsCollapsed(!rightToolsCollapsed)}
-                      title="Verktøypanel (Alt+T)"
+                      title="AI Assistent (Alt+T)"
                       data-testid="button-tools-panel"
                     >
                       <Bot className="h-4 w-4" />
