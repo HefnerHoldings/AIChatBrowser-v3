@@ -5,6 +5,7 @@ export type SidebarType =
   | 'developer'
   | 'ai-assistant'
   | 'ai-chat'
+  | 'outreach'
   | 'data-analytics'
   | 'workflow'
   | 'browser-tools'

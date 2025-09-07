@@ -3,6 +3,7 @@ import { LeadScrapingSidebar } from '@/components/sidebars/LeadScrapingSidebar';
 import { DataAnalyticsSidebar } from '@/components/sidebars/DataAnalyticsSidebar';
 import { BrowserToolsSidebar } from '@/components/sidebars/BrowserToolsSidebar';
 import { AIChatSidebar } from '@/components/sidebars/AIChatSidebar';
+import { OutreachDashboard } from '@/components/sidebars/OutreachDashboard';
 
 // Initialize and register all sidebars
 export function initializeSidebars() {
@@ -52,6 +53,18 @@ export function initializeSidebars() {
     category: 'automation',
     features: ['AI Chat', 'Voice Control', 'Learning System', 'Voice Output'],
     shortcuts: ['Ctrl+Shift+A']
+  });
+
+  // Register Outreach Dashboard
+  SidebarRegistry.register({
+    id: 'outreach',
+    name: 'Outreach Engine',
+    description: 'Signal-drevet B2B kommunikasjon og kampanjer',
+    iconName: 'Send',
+    component: OutreachDashboard,
+    category: 'automation',
+    features: ['Signal Mining', 'Multi-channel', 'Campaign Management', 'Analytics'],
+    shortcuts: ['Ctrl+Shift+O']
   });
 
   // Initialize presets
