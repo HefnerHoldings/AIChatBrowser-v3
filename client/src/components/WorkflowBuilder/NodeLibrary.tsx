@@ -130,16 +130,16 @@ export function NodeLibrary({ onNodeDragStart }: NodeLibraryProps) {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="p-4 border-b flex-shrink-0">
         <h3 className="font-semibold text-lg">Node Bibliotek</h3>
         <p className="text-sm text-muted-foreground mt-1">
           Dra noder til canvas for å bygge workflow
         </p>
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-6">
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-6 pb-8">
           {categories.map((category) => (
             <div key={category}>
               <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
