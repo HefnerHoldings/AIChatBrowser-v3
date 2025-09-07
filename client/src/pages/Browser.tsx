@@ -1149,32 +1149,44 @@ export default function Browser() {
               </div>
             )}
 
-            {/* Browser Viewport with new sidebar system */}
-            <SidebarContainer
-              leftSidebar={
-                activeView === 'browser' && (
-                  <AdaptiveSidebar 
-                    side="left"
-                    isOpen={true}
-                    onToggle={() => {}}
-                    className="h-full"
-                  />
-                )
-              }
-              rightSidebar={
-                activeView === 'browser' && (
-                  <AdaptiveSidebar 
-                    side="right"
-                    isOpen={true}
-                    onToggle={() => {}}
-                    className="h-full"
-                  />
-                )
-              }
-            >
-              {/* Main Browser Content - Center */}
-              <div className={`w-full h-full ${showDevTools ? 'flex' : ''} relative bg-white`}>
-                <div className={`${showDevTools ? 'flex-1' : 'w-full h-full'} relative`}>
+            {/* Browser Viewport with integrated sidebars */}
+            <div className="flex-1 h-full flex">
+              {/* Left Workflow Sidebar */}
+              <CollapsibleSidebar
+                side="left"
+                width="w-80"
+                defaultCollapsed={true}
+              >
+                <LeftWorkflowSidebar
+                  onOpenWorkflowBuilder={() => setShowWorkflowBuilder(true)}
+                  onCommand={(command) => {
+                    // Execute browser commands from voice
+                    if (command.toLowerCase().includes('gå til')) {
+                      const url = command.replace(/gå til/i, '').trim();
+                      if (activeTab) {
+                        navigateMutation.mutate({ tabId: activeTab.id, url });
+                      }
+                    }
+                    toast({
+                      title: 'Voice kommando',
+                      description: command
+                    });
+                  }}
+                  onAISuggestion={(suggestion) => {
+                    toast({
+                      title: 'AI forslag',
+                      description: suggestion
+                    });
+                  }}
+                  onDragNodeStart={(nodeType, nodeData) => {
+                    // Handle node drag for browser automation
+                    console.log('Node dragged to browser:', nodeType, nodeData);
+                  }}
+                />
+              </CollapsibleSidebar>
+
+              {/* Main Browser Content */}
+              <div className="flex-1 relative bg-white">
                   {activeTab ? (
                   <>
                     {isNavigating && (
@@ -1265,77 +1277,47 @@ export default function Browser() {
                     </div>
                   </div>
                 )}
-                </div>
-                
-                {/* Developer Tools Panel */}
-                {showDevTools && (
-                  <>
-                    {/* Collapsed indicator */}
-                    {rightPanelCollapsed && (
-                      <div className="absolute top-3 right-0 z-50">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="rounded-l-lg rounded-r-none h-8 w-6 px-0 bg-blue-500/10 hover:bg-blue-500/20 border-r-0"
-                          onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setRightPanelCollapsed(false);
-                    }}
-                          title="Åpne Utviklerverktøy (Alt+D)"
-                        >
-                          <ChevronLeft className="h-4 w-4 text-blue-600" />
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {/* Full panel */}
-                    {!rightPanelCollapsed && (
-                      <div className="absolute top-0 right-0 w-96 h-full border-l bg-card flex flex-col z-40">
-                        <div className="flex items-center justify-between p-2 border-b bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
-                          <h3 className="font-semibold text-sm flex items-center gap-2">
-                            <Code2 className="h-4 w-4 text-blue-500" />
-                            Utviklerverktøy
-                          </h3>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 hover:bg-blue-500/20"
-                              onClick={() => setRightPanelCollapsed(true)}
-                              title="Minimer panel (Alt+D)"
-                            >
-                              <ChevronRight className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 hover:bg-blue-500/20"
-                              onClick={() => setShowDevTools(false)}
-                              title="Lukk panel"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="flex-1 p-4 overflow-auto">
-                          <div className="space-y-4 text-sm">
-                            <div>
-                              <p className="font-medium mb-2">Nåværende side</p>
-                              <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                                <p><span className="font-medium">URL:</span> {activeTab?.url || 'N/A'}</p>
-                                <p><span className="font-medium">Tittel:</span> {activeTab?.title || 'N/A'}</p>
-                                <p><span className="font-medium">Status:</span> {activeTab?.isLoading ? 'Laster...' : 'Ferdig'}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
-            </SidebarContainer>
+
+              {/* Right Developer Sidebar */}
+              {showDevTools && (
+                <CollapsibleSidebar
+                  side="right"
+                  width="w-96"
+                  defaultCollapsed={false}
+                >
+                  <RightDeveloperSidebar
+                    onExportData={(format) => {
+                      // Export browser data
+                      const browserData = {
+                        url: activeTab?.url,
+                        title: activeTab?.title,
+                        timestamp: new Date().toISOString()
+                      };
+                      toast({
+                        title: 'Eksporterer browser data',
+                        description: `Format: ${format}`
+                      });
+                    }}
+                    onRefreshData={() => {
+                      // Refresh current page
+                      if (activeTab) {
+                        reloadMutation.mutate(activeTab.id);
+                      }
+                    }}
+                    onCodeGenerate={(type) => {
+                      // Generate code based on current page
+                      if (type === 'scraper' && activeTab) {
+                        toast({
+                          title: 'Genererer scraper kode',
+                          description: `For: ${activeTab.url}`
+                        });
+                      }
+                    }}
+                  />
+                </CollapsibleSidebar>
+              )}
+            </div>
         </TabsContent>
 
         {/* Workflow */}
