@@ -1,12 +1,26 @@
 import { Button } from "@/components/ui/button";
-import { Camera, Crosshair, Wand2 } from "lucide-react";
+import { Camera, Crosshair, Wand2, AlertCircle } from "lucide-react";
 import { BrowserNavigation } from "./browser-navigation";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface BrowserViewportProps {
   currentTaskId: string;
+  browserInstance?: any;
+  activeTab?: any;
 }
 
-export default function BrowserViewport({ currentTaskId }: BrowserViewportProps) {
+export default function BrowserViewport({ currentTaskId, browserInstance, activeTab }: BrowserViewportProps) {
+  const [screenshotData, setScreenshotData] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Hent screenshot fra backend hvis vi har en aktiv tab
+  const { data: screenshot, refetch } = useQuery({
+    queryKey: [`/api/browser-engine/instance/${browserInstance?.id}/tab/${activeTab?.id}/screenshot`],
+    enabled: !!browserInstance?.id && !!activeTab?.id && activeTab?.url !== 'about:blank',
+    refetchInterval: 2000, // Oppdater hvert 2. sekund
+  });
   return (
     <div className="flex-1 p-4">
       {/* Browser Navigation */}
@@ -36,77 +50,68 @@ export default function BrowserViewport({ currentTaskId }: BrowserViewportProps)
       
       {/* Browser Viewport */}
       <div className="border border-border rounded-lg overflow-hidden bg-white h-[calc(100vh-200px)] relative">
-        {/* Simulated Google Search Results */}
-        <div className="h-full p-6 overflow-y-auto">
-          <div className="flex items-center mb-6">
-            <div className="w-24 h-8 bg-blue-500 rounded mr-6 flex items-center justify-center text-white text-sm font-bold">
-              Google
+        {activeTab && activeTab.url !== 'about:blank' ? (
+          screenshot ? (
+            // Vis faktisk screenshot fra Puppeteer
+            <img 
+              src={`data:image/png;base64,${screenshot}`}
+              alt="Browser content"
+              className="w-full h-full object-contain bg-white"
+            />
+          ) : (
+            // Loading state
+            <div className="h-full flex items-center justify-center bg-gray-50">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-4 w-48 mx-auto" />
+                <Skeleton className="h-4 w-32 mx-auto" />
+                <div className="text-sm text-muted-foreground">Laster side...</div>
+              </div>
             </div>
-            <div className="flex-1">
-              <div className="w-full text-lg border rounded px-3 py-2 bg-gray-50">
-                cookware wholesaler EU
+          )
+        ) : (
+          // Ny fane eller about:blank
+          <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="text-center space-y-4">
+              <div className="text-6xl text-gray-300">🌐</div>
+              <h2 className="text-2xl font-semibold text-gray-600">Ny fane</h2>
+              <p className="text-sm text-gray-500 max-w-md mx-auto">
+                Skriv inn en URL i adressefeltet eller velg et bokmerke for å starte nettlesing
+              </p>
+              
+              {/* Hurtigtilgang */}
+              <div className="mt-8 grid grid-cols-4 gap-4 max-w-md mx-auto">
+                <button 
+                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                  onClick={() => window.open('https://google.com', '_blank')}
+                >
+                  <div className="text-2xl mb-1">🔍</div>
+                  <div className="text-xs text-gray-600">Google</div>
+                </button>
+                <button 
+                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                  onClick={() => window.open('https://github.com', '_blank')}
+                >
+                  <div className="text-2xl mb-1">💻</div>
+                  <div className="text-xs text-gray-600">GitHub</div>
+                </button>
+                <button 
+                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                  onClick={() => window.open('https://linkedin.com', '_blank')}
+                >
+                  <div className="text-2xl mb-1">💼</div>
+                  <div className="text-xs text-gray-600">LinkedIn</div>
+                </button>
+                <button 
+                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                  onClick={() => window.open('https://replit.com', '_blank')}
+                >
+                  <div className="text-2xl mb-1">⚡</div>
+                  <div className="text-xs text-gray-600">Replit</div>
+                </button>
               </div>
             </div>
           </div>
-          
-          <div className="text-sm text-gray-600 mb-4">About 2,340,000 results (0.47 seconds)</div>
-          
-          {/* Search Results with Extraction Overlays */}
-          <div className="space-y-6">
-            {/* Result 1 - Being Extracted */}
-            <div className="relative p-4 border-2 border-blue-300 rounded-lg bg-blue-50/20">
-              <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                Extracting
-              </div>
-              <h3 className="text-xl text-blue-600 mb-1 cursor-pointer hover:underline">
-                European Cookware Distributors Ltd
-              </h3>
-              <div className="text-green-600 text-sm mb-2">www.eu-cookware.com</div>
-              <p className="text-gray-700 text-sm">
-                Leading distributor of professional cookware across European markets. Contact us for wholesale pricing and bulk orders. Established since 1995...
-              </p>
-              <div className="mt-2 text-xs text-gray-500">
-                📧 sales@eu-cookware.com • 📞 +49 30 12345678 • 🏢 Berlin, Germany
-              </div>
-            </div>
-            
-            {/* Result 2 - Normal */}
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <h3 className="text-xl text-blue-600 mb-1 cursor-pointer hover:underline">
-                Nordic Kitchen Supplies
-              </h3>
-              <div className="text-green-600 text-sm mb-2">www.nordickitchen.se</div>
-              <p className="text-gray-700 text-sm">
-                Scandinavian cookware wholesaler specializing in cast iron and stainless steel products. Serving retailers across Northern Europe...
-              </p>
-            </div>
-            
-            {/* Result 3 - Processing */}
-            <div className="relative p-4 border-2 border-yellow-300 rounded-lg bg-yellow-50/20">
-              <div className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
-                Processing
-              </div>
-              <h3 className="text-xl text-blue-600 mb-1 cursor-pointer hover:underline">
-                Central European Trade Group
-              </h3>
-              <div className="text-green-600 text-sm mb-2">www.cetg.de</div>
-              <p className="text-gray-700 text-sm">
-                B2B marketplace connecting cookware manufacturers with European retailers. Premium kitchenware solutions for wholesale distribution...
-              </p>
-            </div>
-            
-            {/* More Results */}
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <h3 className="text-xl text-blue-600 mb-1 cursor-pointer hover:underline">
-                Italian Cookware Imports Ltd
-              </h3>
-              <div className="text-green-600 text-sm mb-2">www.italcook.it</div>
-              <p className="text-gray-700 text-sm">
-                Authentic Italian cookware for wholesale. Premium non-stick pans, pasta pots, and professional kitchen equipment...
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
         
         {/* Automation Status Overlay */}
         <div className="absolute bottom-4 right-4 bg-card border border-border rounded-lg p-3 glassmorphism">

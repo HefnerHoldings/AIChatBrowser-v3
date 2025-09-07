@@ -1477,6 +1477,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // GET endpoint for screenshot (for useQuery)
+  app.get("/api/browser-engine/instance/:instanceId/tab/:tabId/screenshot", async (req, res) => {
+    try {
+      const screenshot = await browserManager.screenshot(req.params.instanceId, req.params.tabId);
+      res.json(screenshot.toString('base64'));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   app.get("/api/browser-engine/instance/:instanceId/tab/:tabId/metrics", async (req, res) => {
     try {
