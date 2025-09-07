@@ -35,6 +35,7 @@ import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { Marketplace } from '@/components/vibecoding/Marketplace';
+import { OutreachHub } from '@/components/outreach/OutreachHub';
 import { ProductivityInsights } from '@/components/ProductivityInsights';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder/WorkflowBuilder';
 import { AdaptiveSidebar } from '@/components/AdaptiveSidebar';
@@ -102,6 +103,7 @@ import {
   Sparkles,
   Users,
   ShoppingBag,
+  Send,
   Mic,
   Clock,
   Calendar,
@@ -819,6 +821,10 @@ export default function Browser() {
           <TabsTrigger value="marketplace" className="flex items-center gap-2">
             <ShoppingBag className="h-4 w-4" />
             Marketplace
+          </TabsTrigger>
+          <TabsTrigger value="outreach" className="flex items-center gap-2">
+            <Send className="h-4 w-4" />
+            Outreach
           </TabsTrigger>
           <TabsTrigger value="agent-team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -1580,6 +1586,11 @@ export default function Browser() {
         {/* Marketplace Tab */}
         <TabsContent value="marketplace" className="flex-1 p-0">
           <Marketplace />
+        </TabsContent>
+
+        {/* Outreach Tab */}
+        <TabsContent value="outreach" className="flex-1 p-0">
+          <OutreachHub />
         </TabsContent>
 
         {/* Agent Team Tab */}

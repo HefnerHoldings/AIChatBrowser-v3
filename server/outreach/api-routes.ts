@@ -120,6 +120,19 @@ export function registerOutreachRoutes(app: Express) {
     }
   });
 
+  // ========== LEADS ==========
+
+  // Get leads
+  app.get('/api/outreach/leads', async (req, res) => {
+    try {
+      // Mock data - would fetch from database
+      const leads = [];
+      res.json(leads);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Add prospect
   app.post('/api/outreach/prospects', async (req, res) => {
     try {
