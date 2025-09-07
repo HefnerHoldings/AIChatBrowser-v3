@@ -42,6 +42,9 @@ import { VoiceControl } from '@/components/VoiceControl';
 import { ActionRecorder } from '@/components/ActionRecorder';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { RightSidebarTools } from '@/components/RightSidebarTools';
+import { LeftWorkflowSidebar } from '@/components/sidebars/LeftWorkflowSidebar';
+import { RightDeveloperSidebar } from '@/components/sidebars/RightDeveloperSidebar';
+import { CollapsibleSidebar } from '@/components/sidebars/CollapsibleSidebar';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { MadEasyLogo } from '@/components/MadEasyLogo';
 import { SidebarContainer } from '@/components/SidebarContainer';
@@ -1337,23 +1340,77 @@ export default function Browser() {
 
         {/* Workflow */}
         <TabsContent value="workflow" className="flex-1">
-          <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <div>
-                <h2 className="text-2xl font-bold">Workflow Automatisering</h2>
-                <p className="text-muted-foreground">Bygg kraftige workflows med visuell editor, AI-assistanse og voice kontroll</p>
+          <div className="h-full flex">
+            {/* Left Sidebar */}
+            <CollapsibleSidebar
+              side="left"
+              width="w-80"
+              defaultCollapsed={false}
+            >
+              <LeftWorkflowSidebar
+                onOpenWorkflowBuilder={() => setShowWorkflowBuilder(true)}
+                onCommand={(command) => {
+                  toast({
+                    title: 'Voice kommando',
+                    description: command
+                  });
+                }}
+                onAISuggestion={(suggestion) => {
+                  toast({
+                    title: 'AI forslag',
+                    description: suggestion
+                  });
+                }}
+              />
+            </CollapsibleSidebar>
+            
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
+                <div>
+                  <h2 className="text-2xl font-bold">Workflow Automatisering</h2>
+                  <p className="text-muted-foreground">Bygg kraftige workflows med visuell editor, AI-assistanse og voice kontroll</p>
+                </div>
+                <Button
+                  onClick={() => setShowWorkflowBuilder(true)}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+                >
+                  <Layers className="h-4 w-4 mr-2" />
+                  Åpne Visual Workflow Builder
+                </Button>
               </div>
-              <Button
-                onClick={() => setShowWorkflowBuilder(true)}
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                Åpne Visual Workflow Builder
-              </Button>
+              <div className="flex-1">
+                <WorkflowManager />
+              </div>
             </div>
-            <div className="flex-1">
-              <WorkflowManager />
-            </div>
+            
+            {/* Right Sidebar */}
+            <CollapsibleSidebar
+              side="right"
+              width="w-96"
+              defaultCollapsed={false}
+            >
+              <RightDeveloperSidebar
+                onExportData={(format) => {
+                  toast({
+                    title: 'Eksporterer data',
+                    description: `Format: ${format}`
+                  });
+                }}
+                onRefreshData={() => {
+                  toast({
+                    title: 'Oppdaterer',
+                    description: 'Henter siste data...'
+                  });
+                }}
+                onCodeGenerate={(type) => {
+                  toast({
+                    title: 'Genererer kode',
+                    description: `Type: ${type}`
+                  });
+                }}
+              />
+            </CollapsibleSidebar>
           </div>
         </TabsContent>
 
