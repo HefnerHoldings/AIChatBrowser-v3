@@ -44,6 +44,7 @@ import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { RightSidebarTools } from '@/components/RightSidebarTools';
 import { DynamicSidebar } from '@/components/sidebars/DynamicSidebar';
 import { useSidebarManager } from '@/contexts/SidebarManagerContext';
+import { SidebarWrapper } from '@/components/sidebars/SidebarWrapper';
 import { LeftWorkflowSidebar } from '@/components/sidebars/LeftWorkflowSidebar';
 import { RightDeveloperSidebar } from '@/components/sidebars/RightDeveloperSidebar';
 import { CollapsibleSidebar } from '@/components/sidebars/CollapsibleSidebar';
@@ -156,7 +157,7 @@ interface HistoryItem {
 
 export default function Browser() {
   const { toast } = useToast();
-  const { config, toggleSidebar } = useSidebarManager();
+  const { config, toggleSidebar, toggleMode } = useSidebarManager();
   const [browserInstance, setBrowserInstance] = useState<BrowserInstance | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
@@ -1018,6 +1019,21 @@ export default function Browser() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-1">
+                    {/* Mode Toggle Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleMode}
+                      title={config.mode === 'massive' ? 'Bytt til floating modus' : 'Bytt til massive modus'}
+                      className={config.mode === 'floating' ? 'bg-accent' : ''}
+                    >
+                      {config.mode === 'massive' ? (
+                        <Maximize2 className="h-4 w-4" />
+                      ) : (
+                        <Minimize2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                    
                     {/* Sidebar Layout Selector */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1240,16 +1256,15 @@ export default function Browser() {
             )}
 
             {/* Browser Viewport with integrated sidebars */}
-            <div className="flex-1 h-full flex">
+            <div className={`flex-1 h-full ${config.mode === 'massive' ? 'flex' : 'relative'}`}>
               {/* Left Dynamic Sidebar */}
-              {!config.left.collapsed && (
-                <div className="w-80 border-r bg-card">
-                  <DynamicSidebar
-                    side="left"
-                    primary={config.left.primary}
-                    secondary={config.left.secondary}
-                    mode={config.left.mode}
-                    onOpenWorkflowBuilder={() => setShowWorkflowBuilder(true)}
+              <SidebarWrapper side="left">
+                <DynamicSidebar
+                  side="left"
+                  primary={config.left.primary}
+                  secondary={config.left.secondary}
+                  mode={config.left.mode}
+                  onOpenWorkflowBuilder={() => setShowWorkflowBuilder(true)}
                     onCommand={(command) => {
                       // Execute browser commands from voice
                       if (command.toLowerCase().includes('gå til')) {
@@ -1269,12 +1284,11 @@ export default function Browser() {
                         description: suggestion
                       });
                     }}
-                  />
-                </div>
-              )}
+                />
+              </SidebarWrapper>
 
               {/* Main Browser Content */}
-              <div className="flex-1 relative bg-white">
+              <div className={`${config.mode === 'massive' ? 'flex-1' : 'w-full h-full'} relative bg-white`}>
                   {activeTab ? (
                   <>
                     {isNavigating && (
@@ -1368,14 +1382,13 @@ export default function Browser() {
               </div>
 
               {/* Right Dynamic Sidebar */}
-              {!config.right.collapsed && (
-                <div className="w-96 border-l bg-card">
-                  <DynamicSidebar
-                    side="right"
-                    primary={config.right.primary}
-                    secondary={config.right.secondary}
-                    mode={config.right.mode}
-                    onExportData={(format) => {
+              <SidebarWrapper side="right">
+                <DynamicSidebar
+                  side="right"
+                  primary={config.right.primary}
+                  secondary={config.right.secondary}
+                  mode={config.right.mode}
+                  onExportData={(format) => {
                       // Export browser data
                       const browserData = {
                         url: activeTab?.url,
@@ -1402,9 +1415,8 @@ export default function Browser() {
                         });
                       }
                     }}
-                  />
-                </div>
-              )}
+                />
+              </SidebarWrapper>
             </div>
         </TabsContent>
 

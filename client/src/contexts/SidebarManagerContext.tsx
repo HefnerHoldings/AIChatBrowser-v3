@@ -18,6 +18,7 @@ interface SidebarWidget {
 }
 
 interface SidebarConfig {
+  mode: 'massive' | 'floating';
   left: SidebarLayout;
   right: SidebarLayout;
   floating?: {
@@ -32,6 +33,7 @@ interface SidebarManagerContextType {
   config: SidebarConfig;
   switchSidebar: (side: 'left' | 'right', type: SidebarType) => void;
   toggleSidebar: (side: 'left' | 'right') => void;
+  toggleMode: () => void;
   mergeSidebars: (side: 'left' | 'right', types: SidebarType[], mode: 'split' | 'tabs' | 'accordion') => void;
   applyPreset: (preset: SidebarPreset) => void;
   createCustomSidebar: (sidebar: CustomSidebar) => void;
@@ -44,6 +46,7 @@ const SidebarManagerContext = createContext<SidebarManagerContextType | undefine
 
 export function SidebarManagerProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SidebarConfig>({
+    mode: 'massive',
     left: {
       side: 'left',
       primary: 'ai-chat',
@@ -79,6 +82,13 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
         ...prev[side],
         collapsed: !prev[side].collapsed
       }
+    }));
+  }, []);
+
+  const toggleMode = useCallback(() => {
+    setConfig(prev => ({
+      ...prev,
+      mode: prev.mode === 'massive' ? 'floating' : 'massive'
     }));
   }, []);
 
@@ -142,6 +152,7 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
         config,
         switchSidebar,
         toggleSidebar,
+        toggleMode,
         mergeSidebars,
         applyPreset,
         createCustomSidebar,
