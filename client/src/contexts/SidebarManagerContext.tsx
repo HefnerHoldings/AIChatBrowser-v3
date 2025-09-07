@@ -46,7 +46,7 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SidebarConfig>({
     left: {
       side: 'left',
-      primary: 'lead-scraping',
+      primary: 'ai-chat',
       mode: 'single',
       collapsed: false
     },

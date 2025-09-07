@@ -4,6 +4,7 @@ export type SidebarType =
   | 'lead-scraping'
   | 'developer'
   | 'ai-assistant'
+  | 'ai-chat'
   | 'data-analytics'
   | 'workflow'
   | 'browser-tools'

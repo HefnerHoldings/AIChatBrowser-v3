@@ -2,6 +2,7 @@ import { SidebarRegistry } from './sidebar-registry';
 import { LeadScrapingSidebar } from '@/components/sidebars/LeadScrapingSidebar';
 import { DataAnalyticsSidebar } from '@/components/sidebars/DataAnalyticsSidebar';
 import { BrowserToolsSidebar } from '@/components/sidebars/BrowserToolsSidebar';
+import { AIChatSidebar } from '@/components/sidebars/AIChatSidebar';
 
 // Initialize and register all sidebars
 export function initializeSidebars() {
@@ -41,6 +42,17 @@ export function initializeSidebars() {
     shortcuts: ['Ctrl+Shift+B']
   });
 
+  // Register AI Chat Sidebar
+  SidebarRegistry.register({
+    id: 'ai-chat',
+    name: 'AI Chat',
+    description: 'AI-assistent med voice kontroll og learning',
+    iconName: 'Bot',
+    component: AIChatSidebar,
+    category: 'automation',
+    features: ['AI Chat', 'Voice Control', 'Learning System', 'Voice Output'],
+    shortcuts: ['Ctrl+Shift+A']
+  });
 
   // Initialize presets
   SidebarRegistry.initializePresets();
