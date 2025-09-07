@@ -1399,7 +1399,7 @@ export default function Browser() {
                     onRefreshData={() => {
                       // Refresh current page
                       if (activeTab) {
-                        reloadMutation.mutate(activeTab.id);
+                        handleReload();
                       }
                     }}
                     onCodeGenerate={(type) => {
