@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { PublishModal } from '@/components/marketplace/PublishModal';
+import { CommunityForum } from '@/components/marketplace/CommunityForum';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -69,6 +71,7 @@ export function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlaybook, setSelectedPlaybook] = useState<Playbook | null>(null);
   const [userFavorites, setUserFavorites] = useState<string[]>([]);
+  const [showPublishModal, setShowPublishModal] = useState(false);
 
   // Sample data
   const playbooks: Playbook[] = [
@@ -224,7 +227,7 @@ export function Marketplace() {
             <Badge variant="secondary">Beta</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowPublishModal(true)}>
               <Upload className="h-4 w-4 mr-2" />
               Publiser
             </Button>
@@ -254,7 +257,7 @@ export function Marketplace() {
 
       {/* Main Content */}
       <Tabs defaultValue="playbooks" className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="playbooks">
             <Package className="h-4 w-4 mr-2" />
             Playbooks
@@ -266,6 +269,10 @@ export function Marketplace() {
           <TabsTrigger value="trending">
             <TrendingUp className="h-4 w-4 mr-2" />
             Trending
+          </TabsTrigger>
+          <TabsTrigger value="forum">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Forum
           </TabsTrigger>
         </TabsList>
 
@@ -488,6 +495,10 @@ export function Marketplace() {
             </Card>
           </div>
         </TabsContent>
+
+        <TabsContent value="forum" className="flex-1">
+          <CommunityForum />
+        </TabsContent>
       </Tabs>
 
       {/* Playbook Details Modal */}
@@ -594,6 +605,12 @@ export function Marketplace() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Publish Modal */}
+      <PublishModal 
+        open={showPublishModal} 
+        onClose={() => setShowPublishModal(false)} 
+      />
     </div>
   );
 }
