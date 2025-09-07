@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useSidebarManager } from '@/contexts/SidebarManagerContext';
 import { cn } from '@/lib/utils';
-import { getSidebarRegistry } from '@/lib/sidebar-registry';
+import { SidebarRegistry, type SidebarType } from '@/lib/sidebar-registry';
 import { 
   ChevronLeft, 
   ChevronRight,
@@ -41,8 +41,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
   const currentType = config[side].primary;
   
   // Get available sidebar types from registry
-  const registry = getSidebarRegistry();
-  const availableSidebars = Array.from(registry.keys());
+  const availableSidebars = SidebarRegistry.getAll().map(s => s.id);
   
   // Icon mapping for sidebar types
   const sidebarIcons: Record<string, React.ReactNode> = {
@@ -103,8 +102,9 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
       {/* Control Buttons - Only when expanded */}
       {!isCollapsed && (
         <>
-          {/* Sidebar Type Selector Dropdown */}
-          <DropdownMenu>
+          {/* Sidebar Type Selector Dropdown - Only on left side */}
+          {side === 'left' && (
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -121,7 +121,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
             <DropdownMenuContent align={side === 'left' ? 'start' : 'end'}>
               <DropdownMenuLabel>Velg Sidebar Type</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {availableSidebars.map((sidebarType) => (
+              {availableSidebars.map((sidebarType: SidebarType) => (
                 <DropdownMenuItem
                   key={sidebarType}
                   onClick={() => switchSidebar(side, sidebarType)}
@@ -136,6 +136,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
           
           {/* Mode Toggle Button */}
           <Button
