@@ -220,7 +220,7 @@ export function Marketplace() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <ShoppingBag className="h-6 w-6 text-primary" />
-            <h2 className="text-xl font-bold">Vibecoding Marketplace</h2>
+            <h2 className="text-xl font-bold">Marketplace</h2>
             <Badge variant="secondary">Beta</Badge>
           </div>
           <div className="flex items-center gap-2">
@@ -240,7 +240,7 @@ export function Marketplace() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Søk etter playbooks, plugins eller tags..."
+              placeholder="Søk etter playbooks, plugins, utvidelser eller tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
