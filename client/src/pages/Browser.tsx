@@ -42,9 +42,8 @@ import { VoiceControl } from '@/components/VoiceControl';
 import { ActionRecorder } from '@/components/ActionRecorder';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { RightSidebarTools } from '@/components/RightSidebarTools';
-import { LeftWorkflowSidebar } from '@/components/sidebars/LeftWorkflowSidebar';
-import { RightDeveloperSidebar } from '@/components/sidebars/RightDeveloperSidebar';
-import { CollapsibleSidebar } from '@/components/sidebars/CollapsibleSidebar';
+import { DynamicSidebar } from '@/components/sidebars/DynamicSidebar';
+import { useSidebarManager } from '@/contexts/SidebarManagerContext';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { MadEasyLogo } from '@/components/MadEasyLogo';
 import { SidebarContainer } from '@/components/SidebarContainer';
@@ -154,6 +153,7 @@ interface HistoryItem {
 
 export default function Browser() {
   const { toast } = useToast();
+  const { config } = useSidebarManager();
   const [browserInstance, setBrowserInstance] = useState<BrowserInstance | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
@@ -1248,39 +1248,37 @@ export default function Browser() {
 
             {/* Browser Viewport with integrated sidebars */}
             <div className="flex-1 h-full flex">
-              {/* Left Workflow Sidebar */}
-              <CollapsibleSidebar
-                side="left"
-                width="w-80"
-                defaultCollapsed={true}
-              >
-                <LeftWorkflowSidebar
-                  onOpenWorkflowBuilder={() => setShowWorkflowBuilder(true)}
-                  onCommand={(command) => {
-                    // Execute browser commands from voice
-                    if (command.toLowerCase().includes('gå til')) {
-                      const url = command.replace(/gå til/i, '').trim();
-                      if (activeTab) {
-                        navigateMutation.mutate({ tabId: activeTab.id, url });
+              {/* Left Dynamic Sidebar */}
+              {!config.left.collapsed && (
+                <div className="w-80 border-r bg-card">
+                  <DynamicSidebar
+                    side="left"
+                    primary={config.left.primary}
+                    secondary={config.left.secondary}
+                    mode={config.left.mode}
+                    onOpenWorkflowBuilder={() => setShowWorkflowBuilder(true)}
+                    onCommand={(command) => {
+                      // Execute browser commands from voice
+                      if (command.toLowerCase().includes('gå til')) {
+                        const url = command.replace(/gå til/i, '').trim();
+                        if (activeTab) {
+                          navigateMutation.mutate({ tabId: activeTab.id, url });
+                        }
                       }
-                    }
-                    toast({
-                      title: 'Voice kommando',
-                      description: command
-                    });
-                  }}
-                  onAISuggestion={(suggestion) => {
-                    toast({
-                      title: 'AI forslag',
-                      description: suggestion
-                    });
-                  }}
-                  onDragNodeStart={(nodeType, nodeData) => {
-                    // Handle node drag for browser automation
-                    console.log('Node dragged to browser:', nodeType, nodeData);
-                  }}
-                />
-              </CollapsibleSidebar>
+                      toast({
+                        title: 'Voice kommando',
+                        description: command
+                      });
+                    }}
+                    onAISuggestion={(suggestion) => {
+                      toast({
+                        title: 'AI forslag',
+                        description: suggestion
+                      });
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Main Browser Content */}
               <div className="flex-1 relative bg-white">
@@ -1376,14 +1374,14 @@ export default function Browser() {
                 )}
               </div>
 
-              {/* Right Developer Sidebar */}
-              {showDevTools && (
-                <CollapsibleSidebar
-                  side="right"
-                  width="w-96"
-                  defaultCollapsed={false}
-                >
-                  <RightDeveloperSidebar
+              {/* Right Dynamic Sidebar */}
+              {!config.right.collapsed && (
+                <div className="w-96 border-l bg-card">
+                  <DynamicSidebar
+                    side="right"
+                    primary={config.right.primary}
+                    secondary={config.right.secondary}
+                    mode={config.right.mode}
                     onExportData={(format) => {
                       // Export browser data
                       const browserData = {
@@ -1412,7 +1410,7 @@ export default function Browser() {
                       }
                     }}
                   />
-                </CollapsibleSidebar>
+                </div>
               )}
             </div>
         </TabsContent>

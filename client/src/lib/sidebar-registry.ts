@@ -1,22 +1,4 @@
 import { ComponentType } from 'react';
-import { 
-  Database, 
-  Code2, 
-  Bot, 
-  BarChart3, 
-  Layers, 
-  Globe, 
-  Shield, 
-  Package,
-  Zap,
-  Plus,
-  Search,
-  Users,
-  Mail,
-  Building,
-  MapPin,
-  FileSearch
-} from 'lucide-react';
 
 export type SidebarType = 
   | 'lead-scraping'
@@ -34,7 +16,7 @@ export interface SidebarDefinition {
   id: SidebarType;
   name: string;
   description: string;
-  icon: React.ReactNode;
+  iconName: string; // Use string instead of React component
   component: ComponentType<any>;
   category: 'data' | 'development' | 'automation' | 'browser' | 'custom';
   features: string[];
@@ -52,7 +34,7 @@ export interface SidebarLayout {
 export interface SidebarPreset {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  iconName: string; // Use string instead of React component
   description: string;
   left: SidebarLayout;
   right: SidebarLayout;
@@ -95,7 +77,7 @@ class SidebarRegistryClass {
     this.registerPreset({
       id: 'scraping-mode',
       name: 'Scraping Mode',
-      icon: <Search className="h-4 w-4" />,
+      iconName: 'Search',
       description: 'Optimert for web scraping og lead generation',
       left: {
         side: 'left',
@@ -112,7 +94,7 @@ class SidebarRegistryClass {
     this.registerPreset({
       id: 'dev-mode',
       name: 'Developer Mode',
-      icon: <Code2 className="h-4 w-4" />,
+      iconName: 'Code2',
       description: 'Full utviklingsmiljø med AI-assistanse',
       left: {
         side: 'left',
@@ -129,7 +111,7 @@ class SidebarRegistryClass {
     this.registerPreset({
       id: 'automation',
       name: 'Automation',
-      icon: <Layers className="h-4 w-4" />,
+      iconName: 'Layers',
       description: 'Workflow automatisering og browser kontroll',
       left: {
         side: 'left',
@@ -146,7 +128,7 @@ class SidebarRegistryClass {
     this.registerPreset({
       id: 'research',
       name: 'Research Mode',
-      icon: <Bot className="h-4 w-4" />,
+      iconName: 'Bot',
       description: 'AI-drevet research og data analyse',
       left: {
         side: 'left',
@@ -164,3 +146,6 @@ class SidebarRegistryClass {
 }
 
 export const SidebarRegistry = new SidebarRegistryClass();
+
+// Initialize presets on creation
+SidebarRegistry.initializePresets();

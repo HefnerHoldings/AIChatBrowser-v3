@@ -10,7 +10,7 @@ import {
   History, 
   Bookmark, 
   Download, 
-  Extension,
+  Puzzle,
   Settings,
   Globe,
   Shield,
@@ -172,7 +172,7 @@ export function BrowserToolsSidebar() {
           <ScrollArea className="h-full">
             <div className="space-y-3 pb-4">
               <Button className="w-full" variant="outline">
-                <Extension className="h-4 w-4 mr-2" />
+                <Puzzle className="h-4 w-4 mr-2" />
                 Installer utvidelse
               </Button>
               
@@ -186,7 +186,7 @@ export function BrowserToolsSidebar() {
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-2">
-                        <Extension className="h-4 w-4 text-muted-foreground" />
+                        <Puzzle className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">{item.name}</span>
                       </div>
                       <Badge variant={item.active ? 'default' : 'outline'}>
