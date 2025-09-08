@@ -810,50 +810,150 @@ export default function Browser() {
         <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 flex flex-col">
         <TabsList className="w-full rounded-none justify-start px-4 bg-card">
           <MadEasyLogo size="small" className="mr-3" />
+          
+          {/* Browser - standalone */}
           <TabsTrigger value="browser" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
             Browser
           </TabsTrigger>
-          <TabsTrigger value="vibecoding" className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Vibecoding
-          </TabsTrigger>
-          <TabsTrigger value="marketplace" className="flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4" />
-            Marketplace
-          </TabsTrigger>
-          <TabsTrigger value="outreach" className="flex items-center gap-2">
-            <Send className="h-4 w-4" />
-            Outreach
-          </TabsTrigger>
-          <TabsTrigger value="agent-team" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            AI Team
-          </TabsTrigger>
-          <TabsTrigger value="workflow" className="flex items-center gap-2">
-            <Layers className="h-4 w-4" />
-            Workflow
-          </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Data
-          </TabsTrigger>
-          <TabsTrigger value="devbridge" className="flex items-center gap-2">
-            <FileCode2 className="h-4 w-4" />
-            DevBridge
-          </TabsTrigger>
-          <TabsTrigger value="privacy" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Privacy
-          </TabsTrigger>
-          <TabsTrigger value="ai-testing" className="flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            AI Testing
-          </TabsTrigger>
-          <TabsTrigger value="productivity" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            Produktivitet
-          </TabsTrigger>
+          
+          {/* Development dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={["vibecoding", "devbridge", "agent-team"].includes(activeView) ? "secondary" : "ghost"}
+                size="sm"
+                className="flex items-center gap-2 h-9"
+              >
+                <Code2 className="h-4 w-4" />
+                Utvikling
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setActiveView("vibecoding")}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Vibecoding Platform
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("devbridge")}>
+                <FileCode2 className="mr-2 h-4 w-4" />
+                DevBridge
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("agent-team")}>
+                <Users className="mr-2 h-4 w-4" />
+                AI Team
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Business dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={["marketplace", "outreach", "workflow", "productivity"].includes(activeView) ? "secondary" : "ghost"}
+                size="sm"
+                className="flex items-center gap-2 h-9"
+              >
+                <Target className="h-4 w-4" />
+                Forretning
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setActiveView("marketplace")}>
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Marketplace
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("outreach")}>
+                <Send className="mr-2 h-4 w-4" />
+                Outreach & Leads
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("workflow")}>
+                <Layers className="mr-2 h-4 w-4" />
+                Workflow
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("productivity")}>
+                <Brain className="mr-2 h-4 w-4" />
+                Produktivitet
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Data & Analytics dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant={["data", "privacy", "ai-testing"].includes(activeView) ? "secondary" : "ghost"}
+                size="sm"
+                className="flex items-center gap-2 h-9"
+              >
+                <Database className="h-4 w-4" />
+                Data & Analyse
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setActiveView("data")}>
+                <Database className="mr-2 h-4 w-4" />
+                Data Dashboard
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("privacy")}>
+                <Shield className="mr-2 h-4 w-4" />
+                Privacy & Sikkerhet
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView("ai-testing")}>
+                <Bot className="mr-2 h-4 w-4" />
+                AI Testing
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Spacer to push tools to the right */}
+          <div className="flex-1" />
+          
+          {/* Tools and settings in top bar */}
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="flex items-center gap-2 h-9"
+            onClick={() => setShowExtensionsAPI(!showExtensionsAPI)}
+          >
+            <Puzzle className="h-4 w-4" />
+            Verktøy
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex items-center gap-2 h-9">
+                <Settings className="h-4 w-4" />
+                Innstillinger
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
+                <User className="mr-2 h-4 w-4" />
+                Min Profil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+                <Settings className="mr-2 h-4 w-4" />
+                System innstillinger
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowHistory(true)}>
+                <History className="mr-2 h-4 w-4" />
+                Historikk
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowBookmarks(!showBookmarks)}>
+                <BookmarkIcon className="mr-2 h-4 w-4" />
+                Bokmerker
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowPasswords(true)}>
+                <Key className="mr-2 h-4 w-4" />
+                Passord
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </TabsList>
 
         <TabsContent value="browser" className="flex-1 flex flex-col p-0 m-0">
