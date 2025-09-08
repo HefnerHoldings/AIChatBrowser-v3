@@ -38,7 +38,7 @@ const defaultConfig: SidebarConfig = {
   leftSidebarWidth: 320,
   rightSidebarWidth: 320,
   toolPlacements: [],
-  showAIChatOverlay: false,
+  showAIChatOverlay: true,
   gapSize: 8,
 };
 
