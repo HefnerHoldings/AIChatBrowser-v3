@@ -26,7 +26,16 @@ import {
   FileSearch,
   Users,
   LineChart,
-  GitBranch
+  GitBranch,
+  Shield,
+  Settings,
+  Zap,
+  Palette,
+  Globe,
+  Terminal,
+  Package,
+  Plug2,
+  Bot
 } from 'lucide-react';
 
 interface SidebarWrapperProps {
@@ -45,26 +54,34 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
   
   // Icon mapping for sidebar types
   const sidebarIcons: Record<string, React.ReactNode> = {
+    'lead-scraping': <FileSearch className="h-4 w-4" />,
+    'developer': <Terminal className="h-4 w-4" />,
+    'ai-assistant': <Bot className="h-4 w-4" />,
     'ai-chat': <MessageSquare className="h-4 w-4" />,
-    'workflow-builder': <Workflow className="h-4 w-4" />,
-    'data-analytics': <Database className="h-4 w-4" />,
-    'developer-tools': <Code2 className="h-4 w-4" />,
-    'content-extractor': <FileSearch className="h-4 w-4" />,
-    'team-collaboration': <Users className="h-4 w-4" />,
-    'performance-monitor': <LineChart className="h-4 w-4" />,
-    'version-control': <GitBranch className="h-4 w-4" />
+    'outreach': <Users className="h-4 w-4" />,
+    'data-analytics': <LineChart className="h-4 w-4" />,
+    'workflow': <Workflow className="h-4 w-4" />,
+    'browser-tools': <Globe className="h-4 w-4" />,
+    'security-privacy': <Shield className="h-4 w-4" />,
+    'integrations': <Plug2 className="h-4 w-4" />,
+    'quick-actions': <Zap className="h-4 w-4" />,
+    'custom': <Palette className="h-4 w-4" />
   };
   
   // Sidebar display names
   const sidebarNames: Record<string, string> = {
+    'lead-scraping': 'Lead Scraping',
+    'developer': 'Developer Tools',
+    'ai-assistant': 'AI Assistant',
     'ai-chat': 'AI Chat',
-    'workflow-builder': 'Workflow Builder',
+    'outreach': 'Outreach Engine',
     'data-analytics': 'Data Analytics',
-    'developer-tools': 'Developer Tools',
-    'content-extractor': 'Content Extractor',
-    'team-collaboration': 'Team Collaboration',
-    'performance-monitor': 'Performance Monitor',
-    'version-control': 'Version Control'
+    'workflow': 'Workflow Builder',
+    'browser-tools': 'Browser Tools',
+    'security-privacy': 'Security & Privacy',
+    'integrations': 'Integrations',
+    'quick-actions': 'Quick Actions',
+    'custom': 'Custom'
   };
 
   return (
@@ -99,8 +116,8 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
         )}
       </Button>
 
-      {/* Control Buttons - Only when expanded and on left side */}
-      {!isCollapsed && side === 'left' && (
+      {/* Control Buttons - Only when expanded */}
+      {!isCollapsed && (
         <>
           {/* Sidebar Type Selector Dropdown */}
           <DropdownMenu>
@@ -110,14 +127,14 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
                 size="icon"
                 className={cn(
                   "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-                  "right-[88px]"
+                  side === 'left' ? "right-[88px]" : "left-[88px]"
                 )}
                 title="Velg sidebar type"
               >
                 <Layers className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align={side === 'left' ? "start" : "end"}>
               <DropdownMenuLabel>Velg Sidebar Type</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {availableSidebars.map((sidebarType: SidebarType) => (
@@ -143,7 +160,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
             onClick={toggleMode}
             className={cn(
               "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-              "right-12"
+              side === 'left' ? "right-12" : "left-12"
             )}
             title={isFloating ? 'Bytt til massive modus' : 'Bytt til floating modus'}
           >
