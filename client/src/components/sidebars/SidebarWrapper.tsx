@@ -51,6 +51,15 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
   const currentType = config[side].primary;
   const currentWidth = config[side].width || 320;
   
+  // Determine width mode for responsive layout
+  const getWidthMode = (width: number) => {
+    if (width < 320) return 'compact';
+    if (width < 450) return 'normal';
+    return 'wide';
+  };
+  
+  const widthMode = getWidthMode(currentWidth);
+  
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -277,7 +286,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
           </div>
         ) : (
           // Expanded State - Show full content with responsive layout
-          <div className="h-full overflow-hidden">
+          <div className="h-full overflow-hidden sidebar-responsive" data-width={widthMode}>
             {children}
           </div>
         )}

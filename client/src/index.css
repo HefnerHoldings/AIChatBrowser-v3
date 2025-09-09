@@ -260,4 +260,101 @@
     background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
     background-size: 1000px 100%;
   }
+  
+  /* Responsive Sidebar Layout */
+  .sidebar-responsive {
+    @apply transition-all duration-200;
+  }
+  
+  /* Compact mode (240-320px) */
+  .sidebar-responsive[data-width="compact"] {
+    @apply text-xs;
+  }
+  
+  .sidebar-responsive[data-width="compact"] .sidebar-title {
+    @apply text-sm font-semibold;
+  }
+  
+  .sidebar-responsive[data-width="compact"] .sidebar-subtitle {
+    @apply text-xs text-muted-foreground;
+  }
+  
+  .sidebar-responsive[data-width="compact"] .sidebar-content {
+    @apply text-xs space-y-2;
+  }
+  
+  .sidebar-responsive[data-width="compact"] .sidebar-button {
+    @apply h-8 px-2 text-xs;
+  }
+  
+  .sidebar-responsive[data-width="compact"] .sidebar-card {
+    @apply p-2;
+  }
+  
+  /* Normal mode (320-450px) */
+  .sidebar-responsive[data-width="normal"] {
+    @apply text-sm;
+  }
+  
+  .sidebar-responsive[data-width="normal"] .sidebar-title {
+    @apply text-base font-semibold;
+  }
+  
+  .sidebar-responsive[data-width="normal"] .sidebar-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+  
+  .sidebar-responsive[data-width="normal"] .sidebar-content {
+    @apply text-sm space-y-3;
+  }
+  
+  .sidebar-responsive[data-width="normal"] .sidebar-button {
+    @apply h-9 px-3 text-sm;
+  }
+  
+  .sidebar-responsive[data-width="normal"] .sidebar-card {
+    @apply p-3;
+  }
+  
+  /* Wide mode (450px+) */
+  .sidebar-responsive[data-width="wide"] {
+    @apply text-base;
+  }
+  
+  .sidebar-responsive[data-width="wide"] .sidebar-title {
+    @apply text-lg font-semibold;
+  }
+  
+  .sidebar-responsive[data-width="wide"] .sidebar-subtitle {
+    @apply text-base text-muted-foreground;
+  }
+  
+  .sidebar-responsive[data-width="wide"] .sidebar-content {
+    @apply text-base space-y-4;
+  }
+  
+  .sidebar-responsive[data-width="wide"] .sidebar-button {
+    @apply h-10 px-4;
+  }
+  
+  .sidebar-responsive[data-width="wide"] .sidebar-card {
+    @apply p-4;
+  }
+  
+  .sidebar-responsive[data-width="wide"] .sidebar-grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+  
+  /* Text truncation utilities */
+  .sidebar-text-clamp-1 {
+    @apply line-clamp-1;
+  }
+  
+  .sidebar-text-clamp-2 {
+    @apply line-clamp-2;
+  }
+  
+  .sidebar-text-clamp-3 {
+    @apply line-clamp-3;
+  }
 }

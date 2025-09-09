@@ -340,11 +340,11 @@ export function AIChatSidebar() {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="sidebar-card border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">AI Assistent</h2>
+            <h2 className="sidebar-title">AI Assistent</h2>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -379,7 +379,7 @@ export function AIChatSidebar() {
         {/* Kontekst-info */}
         {browserContext && browserContext.url && (
           <Card className="p-2 bg-muted/30">
-            <p className="text-xs text-muted-foreground">
+            <p className="sidebar-subtitle sidebar-text-clamp-1">
               Analyserer: {browserContext.title || browserContext.url}
             </p>
           </Card>
@@ -388,12 +388,12 @@ export function AIChatSidebar() {
 
 
       {/* Meldinger */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+      <ScrollArea className="flex-1 sidebar-card" ref={scrollAreaRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Hei! Jeg er din AI-assistent</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <h3 className="sidebar-title mb-2">Hei! Jeg er din AI-assistent</h3>
+            <p className="sidebar-subtitle mb-4">
               Jeg kan hjelpe deg med å navigere nettet, analysere sider, 
               automatisere oppgaver og svare på spørsmål.
             </p>
