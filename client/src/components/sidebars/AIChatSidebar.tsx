@@ -401,6 +401,123 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
         )}
       </div>
 
+      {/* Meldinger */}
+      <ScrollArea className="flex-1 overflow-hidden" ref={scrollAreaRef}>
+        <div className="sidebar-card">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="sidebar-title mb-2">Hei! Jeg er din AI-assistent</h3>
+            <p className="sidebar-subtitle mb-4">
+              Jeg kan hjelpe deg med å navigere nettet, analysere sider, 
+              automatisere oppgaver og svare på spørsmål.
+            </p>
+            <div className="grid gap-2 w-full max-w-sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setInput("Hva kan du hjelpe meg med?")}
+                className="justify-start"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Hva kan du gjøre?
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setInput("Analyser denne siden")}
+                className="justify-start"
+              >
+                <Bot className="h-4 w-4 mr-2" />
+                Analyser siden
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 chat-messages">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}
+              >
+                {message.role === 'assistant' && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      <Bot className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.context && message.context.url && (
+                    <p className="text-xs opacity-70 mt-2">
+                      📍 {message.context.pageTitle || message.context.url}
+                    </p>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => copyMessage(message.content)}
+                      data-testid={`button-copy-${message.id}`}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    {message.role === 'assistant' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => speakText(message.content)}
+                        data-testid={`button-speak-${message.id}`}
+                      >
+                        <Volume2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {message.role === 'user' && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            ))}
+            
+            {sendMessage.isPending && (
+              <div className="flex gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    <Bot className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="bg-muted rounded-lg p-3">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        </div>
+      </ScrollArea>
+
       {/* Input-område */}
       <div className="p-3 border-t border-border flex-shrink-0">
         <div className="flex gap-2">
@@ -540,123 +657,6 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
           </Button>
         </div>
       </div>
-
-      {/* Meldinger */}
-      <ScrollArea className="flex-1 overflow-hidden" ref={scrollAreaRef}>
-        <div className="sidebar-card">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="sidebar-title mb-2">Hei! Jeg er din AI-assistent</h3>
-            <p className="sidebar-subtitle mb-4">
-              Jeg kan hjelpe deg med å navigere nettet, analysere sider, 
-              automatisere oppgaver og svare på spørsmål.
-            </p>
-            <div className="grid gap-2 w-full max-w-sm">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setInput("Hva kan du hjelpe meg med?")}
-                className="justify-start"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Hva kan du gjøre?
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setInput("Analyser denne siden")}
-                className="justify-start"
-              >
-                <Bot className="h-4 w-4 mr-2" />
-                Analyser siden
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4 chat-messages">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                {message.role === 'assistant' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <Bot className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  {message.context && message.context.url && (
-                    <p className="text-xs opacity-70 mt-2">
-                      📍 {message.context.pageTitle || message.context.url}
-                    </p>
-                  )}
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => copyMessage(message.content)}
-                      data-testid={`button-copy-${message.id}`}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                    {message.role === 'assistant' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => speakText(message.content)}
-                        data-testid={`button-speak-${message.id}`}
-                      >
-                        <Volume2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {message.role === 'user' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-            
-            {sendMessage.isPending && (
-              <div className="flex gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    <Bot className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-muted rounded-lg p-3">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        </div>
-      </ScrollArea>
     </div>
   );
 }
