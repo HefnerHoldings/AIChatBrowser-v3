@@ -33,6 +33,7 @@ import {
   Sparkles,
   Zap,
   User,
+  Users,
   Copy,
   RefreshCw,
   Trash2,
@@ -122,6 +123,20 @@ export function AIChatSidebar() {
       });
 
       if (!response.ok) {
+        // Simuler svar hvis API ikke er tilgjengelig
+        if (response.status === 503 || response.status === 401) {
+          return {
+            message: `Jeg forstår spørsmålet ditt: "${message}". 
+
+AI-tjenesten krever en OpenAI API-nøkkel for å fungere. Når den er konfigurert, kan jeg:
+• Analysere nettsider og gi deg sammendrag
+• Finne kontaktinformasjon automatisk  
+• Lage automatiseringer for repeterende oppgaver
+• Hjelpe deg med å navigere og forstå innhold
+
+For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
+          };
+        }
         throw new Error('Failed to send message');
       }
 
