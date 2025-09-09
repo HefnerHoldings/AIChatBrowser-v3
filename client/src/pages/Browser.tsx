@@ -1213,19 +1213,6 @@ export default function Browser() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={handleBookmarkToggle}
-                      title={isBookmarked ? "Fjern bokmerke (Ctrl+D)" : "Legg til bokmerke (Ctrl+D)"}
-                      disabled={!activeTab || activeTab.url === 'about:blank'}
-                    >
-                      {isBookmarked ? (
-                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                      ) : (
-                        <Star className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
                       onClick={() => setShowExtensionsAPI(!showExtensionsAPI)}
                       title="Extensions"
                     >
