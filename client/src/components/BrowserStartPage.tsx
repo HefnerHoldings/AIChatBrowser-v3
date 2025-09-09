@@ -168,12 +168,12 @@ export function BrowserStartPage({
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
       </div>
       
-      <div className="max-w-7xl mx-auto p-8 space-y-8 relative">
+      <div className="max-w-6xl mx-auto px-6 py-12 space-y-12 relative">
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-6 py-12"
+          className="text-center space-y-8 py-8"
         >
           {/* Animated Logo */}
           <div className="flex justify-center mb-6">
@@ -235,11 +235,11 @@ export function BrowserStartPage({
           transition={{ delay: 0.1 }}
           className="w-full"
         >
-          <h2 className="text-sm font-light mb-4 flex items-center gap-2 text-foreground/70 uppercase tracking-wider">
-            <Zap className="h-3 w-3 text-yellow-500/70" />
+          <h2 className="text-xs font-light mb-6 flex items-center gap-2 text-foreground/50 uppercase tracking-widest">
+            <Zap className="h-3 w-3 text-yellow-500/50" />
             Hurtighandlinger
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
@@ -252,16 +252,16 @@ export function BrowserStartPage({
                   whileTap={{ scale: 0.98 }}
                 >
                   <Card 
-                    className="cursor-pointer hover:shadow-md transition-all duration-300 hover:border-white/20 h-full bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] group"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:border-white/10 h-full bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] group rounded-2xl"
                     onClick={action.action}
                     data-testid={`quick-action-${index}`}
                   >
-                    <CardContent className="p-4 flex flex-col items-center text-center">
-                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${action.color} opacity-80 group-hover:opacity-100 flex items-center justify-center mb-2.5 transition-opacity duration-300`}>
-                        <Icon className="h-4 w-4 text-white" />
+                    <CardContent className="p-6 flex flex-col items-center text-center">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${action.color} opacity-70 group-hover:opacity-90 flex items-center justify-center mb-4 transition-all duration-300`}>
+                        <Icon className="h-5 w-5 text-white" />
                       </div>
-                      <h3 className="font-normal text-xs mb-1 text-foreground/90">{action.title}</h3>
-                      <p className="text-[10px] text-muted-foreground/70 line-clamp-2 leading-relaxed">{action.description}</p>
+                      <h3 className="font-light text-sm mb-2 text-foreground/80">{action.title}</h3>
+                      <p className="text-xs text-muted-foreground/60 line-clamp-2 leading-relaxed">{action.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -271,7 +271,7 @@ export function BrowserStartPage({
         </motion.div>
         
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
           {/* Recent Sites */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -279,16 +279,15 @@ export function BrowserStartPage({
             transition={{ delay: 0.2 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/[0.05]">
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-light text-foreground/80">
-                  <Clock className="h-3 w-3 text-primary/70" />
-                  Nylig besøkt
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ScrollArea className="h-[240px]">
-                  <div className="space-y-1">
+            <div className="h-full">
+              <h3 className="flex items-center gap-2 text-xs font-light text-foreground/50 uppercase tracking-widest mb-4">
+                <Clock className="h-3 w-3 text-primary/50" />
+                Nylig besøkt
+              </h3>
+              <Card className="overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] rounded-2xl">
+                <CardContent className="p-4">
+                  <ScrollArea className="h-[320px]">
+                  <div className="space-y-2">
                     {recentSites.map((site, index) => (
                       <motion.div
                         key={site.url}
@@ -298,7 +297,7 @@ export function BrowserStartPage({
                       >
                         <Button
                           variant="ghost"
-                          className="w-full justify-start gap-2 h-auto py-1.5 px-2 hover:bg-white/[0.02] border border-transparent hover:border-white/[0.05] transition-all duration-300"
+                          className="w-full justify-start gap-3 h-auto py-2 px-3 hover:bg-white/[0.02] rounded-xl transition-all duration-300"
                           onClick={() => onNavigate(site.url)}
                           data-testid={`recent-site-${index}`}
                         >
@@ -315,8 +314,9 @@ export function BrowserStartPage({
                     ))}
                   </div>
                 </ScrollArea>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
           
           {/* Suggested Workflows */}
@@ -326,16 +326,15 @@ export function BrowserStartPage({
             transition={{ delay: 0.3 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/[0.05]">
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-light text-foreground/80">
-                  <Sparkles className="h-3 w-3 text-purple-500/70" />
-                  Foreslåtte workflows
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ScrollArea className="h-[240px]">
-                  <div className="space-y-2">
+            <div className="h-full">
+              <h3 className="flex items-center gap-2 text-xs font-light text-foreground/50 uppercase tracking-widest mb-4">
+                <Sparkles className="h-3 w-3 text-purple-500/50" />
+                Foreslåtte workflows
+              </h3>
+              <Card className="overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] rounded-2xl">
+                <CardContent className="p-4">
+                  <ScrollArea className="h-[320px]">
+                  <div className="space-y-3">
                     {suggestedWorkflows.map((workflow, index) => {
                       const Icon = workflow.icon;
                       return (
@@ -345,7 +344,7 @@ export function BrowserStartPage({
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 + index * 0.03 }}
                           whileHover={{ x: 3 }}
-                          className="p-2.5 rounded-lg border border-white/[0.03] hover:border-white/10 hover:bg-white/[0.02] cursor-pointer transition-all duration-300"
+                          className="p-3 rounded-xl border border-white/[0.02] hover:border-white/[0.08] hover:bg-white/[0.02] cursor-pointer transition-all duration-300"
                           onClick={() => onStartWorkflow?.()}
                           data-testid={`workflow-suggestion-${index}`}
                         >
@@ -371,8 +370,9 @@ export function BrowserStartPage({
                     })}
                   </div>
                 </ScrollArea>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
           
           {/* Tips & Features */}
@@ -382,16 +382,15 @@ export function BrowserStartPage({
             transition={{ delay: 0.4 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/[0.05]">
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-light text-foreground/80">
-                  <HelpCircle className="h-3 w-3 text-blue-500/70" />
-                  Tips & funksjoner
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-500/10">
+            <div className="h-full">
+              <h3 className="flex items-center gap-2 text-xs font-light text-foreground/50 uppercase tracking-widest mb-4">
+                <HelpCircle className="h-3 w-3 text-blue-500/50" />
+                Tips & funksjoner
+              </h3>
+              <Card className="overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] rounded-2xl">
+                <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-500/10">
                     <div className="flex items-start gap-2">
                       <div className="p-1 rounded-full bg-blue-500/10">
                         <Rocket className="h-2.5 w-2.5 text-blue-500/60" />
@@ -406,7 +405,7 @@ export function BrowserStartPage({
                     </div>
                   </div>
                   
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-500/10">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-500/10">
                     <div className="flex items-start gap-2">
                       <div className="p-1 rounded-full bg-green-500/10">
                         <Shield className="h-2.5 w-2.5 text-green-500/60" />
@@ -420,7 +419,7 @@ export function BrowserStartPage({
                     </div>
                   </div>
                   
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10">
                     <div className="flex items-start gap-2">
                       <div className="p-1 rounded-full bg-purple-500/10">
                         <Target className="h-2.5 w-2.5 text-purple-500/60" />
@@ -434,7 +433,7 @@ export function BrowserStartPage({
                     </div>
                   </div>
                   
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/10">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/10">
                     <div className="flex items-start gap-2">
                       <div className="p-1 rounded-full bg-orange-500/10">
                         <Code2 className="h-2.5 w-2.5 text-orange-500/60" />
@@ -459,8 +458,9 @@ export function BrowserStartPage({
                     Åpne innstillinger
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
         </div>
       </div>
