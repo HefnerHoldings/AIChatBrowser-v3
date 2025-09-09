@@ -1368,7 +1368,7 @@ export default function Browser() {
             )}
 
             {/* Browser Viewport with integrated sidebars */}
-            <div className={`flex-1 h-full ${config.mode === 'massive' ? 'flex' : 'relative'}`}>
+            <div className={`flex-1 h-full ${config.mode === 'massive' ? 'flex' : 'relative'} bg-muted/5`}>
               {/* Left Dynamic Sidebar */}
               <SidebarWrapper side="left">
                 <DynamicSidebar
@@ -1400,7 +1400,7 @@ export default function Browser() {
               </SidebarWrapper>
 
               {/* Main Browser Content */}
-              <div className={`${config.mode === 'massive' ? 'flex-1' : 'w-full h-full'} relative bg-white`}>
+              <div className={`${config.mode === 'massive' ? 'flex-1' : 'w-full h-full'} relative bg-background rounded-lg mx-1 my-2 shadow-sm border border-border`}>
                   {activeTab ? (
                   <>
                     {isNavigating && (

@@ -146,10 +146,13 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
     <div
       ref={sidebarRef}
       className={cn(
-        "relative h-full transition-all duration-300",
+        "relative transition-all duration-300",
         isFloating && !isCollapsed && "absolute top-0 z-50 shadow-2xl",
         side === 'left' ? 'left-0' : 'right-0',
-        isCollapsed ? 'w-12' : ''
+        isCollapsed ? 'w-12' : '',
+        // Legg til margin for å skille sidebar fra hovedinnhold
+        side === 'left' ? 'ml-2' : 'mr-2',
+        "my-2 h-[calc(100%-1rem)] rounded-lg"
       )}
       style={{
         width: isCollapsed ? 48 : currentWidth,
@@ -178,7 +181,8 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
       {/* Sidebar Content */}
 
       <div className={cn(
-        "h-full flex flex-col",
+        "h-full flex flex-col bg-background/95 backdrop-blur-sm",
+        "border border-border rounded-lg shadow-sm",
         isCollapsed && "overflow-hidden"
       )}>
         {isCollapsed ? (
@@ -206,7 +210,7 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
           // Expanded State with header controls
           <>
             {/* Control Header Bar */}
-            <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30 min-h-[48px]">
+            <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30 min-h-[48px] rounded-t-lg">
               {/* Left side - Sidebar type and name */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {sidebarIcons[currentType] || <Layers className="h-4 w-4 text-muted-foreground" />}
