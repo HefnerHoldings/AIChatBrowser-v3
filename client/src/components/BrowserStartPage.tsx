@@ -127,8 +127,48 @@ export function BrowserStartPage({
   };
   
   return (
-    <div className="h-full bg-gradient-to-br from-background via-background to-purple-950/10 overflow-auto relative z-10">
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
+    <div className="h-full overflow-auto relative z-10">
+      {/* Animated AI Background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        {/* Primary gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/40 to-blue-950/30" />
+        
+        {/* Animated floating orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-gradient-to-br from-blue-600/30 to-cyan-600/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '5s' }} />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-br from-cyan-600/30 to-emerald-600/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '10s' }} />
+        
+        {/* Additional morphing orbs */}
+        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 animate-morph blur-3xl" />
+        <div className="absolute bottom-1/3 left-1/3 w-56 h-56 bg-gradient-to-br from-pink-600/20 to-rose-600/20 animate-morph blur-3xl" style={{ animationDelay: '7s' }} />
+        
+        {/* Grid pattern overlay with shimmer */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] animate-shimmer"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px),
+                             linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }}
+        />
+        
+        {/* Neural network lines */}
+        <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="neural-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <circle cx="5" cy="5" r="1" fill="currentColor" className="text-purple-500" />
+              <circle cx="95" cy="95" r="1" fill="currentColor" className="text-blue-500" />
+              <line x1="5" y1="5" x2="95" y2="95" stroke="currentColor" strokeWidth="0.5" className="text-purple-500" opacity="0.3" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#neural-pattern)" />
+        </svg>
+        
+        {/* Animated gradient mesh */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+      </div>
+      
+      <div className="max-w-7xl mx-auto p-8 space-y-8 relative">
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -144,35 +184,36 @@ export function BrowserStartPage({
             Fremtidens nettleser med innebygget AI-intelligens, automatisering og avanserte workflows
           </p>
           
-          {/* Feature badges */}
+          {/* Feature badges with glow effect */}
           <div className="flex justify-center gap-3 flex-wrap">
-            <Badge variant="outline" className="px-3 py-1">
-              <Sparkles className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="px-3 py-1 border-purple-500/50 bg-purple-950/20 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3 mr-1 text-purple-400" />
               AI-drevet
             </Badge>
-            <Badge variant="outline" className="px-3 py-1">
-              <Shield className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="px-3 py-1 border-blue-500/50 bg-blue-950/20 backdrop-blur-sm">
+              <Shield className="h-3 w-3 mr-1 text-blue-400" />
               CORS-fri
             </Badge>
-            <Badge variant="outline" className="px-3 py-1">
-              <Workflow className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="px-3 py-1 border-cyan-500/50 bg-cyan-950/20 backdrop-blur-sm">
+              <Workflow className="h-3 w-3 mr-1 text-cyan-400" />
               Automatisering
             </Badge>
-            <Badge variant="outline" className="px-3 py-1">
-              <Zap className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="px-3 py-1 border-emerald-500/50 bg-emerald-950/20 backdrop-blur-sm">
+              <Zap className="h-3 w-3 mr-1 text-emerald-400" />
               Produktivitet
             </Badge>
           </div>
           
-          {/* Search Bar */}
+          {/* Search Bar with glass effect */}
           <div className="max-w-2xl mx-auto relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 blur-xl rounded-full" />
             <Input
               type="text"
               placeholder="Søk på nettet eller skriv inn URL..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="h-14 pl-12 pr-4 text-lg shadow-lg"
+              className="h-14 pl-12 pr-4 text-lg shadow-lg bg-background/90 backdrop-blur-md border-white/10 relative"
               data-testid="startpage-search"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -211,7 +252,7 @@ export function BrowserStartPage({
                   whileTap={{ scale: 0.98 }}
                 >
                   <Card 
-                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary/50 h-full"
+                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary/50 h-full bg-background/80 backdrop-blur-sm border-white/10"
                     onClick={action.action}
                     data-testid={`quick-action-${index}`}
                   >
@@ -238,7 +279,7 @@ export function BrowserStartPage({
             transition={{ delay: 0.2 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden">
+            <Card className="h-full overflow-hidden bg-background/80 backdrop-blur-sm border-white/10">
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Clock className="h-4 w-4 text-primary" />
@@ -285,7 +326,7 @@ export function BrowserStartPage({
             transition={{ delay: 0.3 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden">
+            <Card className="h-full overflow-hidden bg-background/80 backdrop-blur-sm border-white/10">
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Sparkles className="h-4 w-4 text-purple-500" />
@@ -341,7 +382,7 @@ export function BrowserStartPage({
             transition={{ delay: 0.4 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden">
+            <Card className="h-full overflow-hidden bg-background/80 backdrop-blur-sm border-white/10">
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <HelpCircle className="h-4 w-4 text-blue-500" />
