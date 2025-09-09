@@ -53,28 +53,28 @@ export function BrowserStartPage({
       title: 'Opprett workflow',
       description: 'Bygg automatiserte oppgaver',
       action: () => onStartWorkflow?.(),
-      color: 'from-purple-500 to-pink-500'
+      color: 'from-purple-500/60 to-pink-500/60'
     },
     {
       icon: Bot,
       title: 'AI Assistent',
       description: 'Få hjelp fra AI',
       action: () => {},
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-blue-500/60 to-cyan-500/60'
     },
     {
       icon: Video,
       title: 'Ta opp handlinger',
       description: 'Spill inn og automatiser',
       action: () => {},
-      color: 'from-red-500 to-orange-500'
+      color: 'from-red-500/60 to-orange-500/60'
     },
     {
       icon: Mic,
       title: 'Talekommandoer',
       description: 'Kontroller med stemmen',
       action: () => {},
-      color: 'from-green-500 to-emerald-500'
+      color: 'from-green-500/60 to-emerald-500/60'
     }
   ];
   
@@ -180,46 +180,46 @@ export function BrowserStartPage({
             <MadEasyLogo size="xlarge" animated={true} showText={true} />
           </div>
           
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground/60 text-sm font-light max-w-2xl mx-auto leading-relaxed">
             Fremtidens nettleser med innebygget AI-intelligens, automatisering og avanserte workflows
           </p>
           
-          {/* Feature badges with glow effect */}
-          <div className="flex justify-center gap-3 flex-wrap">
-            <Badge variant="outline" className="px-3 py-1 border-purple-500/50 bg-purple-950/20 backdrop-blur-sm">
-              <Sparkles className="h-3 w-3 mr-1 text-purple-400" />
+          {/* Feature badges with subtle glow */}
+          <div className="flex justify-center gap-2 flex-wrap">
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-purple-500/20 bg-purple-950/10 backdrop-blur-xl">
+              <Sparkles className="h-2.5 w-2.5 mr-1 text-purple-400/60" />
               AI-drevet
             </Badge>
-            <Badge variant="outline" className="px-3 py-1 border-blue-500/50 bg-blue-950/20 backdrop-blur-sm">
-              <Shield className="h-3 w-3 mr-1 text-blue-400" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-blue-500/20 bg-blue-950/10 backdrop-blur-xl">
+              <Shield className="h-2.5 w-2.5 mr-1 text-blue-400/60" />
               CORS-fri
             </Badge>
-            <Badge variant="outline" className="px-3 py-1 border-cyan-500/50 bg-cyan-950/20 backdrop-blur-sm">
-              <Workflow className="h-3 w-3 mr-1 text-cyan-400" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-cyan-500/20 bg-cyan-950/10 backdrop-blur-xl">
+              <Workflow className="h-2.5 w-2.5 mr-1 text-cyan-400/60" />
               Automatisering
             </Badge>
-            <Badge variant="outline" className="px-3 py-1 border-emerald-500/50 bg-emerald-950/20 backdrop-blur-sm">
-              <Zap className="h-3 w-3 mr-1 text-emerald-400" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-emerald-500/20 bg-emerald-950/10 backdrop-blur-xl">
+              <Zap className="h-2.5 w-2.5 mr-1 text-emerald-400/60" />
               Produktivitet
             </Badge>
           </div>
           
-          {/* Search Bar with glass effect */}
+          {/* Search Bar with delicate glass effect */}
           <div className="max-w-2xl mx-auto relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 blur-xl rounded-full" />
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 blur-3xl rounded-full" />
             <Input
               type="text"
               placeholder="Søk på nettet eller skriv inn URL..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="h-14 pl-12 pr-4 text-lg shadow-lg bg-background/90 backdrop-blur-md border-white/10 relative"
+              className="h-12 pl-12 pr-4 text-base shadow-sm bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] relative"
               data-testid="startpage-search"
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
             <Button
               onClick={handleSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05]"
               disabled={!searchQuery.trim()}
               data-testid="startpage-search-button"
             >
@@ -235,11 +235,11 @@ export function BrowserStartPage({
           transition={{ delay: 0.1 }}
           className="w-full"
         >
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-500" />
+          <h2 className="text-sm font-light mb-4 flex items-center gap-2 text-foreground/70 uppercase tracking-wider">
+            <Zap className="h-3 w-3 text-yellow-500/70" />
             Hurtighandlinger
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
@@ -252,16 +252,16 @@ export function BrowserStartPage({
                   whileTap={{ scale: 0.98 }}
                 >
                   <Card 
-                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary/50 h-full bg-background/80 backdrop-blur-sm border-white/10"
+                    className="cursor-pointer hover:shadow-md transition-all duration-300 hover:border-white/20 h-full bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] group"
                     onClick={action.action}
                     data-testid={`quick-action-${index}`}
                   >
-                    <CardContent className="p-3 flex flex-col items-center text-center">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center mb-2 shadow-md`}>
-                        <Icon className="h-5 w-5 text-white" />
+                    <CardContent className="p-4 flex flex-col items-center text-center">
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${action.color} opacity-80 group-hover:opacity-100 flex items-center justify-center mb-2.5 transition-opacity duration-300`}>
+                        <Icon className="h-4 w-4 text-white" />
                       </div>
-                      <h3 className="font-medium text-sm mb-1">{action.title}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{action.description}</p>
+                      <h3 className="font-normal text-xs mb-1 text-foreground/90">{action.title}</h3>
+                      <p className="text-[10px] text-muted-foreground/70 line-clamp-2 leading-relaxed">{action.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -271,7 +271,7 @@ export function BrowserStartPage({
         </motion.div>
         
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-5">
           {/* Recent Sites */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -279,10 +279,10 @@ export function BrowserStartPage({
             transition={{ delay: 0.2 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden bg-background/80 backdrop-blur-sm border-white/10">
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Clock className="h-4 w-4 text-primary" />
+            <Card className="h-full overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/[0.05]">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-light text-foreground/80">
+                  <Clock className="h-3 w-3 text-primary/70" />
                   Nylig besøkt
                 </CardTitle>
               </CardHeader>
@@ -298,16 +298,16 @@ export function BrowserStartPage({
                       >
                         <Button
                           variant="ghost"
-                          className="w-full justify-start gap-2 h-auto py-2 px-3 hover:bg-accent/50"
+                          className="w-full justify-start gap-2 h-auto py-1.5 px-2 hover:bg-white/[0.02] border border-transparent hover:border-white/[0.05] transition-all duration-300"
                           onClick={() => onNavigate(site.url)}
                           data-testid={`recent-site-${index}`}
                         >
-                          <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <Globe className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                           <div className="flex-1 text-left min-w-0">
-                            <div className="font-medium text-sm truncate">{site.title}</div>
-                            <div className="text-xs text-muted-foreground truncate">{site.url}</div>
+                            <div className="font-normal text-xs truncate text-foreground/80">{site.title}</div>
+                            <div className="text-[10px] text-muted-foreground/50 truncate">{site.url}</div>
                           </div>
-                          <Badge variant="secondary" className="text-xs shrink-0">
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4 bg-white/[0.02] border-white/[0.05] text-foreground/50">
                             {site.visits}
                           </Badge>
                         </Button>
@@ -326,10 +326,10 @@ export function BrowserStartPage({
             transition={{ delay: 0.3 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden bg-background/80 backdrop-blur-sm border-white/10">
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
+            <Card className="h-full overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/[0.05]">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-light text-foreground/80">
+                  <Sparkles className="h-3 w-3 text-purple-500/70" />
                   Foreslåtte workflows
                 </CardTitle>
               </CardHeader>
@@ -345,21 +345,21 @@ export function BrowserStartPage({
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 + index * 0.03 }}
                           whileHover={{ x: 3 }}
-                          className="p-3 rounded-lg border hover:border-primary/50 hover:bg-accent/50 cursor-pointer transition-all"
+                          className="p-2.5 rounded-lg border border-white/[0.03] hover:border-white/10 hover:bg-white/[0.02] cursor-pointer transition-all duration-300"
                           onClick={() => onStartWorkflow?.()}
                           data-testid={`workflow-suggestion-${index}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20">
-                              <Icon className="h-4 w-4 text-purple-600" />
+                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500/10 to-blue-500/10">
+                              <Icon className="h-3 w-3 text-purple-500/70" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-sm mb-1">{workflow.title}</h4>
-                              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                              <h4 className="font-normal text-xs mb-1 text-foreground/80">{workflow.title}</h4>
+                              <p className="text-[10px] text-muted-foreground/60 mb-2 line-clamp-2">
                                 {workflow.description}
                               </p>
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-white/10 text-foreground/60">
                                   {workflow.steps} steg
                                 </Badge>
                                 <ChevronRight className="h-3 w-3 text-muted-foreground" />
@@ -382,23 +382,23 @@ export function BrowserStartPage({
             transition={{ delay: 0.4 }}
             className="lg:col-span-1"
           >
-            <Card className="h-full overflow-hidden bg-background/80 backdrop-blur-sm border-white/10">
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <HelpCircle className="h-4 w-4 text-blue-500" />
+            <Card className="h-full overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/[0.05]">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-light text-foreground/80">
+                  <HelpCircle className="h-3 w-3 text-blue-500/70" />
                   Tips & funksjoner
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-2">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-500/10">
                     <div className="flex items-start gap-2">
-                      <div className="p-1 rounded-lg bg-blue-500/20">
-                        <Rocket className="h-3 w-3 text-blue-600" />
+                      <div className="p-1 rounded-full bg-blue-500/10">
+                        <Rocket className="h-2.5 w-2.5 text-blue-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-xs mb-0.5">Hurtigtaster</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Hurtigtaster</p>
+                        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                           <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+T</kbd> ny fane • 
                           <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono ml-1">Ctrl+W</kbd> lukk fane
                         </p>
@@ -406,42 +406,42 @@ export function BrowserStartPage({
                     </div>
                   </div>
                   
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-500/10">
                     <div className="flex items-start gap-2">
-                      <div className="p-1 rounded-lg bg-green-500/20">
-                        <Shield className="h-3 w-3 text-green-600" />
+                      <div className="p-1 rounded-full bg-green-500/10">
+                        <Shield className="h-2.5 w-2.5 text-green-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-xs mb-0.5">Privat modus</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Privat modus</p>
+                        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                           Surf inkognito med beskyttet data og ingen sporing
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-500/10">
                     <div className="flex items-start gap-2">
-                      <div className="p-1 rounded-lg bg-purple-500/20">
-                        <Target className="h-3 w-3 text-purple-600" />
+                      <div className="p-1 rounded-full bg-purple-500/10">
+                        <Target className="h-2.5 w-2.5 text-purple-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-xs mb-0.5">AI-automatisering</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">AI-automatisering</p>
+                        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                           Ta opp handlinger og la AI lage workflows automatisk
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-500/10">
                     <div className="flex items-start gap-2">
-                      <div className="p-1 rounded-lg bg-orange-500/20">
-                        <Code2 className="h-3 w-3 text-orange-600" />
+                      <div className="p-1 rounded-full bg-orange-500/10">
+                        <Code2 className="h-2.5 w-2.5 text-orange-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-xs mb-0.5">Utviklermodus</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Utviklermodus</p>
+                        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                           Inspiser elementer og test API-er direkte
                         </p>
                       </div>
@@ -449,13 +449,13 @@ export function BrowserStartPage({
                   </div>
                   
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="w-full mt-3"
+                    className="w-full mt-2 h-7 text-[11px] hover:bg-white/[0.02] border border-white/[0.03]"
                     onClick={() => onOpenSettings?.()}
                     data-testid="open-settings"
                   >
-                    <Settings className="h-4 w-4 mr-2" />
+                    <Settings className="h-3 w-3 mr-1.5" />
                     Åpne innstillinger
                   </Button>
                 </div>
