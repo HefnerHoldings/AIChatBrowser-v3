@@ -178,6 +178,16 @@ export function PWAManager({ onClose }: PWAManagerProps) {
 
   const registerServiceWorker = async () => {
     try {
+      // Skip Service Worker registration in development/Replit environment
+      const isDevelopment = window.location.hostname.includes('replit') || 
+                           window.location.hostname === 'localhost' ||
+                           window.location.protocol !== 'https:';
+      
+      if (isDevelopment) {
+        console.log('Service Worker skipped in development environment');
+        return;
+      }
+      
       const reg = await navigator.serviceWorker.register('/service-worker.js', {
         scope: '/'
       });
@@ -222,7 +232,7 @@ export function PWAManager({ onClose }: PWAManagerProps) {
       
       console.log('Service Worker registered successfully');
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
+      console.log('Service Worker registration skipped:', error instanceof Error ? error.message : error);
     }
   };
 
