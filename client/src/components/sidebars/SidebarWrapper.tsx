@@ -171,96 +171,10 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
         </div>
       )}
 
-      {/* Collapse/Expand Button - Always Visible */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => toggleSidebar(side)}
-        className={cn(
-          "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-          side === 'left' 
-            ? (isCollapsed ? 'left-14' : 'right-2')
-            : (isCollapsed ? 'right-14' : 'left-2')
-        )}
-        title={isCollapsed ? 'Ekspander sidebar' : 'Kollaps sidebar'}
-      >
-        {side === 'left' ? (
-          isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
-        ) : (
-          isCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
-        )}
-      </Button>
-
-      {/* Control Buttons - Only when expanded */}
-      {!isCollapsed && (
-        <>
-          {/* Sidebar Type Selector Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-                  side === 'left' ? "right-[88px]" : "left-[88px]"
-                )}
-                title="Velg sidebar type"
-              >
-                <Layers className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={side === 'left' ? "start" : "end"}>
-              <DropdownMenuLabel>Velg Sidebar Type</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {availableSidebars.map((sidebarType: SidebarType) => (
-                <DropdownMenuItem
-                  key={sidebarType}
-                  onClick={() => switchSidebar(side, sidebarType)}
-                  className={cn(
-                    "flex items-center gap-2",
-                    currentType === sidebarType && "bg-accent"
-                  )}
-                >
-                  {sidebarIcons[sidebarType] || <Layers className="h-4 w-4" />}
-                  <span>{sidebarNames[sidebarType] || sidebarType}</span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          {/* Mode Toggle Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleMode}
-            className={cn(
-              "absolute top-2 z-50 h-8 w-8 rounded-full bg-background/95 backdrop-blur border shadow-md",
-              side === 'left' ? "right-12" : "left-12"
-            )}
-            title={isFloating ? 'Bytt til massive modus' : 'Bytt til floating modus'}
-          >
-            {isFloating ? (
-              <PinOff className="h-4 w-4" />
-            ) : (
-              <Pin className="h-4 w-4" />
-            )}
-          </Button>
-          
-          {/* Width Display - Only when resizing */}
-          {isResizing && (
-            <div className={cn(
-              "absolute top-12 z-50 px-2 py-1 text-xs bg-background/95 backdrop-blur border rounded shadow-md",
-              side === 'left' ? "right-2" : "left-2"
-            )}>
-              {currentWidth}px
-            </div>
-          )}
-        </>
-      )}
-
       {/* Sidebar Content */}
+
       <div className={cn(
-        "h-full",
+        "h-full flex flex-col",
         isCollapsed && "overflow-hidden"
       )}>
         {isCollapsed ? (
@@ -285,10 +199,95 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
             </Button>
           </div>
         ) : (
-          // Expanded State - Show full content with responsive layout
-          <div className="h-full overflow-hidden sidebar-responsive" data-width={widthMode}>
-            {children}
-          </div>
+          // Expanded State with header controls
+          <>
+            {/* Control Header Bar */}
+            <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30 min-h-[48px]">
+              {/* Left side - Sidebar type and name */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {sidebarIcons[currentType] || <Layers className="h-4 w-4 text-muted-foreground" />}
+                <span className="text-sm font-medium truncate">
+                  {sidebarNames[currentType] || currentType}
+                </span>
+              </div>
+              
+              {/* Right side - Control buttons */}
+              <div className="flex items-center gap-1">
+                {/* Sidebar Type Selector */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Velg sidebar type"
+                    >
+                      <Layers className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align={side === 'left' ? "start" : "end"}>
+                    <DropdownMenuLabel>Velg Sidebar Type</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {availableSidebars.map((sidebarType: SidebarType) => (
+                      <DropdownMenuItem
+                        key={sidebarType}
+                        onClick={() => switchSidebar(side, sidebarType)}
+                        className={cn(
+                          "flex items-center gap-2",
+                          currentType === sidebarType && "bg-accent"
+                        )}
+                      >
+                        {sidebarIcons[sidebarType] || <Layers className="h-4 w-4" />}
+                        <span>{sidebarNames[sidebarType] || sidebarType}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                {/* Pin/Float Toggle */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMode}
+                  className="h-7 w-7"
+                  title={isFloating ? 'Pin sidebar' : 'Float sidebar'}
+                >
+                  {isFloating ? (
+                    <PinOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Pin className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                
+                {/* Collapse Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => toggleSidebar(side)}
+                  className="h-7 w-7"
+                  title="Kollaps sidebar"
+                >
+                  {side === 'left' ? (
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Width Display - Only when resizing */}
+            {isResizing && (
+              <div className="absolute top-12 right-2 z-50 px-2 py-1 text-xs bg-popover border rounded shadow-md">
+                {currentWidth}px
+              </div>
+            )}
+            
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-hidden sidebar-responsive" data-width={widthMode}>
+              {children}
+            </div>
+          </>
         )}
       </div>
     </div>
