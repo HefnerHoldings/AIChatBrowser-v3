@@ -338,13 +338,13 @@ export function AIChatSidebar() {
   }, [messages]);
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background sidebar-responsive">
       {/* Header */}
-      <div className="sidebar-card border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="sidebar-title">AI Assistent</h2>
+      <div className="sidebar-card border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+            <h2 className="sidebar-title truncate">AI Assistent</h2>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -388,7 +388,8 @@ export function AIChatSidebar() {
 
 
       {/* Meldinger */}
-      <ScrollArea className="flex-1 sidebar-card" ref={scrollAreaRef}>
+      <ScrollArea className="flex-1 overflow-hidden" ref={scrollAreaRef}>
+        <div className="sidebar-card">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <Bot className="h-12 w-12 text-muted-foreground mb-4" />
@@ -419,7 +420,7 @@ export function AIChatSidebar() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 chat-messages">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -500,10 +501,11 @@ export function AIChatSidebar() {
             )}
           </div>
         )}
+        </div>
       </ScrollArea>
 
       {/* Input-område */}
-      <div className="p-4 border-t border-border">
+      <div className="p-3 border-t border-border flex-shrink-0">
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <Textarea
@@ -557,39 +559,87 @@ export function AIChatSidebar() {
         </div>
 
         {/* Raske handlinger */}
-        <div className="flex gap-2 mt-2 flex-wrap">
+        <div className="flex gap-1 mt-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              setInput("Analyser denne siden og gi meg et sammendrag");
-              handleSend();
+              const msg = "Analyser denne siden og gi meg et sammendrag";
+              setInput(msg);
+              setTimeout(() => {
+                const userMessage: ChatMessage = {
+                  id: Date.now().toString(),
+                  role: 'user',
+                  content: msg,
+                  timestamp: new Date(),
+                  context: browserContext ? {
+                    url: browserContext.url,
+                    pageTitle: browserContext.title,
+                  } : undefined,
+                };
+                setMessages((prev) => [...prev, userMessage]);
+                sendMessage.mutate(msg);
+                setInput('');
+              }, 100);
             }}
-            className="text-xs"
+            className="text-xs sidebar-button"
           >
-            Analyser side
+            <Eye className="h-3 w-3 mr-1" />
+            <span>Analyser</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              setInput("Finn alle kontaktdetaljer på denne siden");
-              handleSend();
+              const msg = "Finn kontaktinfo på siden";
+              setInput(msg);
+              setTimeout(() => {
+                const userMessage: ChatMessage = {
+                  id: Date.now().toString(),
+                  role: 'user',
+                  content: msg,
+                  timestamp: new Date(),
+                  context: browserContext ? {
+                    url: browserContext.url,
+                    pageTitle: browserContext.title,
+                  } : undefined,
+                };
+                setMessages((prev) => [...prev, userMessage]);
+                sendMessage.mutate(msg);
+                setInput('');
+              }, 100);
             }}
-            className="text-xs"
+            className="text-xs sidebar-button"
           >
-            Finn kontaktinfo
+            <Users className="h-3 w-3 mr-1" />
+            <span>Kontakt</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              setInput("Lag en automatisering for denne oppgaven");
-              handleSend();
+              const msg = "Lag automatisering";
+              setInput(msg);
+              setTimeout(() => {
+                const userMessage: ChatMessage = {
+                  id: Date.now().toString(),
+                  role: 'user',
+                  content: msg,
+                  timestamp: new Date(),
+                  context: browserContext ? {
+                    url: browserContext.url,
+                    pageTitle: browserContext.title,
+                  } : undefined,
+                };
+                setMessages((prev) => [...prev, userMessage]);
+                sendMessage.mutate(msg);
+                setInput('');
+              }, 100);
             }}
-            className="text-xs"
+            className="text-xs sidebar-button"
           >
-            Automatiser
+            <Zap className="h-3 w-3 mr-1" />
+            <span>Auto</span>
           </Button>
         </div>
       </div>
