@@ -128,44 +128,27 @@ export function BrowserStartPage({
   
   return (
     <div className="h-full overflow-auto relative z-10">
-      {/* Animated AI Background */}
+      {/* Subtle AI Background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Primary gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/40 to-blue-950/30" />
+        {/* Soft gradient base */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-background" />
         
-        {/* Animated floating orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-gradient-to-br from-blue-600/30 to-cyan-600/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '5s' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-br from-cyan-600/30 to-emerald-600/30 rounded-full blur-3xl animate-float" style={{ animationDelay: '10s' }} />
+        {/* Very subtle AI glow - only 2 stationary orbs with minimal opacity */}
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/[0.03] to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-gradient-to-tl from-primary/[0.02] to-transparent rounded-full blur-3xl" />
         
-        {/* Additional morphing orbs */}
-        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 animate-morph blur-3xl" />
-        <div className="absolute bottom-1/3 left-1/3 w-56 h-56 bg-gradient-to-br from-pink-600/20 to-rose-600/20 animate-morph blur-3xl" style={{ animationDelay: '7s' }} />
-        
-        {/* Grid pattern overlay with shimmer */}
+        {/* Minimal grid pattern */}
         <div 
-          className="absolute inset-0 opacity-[0.03] animate-shimmer"
+          className="absolute inset-0 opacity-[0.02]"
           style={{
-            backgroundImage: `linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px),
-                             linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
+            backgroundImage: `linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+                             linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px'
           }}
         />
         
-        {/* Neural network lines */}
-        <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="neural-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-              <circle cx="5" cy="5" r="1" fill="currentColor" className="text-purple-500" />
-              <circle cx="95" cy="95" r="1" fill="currentColor" className="text-blue-500" />
-              <line x1="5" y1="5" x2="95" y2="95" stroke="currentColor" strokeWidth="0.5" className="text-purple-500" opacity="0.3" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#neural-pattern)" />
-        </svg>
-        
-        {/* Animated gradient mesh */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        {/* Soft vignette */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
       </div>
       
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-12 relative">
@@ -184,42 +167,41 @@ export function BrowserStartPage({
             Fremtidens nettleser med innebygget AI-intelligens, automatisering og avanserte workflows
           </p>
           
-          {/* Feature badges with subtle glow */}
+          {/* Feature badges - clean and minimal */}
           <div className="flex justify-center gap-2 flex-wrap">
-            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-purple-500/20 bg-purple-950/10 backdrop-blur-xl">
-              <Sparkles className="h-2.5 w-2.5 mr-1 text-purple-400/60" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
+              <Sparkles className="h-2.5 w-2.5 mr-1 text-primary/50" />
               AI-drevet
             </Badge>
-            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-blue-500/20 bg-blue-950/10 backdrop-blur-xl">
-              <Shield className="h-2.5 w-2.5 mr-1 text-blue-400/60" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
+              <Shield className="h-2.5 w-2.5 mr-1 text-primary/50" />
               CORS-fri
             </Badge>
-            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-cyan-500/20 bg-cyan-950/10 backdrop-blur-xl">
-              <Workflow className="h-2.5 w-2.5 mr-1 text-cyan-400/60" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
+              <Workflow className="h-2.5 w-2.5 mr-1 text-primary/50" />
               Automatisering
             </Badge>
-            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-emerald-500/20 bg-emerald-950/10 backdrop-blur-xl">
-              <Zap className="h-2.5 w-2.5 mr-1 text-emerald-400/60" />
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
+              <Zap className="h-2.5 w-2.5 mr-1 text-primary/50" />
               Produktivitet
             </Badge>
           </div>
           
-          {/* Search Bar with delicate glass effect */}
+          {/* Search Bar - clean and simple */}
           <div className="max-w-2xl mx-auto relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 blur-3xl rounded-full" />
             <Input
               type="text"
               placeholder="Søk på nettet eller skriv inn URL..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="h-12 pl-12 pr-4 text-base shadow-sm bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] relative"
+              className="h-12 pl-12 pr-4 text-base shadow-sm bg-card/50 backdrop-blur-sm border border-border/50 relative"
               data-testid="startpage-search"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
             <Button
               onClick={handleSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05]"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-3 text-xs bg-primary/5 hover:bg-primary/10 border border-border/30"
               disabled={!searchQuery.trim()}
               data-testid="startpage-search-button"
             >
@@ -252,7 +234,7 @@ export function BrowserStartPage({
                   whileTap={{ scale: 0.98 }}
                 >
                   <Card 
-                    className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:border-white/10 h-full bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] group rounded-2xl"
+                    className="cursor-pointer hover:shadow-md transition-all duration-300 hover:border-border/50 h-full bg-card/20 border border-border/20 group rounded-xl"
                     onClick={action.action}
                     data-testid={`quick-action-${index}`}
                   >
@@ -284,7 +266,7 @@ export function BrowserStartPage({
                 <Clock className="h-3 w-3 text-primary/50" />
                 Nylig besøkt
               </h3>
-              <Card className="overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] rounded-2xl">
+              <Card className="overflow-hidden bg-card/20 border border-border/20 rounded-xl">
                 <CardContent className="p-4">
                   <ScrollArea className="h-[320px]">
                   <div className="space-y-2">
@@ -297,7 +279,7 @@ export function BrowserStartPage({
                       >
                         <Button
                           variant="ghost"
-                          className="w-full justify-start gap-3 h-auto py-2 px-3 hover:bg-white/[0.02] rounded-xl transition-all duration-300"
+                          className="w-full justify-start gap-3 h-auto py-2 px-3 hover:bg-accent/30 rounded-lg transition-all duration-300"
                           onClick={() => onNavigate(site.url)}
                           data-testid={`recent-site-${index}`}
                         >
@@ -306,7 +288,7 @@ export function BrowserStartPage({
                             <div className="font-normal text-xs truncate text-foreground/80">{site.title}</div>
                             <div className="text-[10px] text-muted-foreground/50 truncate">{site.url}</div>
                           </div>
-                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4 bg-white/[0.02] border-white/[0.05] text-foreground/50">
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4 text-foreground/50">
                             {site.visits}
                           </Badge>
                         </Button>
@@ -331,7 +313,7 @@ export function BrowserStartPage({
                 <Sparkles className="h-3 w-3 text-purple-500/50" />
                 Foreslåtte workflows
               </h3>
-              <Card className="overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] rounded-2xl">
+              <Card className="overflow-hidden bg-card/20 border border-border/20 rounded-xl">
                 <CardContent className="p-4">
                   <ScrollArea className="h-[320px]">
                   <div className="space-y-3">
@@ -344,7 +326,7 @@ export function BrowserStartPage({
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 + index * 0.03 }}
                           whileHover={{ x: 3 }}
-                          className="p-3 rounded-xl border border-white/[0.02] hover:border-white/[0.08] hover:bg-white/[0.02] cursor-pointer transition-all duration-300"
+                          className="p-3 rounded-xl border border-border/10 hover:border-border/30 hover:bg-accent/20 cursor-pointer transition-all duration-300"
                           onClick={() => onStartWorkflow?.()}
                           data-testid={`workflow-suggestion-${index}`}
                         >
@@ -358,7 +340,7 @@ export function BrowserStartPage({
                                 {workflow.description}
                               </p>
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-white/10 text-foreground/60">
+                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5 border-border/30 text-foreground/60">
                                   {workflow.steps} steg
                                 </Badge>
                                 <ChevronRight className="h-3 w-3 text-muted-foreground" />
@@ -387,7 +369,7 @@ export function BrowserStartPage({
                 <HelpCircle className="h-3 w-3 text-blue-500/50" />
                 Tips & funksjoner
               </h3>
-              <Card className="overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/[0.03] rounded-2xl">
+              <Card className="overflow-hidden bg-card/20 border border-border/20 rounded-xl">
                 <CardContent className="p-4">
                 <div className="space-y-3">
                   <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-500/10">
@@ -450,7 +432,7 @@ export function BrowserStartPage({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full mt-2 h-7 text-[11px] hover:bg-white/[0.02] border border-white/[0.03]"
+                    className="w-full mt-2 h-7 text-[11px] hover:bg-accent/30 border border-border/20"
                     onClick={() => onOpenSettings?.()}
                     data-testid="open-settings"
                   >
