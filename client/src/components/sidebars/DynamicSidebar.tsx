@@ -5,6 +5,7 @@ import { RightDeveloperSidebar } from './RightDeveloperSidebar';
 import { LeadScrapingSidebar } from './LeadScrapingSidebar';
 import { DataAnalyticsSidebar } from './DataAnalyticsSidebar';
 import { BrowserToolsSidebar } from './BrowserToolsSidebar';
+import { AIChatSidebar } from './AIChatSidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -71,14 +72,9 @@ export function DynamicSidebar({
       case 'browser-tools':
         return <BrowserToolsSidebar />;
       case 'ai-assistant':
-        // For now, reuse LeftWorkflowSidebar as it has AI chat
-        return (
-          <LeftWorkflowSidebar
-            onOpenWorkflowBuilder={onOpenWorkflowBuilder}
-            onCommand={onCommand}
-            onAISuggestion={onAISuggestion}
-          />
-        );
+        return <AIChatSidebar />;
+      case 'ai-chat':
+        return <AIChatSidebar />
       case 'security-privacy':
         // Placeholder - can create SecurityPrivacySidebar later
         return <BrowserToolsSidebar />;
@@ -98,6 +94,7 @@ export function DynamicSidebar({
       case 'lead-scraping': return <Search className="h-4 w-4" />;
       case 'developer': return <Code2 className="h-4 w-4" />;
       case 'ai-assistant': return <Bot className="h-4 w-4" />;
+      case 'ai-chat': return <Bot className="h-4 w-4" />;
       case 'data-analytics': return <BarChart3 className="h-4 w-4" />;
       case 'workflow': return <Layers className="h-4 w-4" />;
       case 'browser-tools': return <Globe className="h-4 w-4" />;
@@ -113,6 +110,7 @@ export function DynamicSidebar({
       case 'lead-scraping': return 'Lead Scraping';
       case 'developer': return 'Developer';
       case 'ai-assistant': return 'AI Assistant';
+      case 'ai-chat': return 'AI Chat';
       case 'data-analytics': return 'Data Analytics';
       case 'workflow': return 'Workflow';
       case 'browser-tools': return 'Browser Tools';
