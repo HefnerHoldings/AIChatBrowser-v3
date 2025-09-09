@@ -402,8 +402,8 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
       </div>
 
       {/* Meldinger */}
-      <ScrollArea className="flex-1 overflow-hidden" ref={scrollAreaRef}>
-        <div className="p-2">
+      <ScrollArea className="flex-1 overflow-hidden mt-1" ref={scrollAreaRef}>
+        <div className="px-2 pb-2">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <Bot className="h-12 w-12 text-muted-foreground mb-4" />
@@ -519,7 +519,7 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
       </ScrollArea>
 
       {/* Input-område */}
-      <div className="p-2 border-t border-border flex-shrink-0">
+      <div className="px-2 pb-2 flex-shrink-0">
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <Textarea
@@ -573,7 +573,7 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
         </div>
 
         {/* Raske handlinger */}
-        <div className="flex gap-1 mt-2 flex-wrap">
+        <div className="flex gap-1 mt-1 flex-wrap">
           <Button
             variant="outline"
             size="sm"
