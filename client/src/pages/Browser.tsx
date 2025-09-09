@@ -1199,17 +1199,6 @@ export default function Browser() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     
-                    {/* Right Sidebar Toggle */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleSidebar('right')}
-                      title="Høyre sidebar"
-                      className={!config.right.collapsed ? 'bg-accent' : ''}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    
                     <Button
                       variant="ghost"
                       size="icon"
