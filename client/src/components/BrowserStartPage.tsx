@@ -194,8 +194,8 @@ export function BrowserStartPage({
           transition={{ delay: 0.1 }}
           className="w-full"
         >
-          <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-            <Zap className="h-6 w-6 text-yellow-500" />
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-500" />
             Hurtighandlinger
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -211,16 +211,16 @@ export function BrowserStartPage({
                   whileTap={{ scale: 0.98 }}
                 >
                   <Card 
-                    className="cursor-pointer hover:shadow-xl transition-all hover:border-primary/50 h-full"
+                    className="cursor-pointer hover:shadow-lg transition-all hover:border-primary/50 h-full"
                     onClick={action.action}
                     data-testid={`quick-action-${index}`}
                   >
-                    <CardContent className="p-6 flex flex-col items-center text-center">
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-4 shadow-lg`}>
-                        <Icon className="h-7 w-7 text-white" />
+                    <CardContent className="p-3 flex flex-col items-center text-center">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center mb-2 shadow-md`}>
+                        <Icon className="h-5 w-5 text-white" />
                       </div>
-                      <h3 className="font-semibold text-base mb-2">{action.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{action.description}</p>
+                      <h3 className="font-medium text-sm mb-1">{action.title}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{action.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -230,7 +230,7 @@ export function BrowserStartPage({
         </motion.div>
         
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
           {/* Recent Sites */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -239,14 +239,14 @@ export function BrowserStartPage({
             className="lg:col-span-1"
           >
             <Card className="h-full overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Clock className="h-5 w-5 text-primary" />
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Clock className="h-4 w-4 text-primary" />
                   Nylig besøkt
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <ScrollArea className="h-[280px]">
+                <ScrollArea className="h-[240px]">
                   <div className="space-y-1">
                     {recentSites.map((site, index) => (
                       <motion.div
@@ -286,14 +286,14 @@ export function BrowserStartPage({
             className="lg:col-span-1"
           >
             <Card className="h-full overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
                   Foreslåtte workflows
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <ScrollArea className="h-[280px]">
+                <ScrollArea className="h-[240px]">
                   <div className="space-y-2">
                     {suggestedWorkflows.map((workflow, index) => {
                       const Icon = workflow.icon;
@@ -342,22 +342,22 @@ export function BrowserStartPage({
             className="lg:col-span-1"
           >
             <Card className="h-full overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <HelpCircle className="h-5 w-5 text-blue-500" />
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <HelpCircle className="h-4 w-4 text-blue-500" />
                   Tips & funksjoner
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-blue-500/20">
-                        <Rocket className="h-4 w-4 text-blue-600" />
+                <div className="space-y-2">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                    <div className="flex items-start gap-2">
+                      <div className="p-1 rounded-lg bg-blue-500/20">
+                        <Rocket className="h-3 w-3 text-blue-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm mb-1">Hurtigtaster</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-medium text-xs mb-0.5">Hurtigtaster</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+T</kbd> ny fane • 
                           <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono ml-1">Ctrl+W</kbd> lukk fane
                         </p>
@@ -365,42 +365,42 @@ export function BrowserStartPage({
                     </div>
                   </div>
                   
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-green-500/20">
-                        <Shield className="h-4 w-4 text-green-600" />
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                    <div className="flex items-start gap-2">
+                      <div className="p-1 rounded-lg bg-green-500/20">
+                        <Shield className="h-3 w-3 text-green-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm mb-1">Privat modus</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-medium text-xs mb-0.5">Privat modus</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           Surf inkognito med beskyttet data og ingen sporing
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-purple-500/20">
-                        <Target className="h-4 w-4 text-purple-600" />
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                    <div className="flex items-start gap-2">
+                      <div className="p-1 rounded-lg bg-purple-500/20">
+                        <Target className="h-3 w-3 text-purple-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm mb-1">AI-automatisering</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-medium text-xs mb-0.5">AI-automatisering</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           Ta opp handlinger og la AI lage workflows automatisk
                         </p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-orange-500/20">
-                        <Code2 className="h-4 w-4 text-orange-600" />
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
+                    <div className="flex items-start gap-2">
+                      <div className="p-1 rounded-lg bg-orange-500/20">
+                        <Code2 className="h-3 w-3 text-orange-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-sm mb-1">Utviklermodus</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-medium text-xs mb-0.5">Utviklermodus</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           Inspiser elementer og test API-er direkte
                         </p>
                       </div>
@@ -409,7 +409,8 @@ export function BrowserStartPage({
                   
                   <Button
                     variant="outline"
-                    className="w-full mt-4"
+                    size="sm"
+                    className="w-full mt-3"
                     onClick={() => onOpenSettings?.()}
                     data-testid="open-settings"
                   >
