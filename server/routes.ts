@@ -3143,7 +3143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get current browser context from active tab
       const activeInstance = browserManager.getActiveInstance();
       
-      if (!activeInstance) {
+      if (!activeInstance || !activeInstance.tabs) {
         return res.json({
           url: "",
           title: "",

@@ -1376,7 +1376,7 @@ export default function Browser() {
               </SidebarWrapper>
 
               {/* Main Browser Content */}
-              <div className={`${config.mode === 'massive' ? 'flex-1' : 'w-full h-full'} relative bg-background rounded-lg mx-1 my-2 shadow-sm border border-border`}>
+              <div className={`${config.mode === 'massive' ? 'flex-1' : 'w-full h-full'} relative bg-background`}>
                   {activeTab ? (
                   <>
                     {isNavigating && (
