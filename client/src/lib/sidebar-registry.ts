@@ -31,6 +31,7 @@ export interface SidebarLayout {
   secondary?: SidebarType[];
   mode: 'single' | 'split' | 'tabs' | 'accordion';
   collapsed?: boolean;
+  width?: number; // Width in pixels
 }
 
 export interface SidebarPreset {

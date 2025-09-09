@@ -40,6 +40,7 @@ interface SidebarManagerContextType {
   floatSidebar: (type: SidebarType, position: { x: number; y: number }) => void;
   saveSidebarLayout: (name: string) => void;
   loadSidebarLayout: (name: string) => void;
+  resizeSidebar: (side: 'left' | 'right', width: number) => void;
 }
 
 const SidebarManagerContext = createContext<SidebarManagerContextType | undefined>(undefined);
@@ -51,13 +52,15 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
       side: 'left',
       primary: 'ai-chat',
       mode: 'single',
-      collapsed: false
+      collapsed: false,
+      width: 320 // Default width
     },
     right: {
       side: 'right',
       primary: 'data-analytics',
       mode: 'single',
-      collapsed: false
+      collapsed: false,
+      width: 320 // Default width
     },
     floating: [],
     customSidebars: []
@@ -146,6 +149,26 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const resizeSidebar = useCallback((side: 'left' | 'right', width: number) => {
+    // Ensure minimum width
+    const MIN_WIDTH = 240;
+    const MAX_WIDTH = 600;
+    const constrainedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+    
+    setConfig(prev => ({
+      ...prev,
+      [side]: {
+        ...prev[side],
+        width: constrainedWidth
+      }
+    }));
+    
+    // Save to localStorage for persistence
+    const widths = JSON.parse(localStorage.getItem('sidebarWidths') || '{}');
+    widths[side] = constrainedWidth;
+    localStorage.setItem('sidebarWidths', JSON.stringify(widths));
+  }, []);
+
   return (
     <SidebarManagerContext.Provider 
       value={{
@@ -158,7 +181,8 @@ export function SidebarManagerProvider({ children }: { children: ReactNode }) {
         createCustomSidebar,
         floatSidebar,
         saveSidebarLayout,
-        loadSidebarLayout
+        loadSidebarLayout,
+        resizeSidebar
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,7 +35,8 @@ import {
   Terminal,
   Package,
   Plug2,
-  Bot
+  Bot,
+  GripVertical
 } from 'lucide-react';
 
 interface SidebarWrapperProps {
@@ -44,10 +45,16 @@ interface SidebarWrapperProps {
 }
 
 export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
-  const { config, toggleSidebar, toggleMode, switchSidebar } = useSidebarManager();
+  const { config, toggleSidebar, toggleMode, switchSidebar, resizeSidebar } = useSidebarManager();
   const isCollapsed = config[side].collapsed;
   const isFloating = config.mode === 'floating';
   const currentType = config[side].primary;
+  const currentWidth = config[side].width || 320;
+  
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(currentWidth);
   
   // Get available sidebar types from registry
   const availableSidebars = SidebarRegistry.getAll().map(s => s.id);
@@ -84,18 +91,77 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
     'custom': 'Custom'
   };
 
+  // Handle resize start
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    setStartX(e.clientX);
+    setStartWidth(currentWidth);
+  };
+
+  // Handle resize mouse move
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const diff = side === 'left' 
+        ? e.clientX - startX 
+        : startX - e.clientX;
+      
+      const newWidth = startWidth + diff;
+      resizeSidebar(side, newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      // Prevent text selection during resize
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing, startX, startWidth, side, resizeSidebar]);
+
   return (
     <div
+      ref={sidebarRef}
       className={cn(
         "relative h-full transition-all duration-300",
         isFloating && !isCollapsed && "absolute top-0 z-50 shadow-2xl",
         side === 'left' ? 'left-0' : 'right-0',
-        isCollapsed ? 'w-12' : 'w-80'
+        isCollapsed ? 'w-12' : ''
       )}
       style={{
+        width: isCollapsed ? 48 : currentWidth,
         backgroundColor: isFloating ? 'var(--background)' : undefined
       }}
     >
+      {/* Resize Handle */}
+      {!isCollapsed && (
+        <div
+          className={cn(
+            "absolute top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 transition-colors group",
+            side === 'left' ? '-right-0.5' : '-left-0.5'
+          )}
+          onMouseDown={handleResizeStart}
+        >
+          <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="h-6 w-3 text-muted-foreground/50" />
+          </div>
+        </div>
+      )}
+
       {/* Collapse/Expand Button - Always Visible */}
       <Button
         variant="ghost"
@@ -170,6 +236,16 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
               <Pin className="h-4 w-4" />
             )}
           </Button>
+          
+          {/* Width Display - Only when resizing */}
+          {isResizing && (
+            <div className={cn(
+              "absolute top-12 z-50 px-2 py-1 text-xs bg-background/95 backdrop-blur border rounded shadow-md",
+              side === 'left' ? "right-2" : "left-2"
+            )}>
+              {currentWidth}px
+            </div>
+          )}
         </>
       )}
 
@@ -200,8 +276,10 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
             </Button>
           </div>
         ) : (
-          // Expanded State - Show full content
-          children
+          // Expanded State - Show full content with responsive layout
+          <div className="h-full overflow-hidden">
+            {children}
+          </div>
         )}
       </div>
     </div>
