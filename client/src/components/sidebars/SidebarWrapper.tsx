@@ -160,13 +160,17 @@ export function SidebarWrapper({ side, children }: SidebarWrapperProps) {
       {!isCollapsed && (
         <div
           className={cn(
-            "absolute top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 transition-colors group",
-            side === 'left' ? '-right-0.5' : '-left-0.5'
+            "absolute top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/30 transition-all group z-10",
+            side === 'left' ? '-right-1' : '-left-1',
+            isResizing && 'bg-primary/50'
           )}
           onMouseDown={handleResizeStart}
         >
-          <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <GripVertical className="h-6 w-3 text-muted-foreground/50" />
+          <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2">
+            <GripVertical className={cn(
+              "h-8 w-4 transition-all",
+              isResizing ? 'text-primary' : 'text-muted-foreground/30 group-hover:text-muted-foreground'
+            )} />
           </div>
         </div>
       )}
