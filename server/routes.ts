@@ -1274,91 +1274,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // const engine = browserManager.getEngine(instanceId); // TODO: Implement getEngine method
       const engine = null; // Temporarily disabled
       
-      if (!engine) {
-        // If no browser engine, return a simple message
-        res.send(`
-          <html>
-            <head>
-              <title>Browser Not Ready</title>
-              <style>
-                body { 
-                  font-family: system-ui, -apple-system, sans-serif; 
-                  display: flex; 
-                  align-items: center; 
-                  justify-content: center; 
-                  height: 100vh; 
-                  margin: 0;
-                  background: #1a1a1a;
-                  color: #e0e0e0;
-                }
-                .message { text-align: center; }
-                button {
-                  margin-top: 20px;
-                  padding: 10px 20px;
-                  background: #007bff;
-                  color: white;
-                  border: none;
-                  border-radius: 5px;
-                  cursor: pointer;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="message">
-                <h2>Nettleseren er ikke klar</h2>
-                <p>Vennligst vent mens vi initialiserer nettleseren...</p>
-                <button onclick="window.location.reload()">Prøv igjen</button>
-              </div>
-            </body>
-          </html>
-        `);
-        return;
-      }
-      
-      const tab = engine.getTab(tabId);
-      if (!tab) {
-        res.status(404).json({ error: 'Tab not found' });
-        return;
-      }
-      
-      // Try to get the page content
-      const content = await engine.getPageContent(tabId);
-      
-      if (!content) {
-        // Return a simple loading page if content is not available
-        res.send(`
-          <html>
-            <head>
-              <title>Loading...</title>
-              <style>
-                body { 
-                  font-family: system-ui, -apple-system, sans-serif; 
-                  display: flex; 
-                  align-items: center; 
-                  justify-content: center; 
-                  height: 100vh; 
-                  margin: 0;
-                  background: #1a1a1a;
-                  color: #e0e0e0;
-                }
-                .message { text-align: center; }
-              </style>
-            </head>
-            <body>
-              <div class="message">
-                <h2>Laster innhold...</h2>
-                <p>URL: ${tab.url}</p>
-              </div>
-            </body>
-          </html>
-        `);
-        return;
-      }
-      
-      // Send the HTML content with proper headers
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Allow iframe from same origin
-      res.send(content);
+      // Browser engine is temporarily disabled, return a simple message
+      res.send(`
+        <html>
+          <head>
+            <title>Browser Not Ready</title>
+            <style>
+              body { 
+                font-family: system-ui, -apple-system, sans-serif; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                margin: 0;
+                background: #1a1a1a;
+                color: #e0e0e0;
+              }
+              .message { text-align: center; }
+              button {
+                margin-top: 20px;
+                padding: 10px 20px;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="message">
+              <h2>Nettleseren er ikke klar</h2>
+              <p>Vennligst vent mens vi initialiserer nettleseren...</p>
+              <button onclick="window.location.reload()">Prøv igjen</button>
+            </div>
+          </body>
+        </html>
+      `);
+      return;
       
     } catch (error) {
       console.error('Proxy error:', error);
@@ -3151,7 +3104,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const activeTab = activeInstance.tabs.find(tab => tab.isActive);
+      // Get the first tab as the active one (no active tracking yet)
+      const tabs = Array.from(activeInstance.tabs.values());
+      const activeTab = tabs.length > 0 ? tabs[0] : null;
       
       res.json({
         url: activeTab?.url || "",
