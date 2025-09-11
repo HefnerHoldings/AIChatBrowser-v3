@@ -16,6 +16,7 @@ import { PasswordManager } from '@/components/PasswordManager';
 import { ReaderMode } from '@/components/ReaderMode';
 import { SessionRestore } from '@/components/SessionRestore';
 import { TabGroups } from '@/components/TabGroups';
+import { BookmarksPanel } from '@/components/BookmarksPanel';
 import { MediaControls } from '@/components/MediaControls';
 import { Extensions } from '@/components/Extensions';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
@@ -162,12 +163,14 @@ interface HistoryItem {
 export default function Browser() {
   const { toast } = useToast();
   const { config, toggleSidebar, toggleMode } = useSidebarManager();
+  const queryClient = useQueryClient();
   const [browserInstance, setBrowserInstance] = useState<BrowserInstance | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
-  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [currentPageBookmark, setCurrentPageBookmark] = useState<any>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -203,6 +206,55 @@ export default function Browser() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [pageContent, setPageContent] = useState<string>('');
   const [suggestionsCount, setSuggestionsCount] = useState(0);
+  
+  // Fetch bookmarks
+  const { data: bookmarks = [] } = useQuery<Bookmark[]>({
+    queryKey: ['/api/bookmarks'],
+  });
+  
+  // Check if current URL is bookmarked
+  const checkBookmarkStatus = async (url: string) => {
+    try {
+      const response = await apiRequest(`/api/bookmarks/check?url=${encodeURIComponent(url)}`);
+      setIsBookmarked(response.isBookmarked);
+      setCurrentPageBookmark(response.bookmark);
+    } catch (error) {
+      console.error('Failed to check bookmark status:', error);
+    }
+  };
+  
+  // Toggle bookmark for current page
+  const toggleBookmark = async () => {
+    if (!activeTab) return;
+    
+    try {
+      if (isBookmarked && currentPageBookmark) {
+        // Remove bookmark
+        await apiRequest(`/api/bookmarks/${currentPageBookmark.id}`, {
+          method: 'DELETE',
+        });
+        setIsBookmarked(false);
+        setCurrentPageBookmark(null);
+        toast({ title: 'Bokmerke fjernet' });
+      } else {
+        // Add bookmark
+        const bookmark = await apiRequest('/api/bookmarks', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: activeTab.title || 'Untitled',
+            url: activeTab.url,
+            favicon: activeTab.favicon,
+          }),
+        });
+        setIsBookmarked(true);
+        setCurrentPageBookmark(bookmark);
+        toast({ title: 'Bokmerke lagt til' });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/bookmarks'] });
+    } catch (error) {
+      toast({ title: 'Kunne ikke oppdatere bokmerke', variant: 'destructive' });
+    }
+  };
   
   // Initialize panel states from localStorage
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
@@ -447,13 +499,15 @@ export default function Browser() {
     }
   }, []);
 
-  // Check if current page is bookmarked
+  // Check if current page is bookmarked when URL changes
   useEffect(() => {
-    if (activeTab) {
-      const isInBookmarks = bookmarks.some(b => b.url === activeTab.url);
-      setIsBookmarked(isInBookmarks);
+    if (activeTab?.url && activeTab.url !== 'about:home' && activeTab.url !== 'about:blank') {
+      checkBookmarkStatus(activeTab.url);
+    } else {
+      setIsBookmarked(false);
+      setCurrentPageBookmark(null);
     }
-  }, [activeTab, bookmarks]);
+  }, [activeTab?.url]);
   
   // Add to history when navigating (not in incognito mode)
   useEffect(() => {
@@ -502,10 +556,10 @@ export default function Browser() {
           document.getElementById('url-input')?.focus();
         } else if (e.key === 'd') {
           e.preventDefault();
-          handleBookmarkToggle();
+          toggleBookmark();
         } else if (e.key === 'b' && e.shiftKey) {
           e.preventDefault();
-          setShowBookmarks(!showBookmarks);
+          setShowBookmarksPanel(!showBookmarksPanel);
         } else if (e.key === 'n' && e.shiftKey) {
           e.preventDefault();
           handleToggleIncognito();
@@ -555,7 +609,7 @@ export default function Browser() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [browserInstance, activeTab, showBookmarks, showHistory, showDevTools, isFullscreen, zoomLevel, showFindBar, showPasswords]);
+  }, [browserInstance, activeTab, showBookmarksPanel, showHistory, showDevTools, isFullscreen, zoomLevel, showFindBar, showPasswords, toggleBookmark]);
 
   const createNewTab = async (instanceId: string, url: string) => {
     await createTabMutation.mutateAsync({ instanceId, url });
@@ -817,42 +871,6 @@ export default function Browser() {
       });
     } finally {
       setIsNavigating(false);
-    }
-  };
-  
-  const handleBookmarkToggle = async () => {
-    if (!activeTab || activeTab.url === 'about:blank') return;
-    
-    try {
-      if (isBookmarked) {
-        const bookmark = bookmarks.find(b => b.url === activeTab.url);
-        if (bookmark) {
-          await apiRequest('DELETE', `/api/bookmarks/${bookmark.id}`);
-          setIsBookmarked(false);
-          toast({
-            title: 'Bokmerke fjernet',
-            description: `${activeTab.title} ble fjernet fra bokmerker`,
-          });
-        }
-      } else {
-        await apiRequest('POST', '/api/bookmarks', {
-          title: activeTab.title || activeTab.url,
-          url: activeTab.url,
-          favicon: activeTab.favicon
-        });
-        setIsBookmarked(true);
-        toast({
-          title: 'Bokmerke lagt til',
-          description: `${activeTab.title} ble lagt til i bokmerker`,
-        });
-      }
-      await queryClient.invalidateQueries({ queryKey: ['/api/bookmarks'] });
-    } catch (error) {
-      toast({
-        title: 'Feil',
-        description: 'Kunne ikke oppdatere bokmerker',
-        variant: 'destructive'
-      });
     }
   };
   
@@ -1330,7 +1348,7 @@ export default function Browser() {
                 <History className="mr-2 h-4 w-4" />
                 Historikk
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowBookmarks(!showBookmarks)}>
+              <DropdownMenuItem onClick={() => setShowBookmarksPanel(!showBookmarksPanel)}>
                 <BookmarkIcon className="mr-2 h-4 w-4" />
                 Bokmerker
               </DropdownMenuItem>
@@ -1683,7 +1701,7 @@ export default function Browser() {
                         <History className="mr-2 h-4 w-4" />
                         Historikk
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowBookmarks(!showBookmarks)}>
+                      <DropdownMenuItem onClick={() => setShowBookmarksPanel(!showBookmarksPanel)}>
                         <BookmarkIcon className="mr-2 h-4 w-4" />
                         Bokmerker
                       </DropdownMenuItem>

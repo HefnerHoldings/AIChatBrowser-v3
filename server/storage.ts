@@ -104,8 +104,13 @@ export interface IStorage {
   
   // Bookmarks
   getBookmarks(): Promise<Bookmark[]>;
+  getBookmark(id: string): Promise<Bookmark | undefined>;
+  getBookmarkByUrl(url: string): Promise<Bookmark | undefined>;
+  getBookmarkFolders(): Promise<string[]>;
   createBookmark(bookmark: InsertBookmark): Promise<Bookmark>;
+  updateBookmark(id: string, updates: Partial<InsertBookmark>): Promise<Bookmark | undefined>;
   deleteBookmark(id: string): Promise<boolean>;
+  reorderBookmarks(bookmarkIds: string[], startPosition: number): Promise<void>;
   
   // Browser History
   getBrowserHistory(limit?: number, offset?: number, searchQuery?: string): Promise<BrowserHistory[]>;
@@ -431,11 +436,45 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(bookmarks).orderBy(bookmarks.position);
   }
 
+  async getBookmark(id: string): Promise<Bookmark | undefined> {
+    const [bookmark] = await db.select().from(bookmarks).where(eq(bookmarks.id, id));
+    return bookmark;
+  }
+
+  async getBookmarkByUrl(url: string): Promise<Bookmark | undefined> {
+    const [bookmark] = await db.select().from(bookmarks).where(eq(bookmarks.url, url));
+    return bookmark;
+  }
+
+  async getBookmarkFolders(): Promise<string[]> {
+    const result = await db
+      .select({ folder: bookmarks.folder })
+      .from(bookmarks)
+      .where(sql`${bookmarks.folder} IS NOT NULL`)
+      .groupBy(bookmarks.folder);
+    return result.map(r => r.folder).filter(Boolean) as string[];
+  }
+
   async createBookmark(insertBookmark: InsertBookmark): Promise<Bookmark> {
     const id = randomUUID();
+    // Get max position for proper ordering
+    const [maxPos] = await db
+      .select({ max: sql<number>`COALESCE(MAX(${bookmarks.position}), 0)` })
+      .from(bookmarks);
+    const position = (maxPos?.max ?? 0) + 1;
+    
     const [bookmark] = await db
       .insert(bookmarks)
-      .values({ ...insertBookmark, id })
+      .values({ ...insertBookmark, id, position })
+      .returning();
+    return bookmark;
+  }
+
+  async updateBookmark(id: string, updates: Partial<InsertBookmark>): Promise<Bookmark | undefined> {
+    const [bookmark] = await db
+      .update(bookmarks)
+      .set(updates)
+      .where(eq(bookmarks.id, id))
       .returning();
     return bookmark;
   }
@@ -443,6 +482,16 @@ export class DatabaseStorage implements IStorage {
   async deleteBookmark(id: string): Promise<boolean> {
     const result = await db.delete(bookmarks).where(eq(bookmarks.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async reorderBookmarks(bookmarkIds: string[], startPosition: number): Promise<void> {
+    // Update positions for the specified bookmarks
+    for (let i = 0; i < bookmarkIds.length; i++) {
+      await db
+        .update(bookmarks)
+        .set({ position: startPosition + i })
+        .where(eq(bookmarks.id, bookmarkIds[i]));
+    }
   }
 
   // Browser History
@@ -1054,23 +1103,61 @@ class MemStorage implements IStorage {
     return Array.from(this.bookmarks.values()).sort((a, b) => a.position - b.position);
   }
 
+  async getBookmark(id: string): Promise<Bookmark | undefined> {
+    return this.bookmarks.get(id);
+  }
+
+  async getBookmarkByUrl(url: string): Promise<Bookmark | undefined> {
+    return Array.from(this.bookmarks.values()).find(b => b.url === url);
+  }
+
+  async getBookmarkFolders(): Promise<string[]> {
+    const folders = new Set<string>();
+    for (const bookmark of this.bookmarks.values()) {
+      if (bookmark.folder) folders.add(bookmark.folder);
+    }
+    return Array.from(folders);
+  }
+
   async createBookmark(insertBookmark: InsertBookmark): Promise<Bookmark> {
     const id = randomUUID();
+    // Get max position for proper ordering
+    const positions = Array.from(this.bookmarks.values()).map(b => b.position);
+    const maxPosition = positions.length > 0 ? Math.max(...positions) : 0;
+    
     const bookmark: Bookmark = { 
       id,
       title: insertBookmark.title,
       url: insertBookmark.url,
       favicon: insertBookmark.favicon || null,
       folder: insertBookmark.folder || null,
-      position: insertBookmark.position || 0,
+      position: maxPosition + 1,
       createdAt: new Date() 
     };
     this.bookmarks.set(id, bookmark);
     return bookmark;
   }
 
+  async updateBookmark(id: string, updates: Partial<InsertBookmark>): Promise<Bookmark | undefined> {
+    const bookmark = this.bookmarks.get(id);
+    if (!bookmark) return undefined;
+    const updatedBookmark = { ...bookmark, ...updates };
+    this.bookmarks.set(id, updatedBookmark);
+    return updatedBookmark;
+  }
+
   async deleteBookmark(id: string): Promise<boolean> {
     return this.bookmarks.delete(id);
+  }
+
+  async reorderBookmarks(bookmarkIds: string[], startPosition: number): Promise<void> {
+    for (let i = 0; i < bookmarkIds.length; i++) {
+      const bookmark = this.bookmarks.get(bookmarkIds[i]);
+      if (bookmark) {
+        bookmark.position = startPosition + i;
+        this.bookmarks.set(bookmarkIds[i], bookmark);
+      }
+    }
   }
 
   async getBrowserHistory(limit: number = 100, offset: number = 0, searchQuery?: string): Promise<BrowserHistory[]> {

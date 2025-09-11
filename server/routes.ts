@@ -2087,6 +2087,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/bookmarks/check", async (req, res) => {
+    try {
+      const { url } = req.query;
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'URL parameter is required' });
+      }
+      const bookmark = await storage.getBookmarkByUrl(url);
+      res.json({ isBookmarked: !!bookmark, bookmark });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.get("/api/bookmarks/folders", async (req, res) => {
+    try {
+      const folders = await storage.getBookmarkFolders();
+      res.json(folders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.get("/api/bookmarks/:id", async (req, res) => {
+    try {
+      const bookmark = await storage.getBookmark(req.params.id);
+      if (!bookmark) {
+        return res.status(404).json({ error: 'Bookmark not found' });
+      }
+      res.json(bookmark);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   app.post("/api/bookmarks", async (req, res) => {
     try {
       const data = insertBookmarkSchema.parse(req.body);
@@ -2098,6 +2132,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ error: error.message });
       }
+    }
+  });
+  
+  app.put("/api/bookmarks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertBookmarkSchema.partial().parse(req.body);
+      const bookmark = await storage.updateBookmark(id, updates);
+      if (!bookmark) {
+        return res.status(404).json({ error: 'Bookmark not found' });
+      }
+      res.json(bookmark);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid bookmark data", errors: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+  
+  app.post("/api/bookmarks/reorder", async (req, res) => {
+    try {
+      const { bookmarkIds, startPosition } = req.body;
+      if (!Array.isArray(bookmarkIds) || typeof startPosition !== 'number') {
+        return res.status(400).json({ error: 'Invalid reorder data' });
+      }
+      await storage.reorderBookmarks(bookmarkIds, startPosition);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
   
