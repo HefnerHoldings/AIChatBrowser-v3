@@ -16,12 +16,14 @@ MadEasy Browser is a standalone AI-powered web browser designed to autonomously 
 
 ### Recent Updates (September 2025)
 - **Sprint 1 Complete**: Core browsing functionality fully implemented and working
+- **Sprint 2 Complete**: Electron desktop app with CORS-free browsing, native menus, system tray, auto-updates
 - **Navigation Fixed**: URL input with Enter key navigation working correctly
-- **Tab Management**: Full tab creation, switching, and closing functionality
+- **Tab Management**: Full tab creation, switching, and closing functionality with BrowserView integration
 - **History & Bookmarks**: PostgreSQL persistence with UI panels for management
-- **Downloads Tracking**: Complete download monitoring with progress display
-- **CORS Issue Resolved**: API calls correctly routed to backend regardless of browsed domain
-- **Code Cleanup**: Removed 25+ unused components for cleaner codebase
+- **Downloads Tracking**: Complete download monitoring with native file system integration
+- **CORS Bypass**: Toggleable CORS-free mode for external sites in Electron
+- **Security Hardened**: Scoped permissions, development/production mode separation
+- **Native Features**: Global shortcuts, system tray, native menus, auto-updater configured
 
 ### MadEasy V3.00 - Vibecoding Platform (January 2025)
 - **Multi-Agent Orchestration**: Specialized AI team with Leader, PM, Architect, Engineer, and Data Analyst agents working with consensus protocols

@@ -1,0 +1,207 @@
+appId: com.madeasy.browser
+productName: MadEasy Browser
+copyright: Copyright © 2025 MadEasy AI
+directories:
+  output: dist-electron
+  buildResources: build
+
+files:
+  - "electron/**/*"
+  - "dist/**/*"
+  - "attached_assets/icon.png"
+  - "!**/*.map"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*.d.ts"
+  - "!**/node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+
+extraResources:
+  - from: "attached_assets"
+    to: "attached_assets"
+    filter: ["**/*"]
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/node_modules/puppeteer/**/*"
+  - "**/node_modules/puppeteer-core/**/*"
+
+compression: maximum
+
+electronDownload:
+  cache: ".cache/electron"
+  
+publish:
+  provider: github
+  owner: madeasy-ai
+  repo: madeasy-browser
+  releaseType: release
+
+# Auto Update configuration
+autoUpdater:
+  provider: github
+  owner: madeasy-ai
+  repo: madeasy-browser
+
+# Windows configuration
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+    - target: portable
+      arch:
+        - x64
+  icon: attached_assets/icon.png
+  certificateFile: null
+  certificatePassword: null
+  verifyUpdateCodeSignature: false
+  requestedExecutionLevel: asInvoker
+  
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  displayLanguageSelector: true
+  installerIcon: attached_assets/icon.png
+  uninstallerIcon: attached_assets/icon.png
+  installerHeaderIcon: attached_assets/icon.png
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: MadEasy Browser
+  menuCategory: true
+  include: null
+  script: null
+  
+# macOS configuration  
+mac:
+  category: public.app-category.productivity
+  icon: attached_assets/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  type: distribution
+  
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+  background: null
+  icon: attached_assets/icon.png
+  iconSize: 128
+  title: MadEasy Browser ${version}
+
+# Linux configuration
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
+    - target: snap
+      arch:
+        - x64
+  icon: attached_assets/icon.png
+  category: Network
+  description: AI-powered browser with automation and CORS-free browsing
+  desktop:
+    Name: MadEasy Browser
+    Comment: AI-powered browser with automation
+    Exec: madeasy-browser %U
+    Terminal: false
+    Type: Application
+    Icon: madeasy-browser
+    Categories: Network;WebBrowser;
+    MimeType: text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ftp;
+    Keywords: browser;internet;web;automation;ai;
+  maintainer: MadEasy AI <support@madeasy.ai>
+  vendor: MadEasy AI
+
+appImage:
+  systemIntegration: ask
+  license: LICENSE
+  artifactName: MadEasy-Browser-${version}-${arch}.AppImage
+
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+
+rpm:
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - libXtst
+    - xdg-utils
+    - at-spi2-core
+    - libuuid
+    - libsecret
+
+snap:
+  plugs:
+    - default
+    - audio-playback
+    - browser-support
+    - network
+    - network-bind
+
+protocols:
+  - name: madeasy
+    schemes:
+      - madeasy
+  - name: http
+    schemes:
+      - http
+      - https
+
+fileAssociations:
+  - ext: html
+    name: HTML
+    description: HTML Document
+    role: Viewer
+  - ext: htm
+    name: HTM
+    description: HTM Document
+    role: Viewer
+  - ext: url
+    name: URL
+    description: Internet Shortcut
+    role: Viewer
+
+afterPack: "./build/afterPack.js"
+afterSign: "./build/afterSign.js"
