@@ -1114,3 +1114,300 @@ export type InsertMarketplaceReview = z.infer<typeof insertMarketplaceReviewSche
 export type InsertMarketplaceLicense = z.infer<typeof insertMarketplaceLicenseSchema>;
 export type InsertMarketplaceTransaction = z.infer<typeof insertMarketplaceTransactionSchema>;
 export type InsertMarketplaceExecutionLog = z.infer<typeof insertMarketplaceExecutionLogSchema>;
+
+// ========== Watched Workflows Tables ==========
+
+export const watchedWorkflows = pgTable('watched_workflows', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  playbookId: varchar('playbook_id').references(() => workflows.id),
+  status: varchar('status').notNull().default('active'), // active, paused, error
+  
+  // Scheduling
+  scheduleType: varchar('schedule_type').notNull().default('rrule'), // rrule, cron, interval
+  scheduleConfig: jsonb('schedule_config').$type<{
+    rrule?: string;
+    cron?: string;
+    interval?: number;
+    timezone?: string;
+  }>().notNull(),
+  nextRun: timestamp('next_run'),
+  lastRun: timestamp('last_run'),
+  
+  // Change Detection
+  changeDetection: boolean('change_detection').default(false),
+  changeDetectionConfig: jsonb('change_detection_config').$type<{
+    method: 'dom' | 'text' | 'visual' | 'hash';
+    threshold: number;
+    ignoreSelectors?: string[];
+    ignorePatterns?: string[];
+  }>().default({}),
+  
+  // Configuration
+  config: jsonb('config').$type<{
+    url?: string;
+    selectors?: string[];
+    extractionRules?: any;
+    timeout?: number;
+    retryAttempts?: number;
+    retryDelay?: number;
+  }>().default({}),
+  
+  // Metrics
+  metrics: jsonb('metrics').$type<{
+    totalRuns: number;
+    successfulRuns: number;
+    failedRuns: number;
+    averageDuration: number;
+    lastDuration?: number;
+    changesDetected: number;
+  }>().default({
+    totalRuns: 0,
+    successfulRuns: 0,
+    failedRuns: 0,
+    averageDuration: 0,
+    changesDetected: 0
+  }),
+  
+  createdAt: timestamp('created_at').notNull().default(sql`now()`),
+  updatedAt: timestamp('updated_at').notNull().default(sql`now()`)
+});
+
+export const workflowTriggers = pgTable('workflow_triggers', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar('workflow_id').references(() => watchedWorkflows.id).notNull(),
+  type: varchar('type').notNull(), // time, content, element, status, webhook, api, event
+  name: varchar('name').notNull(),
+  enabled: boolean('enabled').default(true),
+  
+  config: jsonb('config').$type<{
+    // Time triggers
+    schedule?: string;
+    
+    // Content triggers
+    selector?: string;
+    contentPattern?: string;
+    changeThreshold?: number;
+    
+    // Element triggers
+    elementSelector?: string;
+    elementEvent?: string;
+    
+    // Status triggers
+    statusCode?: number;
+    statusPattern?: string;
+    
+    // Webhook triggers
+    webhookToken?: string;
+    webhookSecret?: string;
+    
+    // API triggers
+    apiEndpoint?: string;
+    pollInterval?: number;
+    apiKey?: string;
+    
+    // Event triggers
+    eventName?: string;
+    eventSource?: string;
+  }>().notNull(),
+  
+  lastTriggered: timestamp('last_triggered'),
+  triggerCount: integer('trigger_count').default(0),
+  
+  createdAt: timestamp('created_at').notNull().default(sql`now()`)
+});
+
+export const workflowActions = pgTable('workflow_actions', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar('workflow_id').references(() => watchedWorkflows.id).notNull(),
+  type: varchar('type').notNull(), // run, notify, create-pr, webhook, export, script, integration
+  name: varchar('name').notNull(),
+  enabled: boolean('enabled').default(true),
+  order: integer('order').notNull().default(0),
+  
+  config: jsonb('config').$type<{
+    // Run actions
+    playbookId?: string;
+    runConfig?: any;
+    
+    // Notify actions
+    notificationType?: 'email' | 'sms' | 'slack' | 'discord' | 'webhook';
+    recipients?: string[];
+    template?: string;
+    
+    // PR actions
+    repository?: string;
+    branch?: string;
+    title?: string;
+    body?: string;
+    
+    // Webhook actions
+    url?: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: any;
+    
+    // Export actions
+    format?: 'json' | 'csv' | 'excel' | 'pdf';
+    destination?: string;
+    
+    // Script actions
+    script?: string;
+    language?: string;
+    
+    // Integration actions
+    integration?: string;
+    integrationConfig?: any;
+  }>().notNull(),
+  
+  retryOnFailure: boolean('retry_on_failure').default(true),
+  retryAttempts: integer('retry_attempts').default(3),
+  retryDelay: integer('retry_delay').default(5000),
+  
+  createdAt: timestamp('created_at').notNull().default(sql`now()`)
+});
+
+export const workflowRuns = pgTable('workflow_runs', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar('workflow_id').references(() => watchedWorkflows.id).notNull(),
+  runNumber: integer('run_number').notNull(),
+  status: varchar('status').notNull().default('pending'), // pending, running, success, failed, cancelled
+  triggerType: varchar('trigger_type').notNull(), // manual, scheduled, webhook, event, change
+  triggeredBy: varchar('triggered_by'),
+  
+  startedAt: timestamp('started_at').notNull(),
+  completedAt: timestamp('completed_at'),
+  duration: integer('duration'), // milliseconds
+  
+  steps: jsonb('steps').$type<{
+    name: string;
+    status: string;
+    startedAt: string;
+    completedAt?: string;
+    output?: any;
+    error?: string;
+  }[]>().default([]),
+  
+  extractedData: jsonb('extracted_data'),
+  changesDetected: jsonb('changes_detected'),
+  actionsExecuted: jsonb('actions_executed').$type<{
+    actionId: string;
+    status: string;
+    output?: any;
+    error?: string;
+  }[]>().default([]),
+  
+  logs: text('logs').array().default([]),
+  screenshots: text('screenshots').array().default([]),
+  error: text('error'),
+  
+  createdAt: timestamp('created_at').notNull().default(sql`now()`)
+}, (table) => ({
+  workflowIdIdx: index('workflow_runs_workflow_id_idx').on(table.workflowId),
+  statusIdx: index('workflow_runs_status_idx').on(table.status),
+}));
+
+export const workflowChanges = pgTable('workflow_changes', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar('workflow_id').references(() => watchedWorkflows.id).notNull(),
+  runId: varchar('run_id').references(() => workflowRuns.id).notNull(),
+  
+  changeType: varchar('change_type').notNull(), // content, structure, visual, status
+  severity: varchar('severity').notNull().default('low'), // low, medium, high, critical
+  
+  previousValue: jsonb('previous_value'),
+  currentValue: jsonb('current_value'),
+  diff: jsonb('diff'),
+  
+  selector: text('selector'),
+  url: text('url'),
+  screenshot: text('screenshot'),
+  
+  similarity: real('similarity'), // 0-100
+  changeScore: real('change_score'), // 0-100
+  
+  notified: boolean('notified').default(false),
+  acknowledged: boolean('acknowledged').default(false),
+  
+  detectedAt: timestamp('detected_at').notNull().default(sql`now()`)
+}, (table) => ({
+  workflowIdIdx: index('workflow_changes_workflow_id_idx').on(table.workflowId),
+  runIdIdx: index('workflow_changes_run_id_idx').on(table.runId),
+}));
+
+export const workflowSchedules = pgTable('workflow_schedules', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  workflowId: varchar('workflow_id').references(() => watchedWorkflows.id).notNull(),
+  
+  scheduleType: varchar('schedule_type').notNull(), // rrule, cron, interval, once
+  scheduleExpression: text('schedule_expression').notNull(),
+  timezone: varchar('timezone').default('UTC'),
+  
+  enabled: boolean('enabled').default(true),
+  priority: integer('priority').default(0),
+  
+  nextRun: timestamp('next_run'),
+  lastRun: timestamp('last_run'),
+  
+  runCount: integer('run_count').default(0),
+  maxRuns: integer('max_runs'), // null = unlimited
+  
+  metadata: jsonb('metadata').default({}),
+  
+  createdAt: timestamp('created_at').notNull().default(sql`now()`)
+});
+
+// Insert schemas for watched workflows
+export const insertWatchedWorkflowSchema = createInsertSchema(watchedWorkflows).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  nextRun: true,
+  lastRun: true
+});
+
+export const insertWorkflowTriggerSchema = createInsertSchema(workflowTriggers).omit({
+  id: true,
+  createdAt: true,
+  lastTriggered: true,
+  triggerCount: true
+});
+
+export const insertWorkflowActionSchema = createInsertSchema(workflowActions).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertWorkflowRunSchema = createInsertSchema(workflowRuns).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertWorkflowChangeSchema = createInsertSchema(workflowChanges).omit({
+  id: true,
+  detectedAt: true
+});
+
+export const insertWorkflowScheduleSchema = createInsertSchema(workflowSchedules).omit({
+  id: true,
+  createdAt: true,
+  nextRun: true,
+  lastRun: true,
+  runCount: true
+});
+
+// Types for watched workflows
+export type WatchedWorkflow = typeof watchedWorkflows.$inferSelect;
+export type WorkflowTrigger = typeof workflowTriggers.$inferSelect;
+export type WorkflowAction = typeof workflowActions.$inferSelect;
+export type WorkflowRun = typeof workflowRuns.$inferSelect;
+export type WorkflowChange = typeof workflowChanges.$inferSelect;
+export type WorkflowSchedule = typeof workflowSchedules.$inferSelect;
+
+export type InsertWatchedWorkflow = z.infer<typeof insertWatchedWorkflowSchema>;
+export type InsertWorkflowTrigger = z.infer<typeof insertWorkflowTriggerSchema>;
+export type InsertWorkflowAction = z.infer<typeof insertWorkflowActionSchema>;
+export type InsertWorkflowRun = z.infer<typeof insertWorkflowRunSchema>;
+export type InsertWorkflowChange = z.infer<typeof insertWorkflowChangeSchema>;
+export type InsertWorkflowSchedule = z.infer<typeof insertWorkflowScheduleSchema>;

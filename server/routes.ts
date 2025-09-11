@@ -25,9 +25,14 @@ import {
   insertSavedPasswordSchema,
   insertWorkflowAIChatSchema,
   insertWorkflowVoiceSessionSchema,
-  insertWorkflowStepConfigSchema
+  insertWorkflowStepConfigSchema,
+  insertWatchedWorkflowSchema,
+  insertWorkflowTriggerSchema,
+  insertWorkflowActionSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { createWorkflowManager } from "./workflows/workflow-manager";
+import { workflowStorage } from "./workflows/workflow-storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize browser engine
@@ -41,6 +46,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Initialize Selector Studio v2
   const selectorStudio = createSelectorStudio(browserManager);
+  
+  // Initialize Workflow Manager for watched workflows
+  const workflowManager = createWorkflowManager(browserManager);
+  await workflowManager.initialize();
   
   // Projects
   app.get("/api/projects", async (req, res) => {
@@ -2386,6 +2395,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ========== Watched Workflows API ==========
+  
+  // Create watched workflow
+  app.post("/api/workflows/watched", async (req, res) => {
+    try {
+      const { workflow, triggers, actions } = req.body;
+      const workflowData = insertWatchedWorkflowSchema.parse(workflow);
+      const triggersData = triggers ? triggers.map((t: any) => insertWorkflowTriggerSchema.parse(t)) : [];
+      const actionsData = actions ? actions.map((a: any) => insertWorkflowActionSchema.parse(a)) : [];
+      
+      const createdWorkflow = await workflowManager.createWatchedWorkflow(
+        workflowData,
+        triggersData,
+        actionsData
+      );
+      
+      res.json(createdWorkflow);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid workflow data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create watched workflow" });
+      }
+    }
+  });
+  
+  // List watched workflows
+  app.get("/api/workflows/watched", async (req, res) => {
+    try {
+      const { status } = req.query;
+      const workflows = await workflowStorage.getWatchedWorkflows(status as string);
+      res.json(workflows);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch watched workflows" });
+    }
+  });
+  
+  // Get single watched workflow
+  app.get("/api/workflows/watched/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const workflow = await workflowStorage.getWatchedWorkflow(id);
+      
+      if (!workflow) {
+        res.status(404).json({ message: "Workflow not found" });
+        return;
+      }
+      
+      // Include triggers and actions
+      const triggers = await workflowStorage.getWorkflowTriggers(id);
+      const actions = await workflowStorage.getWorkflowActions(id);
+      
+      res.json({ workflow, triggers, actions });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch workflow" });
+    }
+  });
+  
+  // Update watched workflow
+  app.put("/api/workflows/watched/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertWatchedWorkflowSchema.partial().parse(req.body);
+      
+      const workflow = await workflowManager.updateWatchedWorkflow(id, updates);
+      
+      if (!workflow) {
+        res.status(404).json({ message: "Workflow not found" });
+        return;
+      }
+      
+      res.json(workflow);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid workflow data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update workflow" });
+      }
+    }
+  });
+  
+  // Delete watched workflow
+  app.delete("/api/workflows/watched/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await workflowManager.deleteWatchedWorkflow(id);
+      
+      if (!deleted) {
+        res.status(404).json({ message: "Workflow not found" });
+        return;
+      }
+      
+      res.json({ message: "Workflow deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete workflow" });
+    }
+  });
+  
+  // Manual trigger workflow
+  app.post("/api/workflows/watched/:id/run", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const run = await workflowManager.triggerWorkflowManually(id);
+      res.json(run);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to run workflow" });
+    }
+  });
+  
+  // Get workflow run history
+  app.get("/api/workflows/watched/:id/history", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { limit = 50, status } = req.query;
+      
+      const runs = await workflowStorage.getWorkflowRuns({
+        workflowId: id,
+        status: status as string,
+        limit: parseInt(limit as string)
+      });
+      
+      res.json(runs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch workflow history" });
+    }
+  });
+  
+  // Webhook trigger endpoint
+  app.post("/api/workflows/webhook/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const result = await workflowManager.handleWebhookTrigger(
+        token,
+        req.body,
+        req.headers as Record<string, string>
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Webhook processing failed" });
+    }
+  });
+  
+  // Get detected changes
+  app.get("/api/workflows/watched/:id/changes", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { acknowledged, limit = 50 } = req.query;
+      
+      const changes = await workflowStorage.getWorkflowChanges({
+        workflowId: id,
+        acknowledged: acknowledged === 'true',
+        limit: parseInt(limit as string)
+      });
+      
+      res.json(changes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch changes" });
+    }
+  });
+  
+  // Acknowledge change
+  app.post("/api/workflows/changes/:id/acknowledge", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await workflowStorage.acknowledgeWorkflowChange(id);
+      res.json({ message: "Change acknowledged" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to acknowledge change" });
+    }
+  });
+  
+  // Get workflow statistics
+  app.get("/api/workflows/watched/:id/stats", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const stats = await workflowManager.getWorkflowStats(id);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch workflow statistics" });
+    }
+  });
+  
+  // Get global statistics
+  app.get("/api/workflows/watched/stats/global", async (req, res) => {
+    try {
+      const stats = await workflowManager.getGlobalStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch global statistics" });
+    }
+  });
+  
+  // Detect schedule conflicts
+  app.post("/api/workflows/watched/:id/conflicts", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { start, end } = req.body;
+      
+      const timeRange = start && end ? {
+        start: new Date(start),
+        end: new Date(end)
+      } : undefined;
+      
+      const conflicts = await workflowManager.detectScheduleConflicts(id, timeRange);
+      res.json(conflicts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to detect conflicts" });
+    }
+  });
+  
+  // Pause workflow
+  app.post("/api/workflows/watched/:id/pause", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await workflowManager.pauseWorkflow(id);
+      res.json({ message: "Workflow paused" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to pause workflow" });
+    }
+  });
+  
+  // Resume workflow
+  app.post("/api/workflows/watched/:id/resume", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await workflowManager.resumeWorkflow(id);
+      res.json({ message: "Workflow resumed" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to resume workflow" });
     }
   });
   

@@ -53,6 +53,18 @@ import {
   type InsertMarketplaceDownload,
   type InsertMarketplaceTransaction,
   type InsertMarketplaceExecutionLog,
+  type WatchedWorkflow,
+  type WorkflowTrigger,
+  type WorkflowAction,
+  type WorkflowRun,
+  type WorkflowChange,
+  type WorkflowSchedule,
+  type InsertWatchedWorkflow,
+  type InsertWorkflowTrigger,
+  type InsertWorkflowAction,
+  type InsertWorkflowRun,
+  type InsertWorkflowChange,
+  type InsertWorkflowSchedule,
   projects,
   workflows,
   automationTasks,
@@ -216,6 +228,43 @@ export interface IStorage {
   
   trackMarketplaceDownload(download: InsertMarketplaceDownload): Promise<MarketplaceDownload>;
   recordMarketplaceExecution(log: InsertMarketplaceExecutionLog): Promise<MarketplaceExecutionLog>;
+  
+  // Watched Workflows
+  getWatchedWorkflows(status?: string): Promise<WatchedWorkflow[]>;
+  getWatchedWorkflow(id: string): Promise<WatchedWorkflow | null>;
+  createWatchedWorkflow(workflow: InsertWatchedWorkflow): Promise<WatchedWorkflow>;
+  updateWatchedWorkflow(id: string, updates: Partial<InsertWatchedWorkflow>): Promise<WatchedWorkflow | null>;
+  deleteWatchedWorkflow(id: string): Promise<boolean>;
+  
+  // Workflow Triggers
+  getWorkflowTriggers(workflowId: string): Promise<WorkflowTrigger[]>;
+  createWorkflowTrigger(trigger: InsertWorkflowTrigger): Promise<WorkflowTrigger>;
+  updateWorkflowTrigger(id: string, updates: Partial<InsertWorkflowTrigger>): Promise<WorkflowTrigger | null>;
+  deleteWorkflowTrigger(id: string): Promise<boolean>;
+  
+  // Workflow Actions
+  getWorkflowActions(workflowId: string): Promise<WorkflowAction[]>;
+  getWorkflowAction(id: string): Promise<WorkflowAction | null>;
+  createWorkflowAction(action: InsertWorkflowAction): Promise<WorkflowAction>;
+  updateWorkflowAction(id: string, updates: Partial<InsertWorkflowAction>): Promise<WorkflowAction | null>;
+  deleteWorkflowAction(id: string): Promise<boolean>;
+  
+  // Workflow Runs
+  getWorkflowRuns(filters?: { workflowId?: string; status?: string; limit?: number }): Promise<WorkflowRun[]>;
+  getWorkflowRun(id: string): Promise<WorkflowRun | null>;
+  createWorkflowRun(run: InsertWorkflowRun): Promise<WorkflowRun>;
+  updateWorkflowRun(id: string, updates: Partial<InsertWorkflowRun>): Promise<WorkflowRun | null>;
+  
+  // Workflow Changes
+  getWorkflowChanges(filters?: { workflowId?: string; runId?: string; acknowledged?: boolean }): Promise<WorkflowChange[]>;
+  createWorkflowChange(change: InsertWorkflowChange): Promise<WorkflowChange>;
+  acknowledgeWorkflowChange(id: string): Promise<void>;
+  
+  // Workflow Schedules
+  getWorkflowSchedules(workflowId: string): Promise<WorkflowSchedule[]>;
+  createWorkflowSchedule(schedule: InsertWorkflowSchedule): Promise<WorkflowSchedule>;
+  updateWorkflowSchedule(id: string, updates: Partial<InsertWorkflowSchedule>): Promise<WorkflowSchedule | null>;
+  deleteWorkflowSchedule(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
