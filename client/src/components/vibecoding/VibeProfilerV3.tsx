@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -44,9 +44,135 @@ import {
   Download,
   Copy,
   Share2,
-  ChevronRight
+  ChevronRight,
+  Wand2,
+  FileCode,
+  Rocket,
+  BookOpen,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  X,
+  Info,
+  HelpCircle,
+  TrendingUp,
+  Trophy,
+  Award,
+  GitBranch,
+  Terminal,
+  Cpu,
+  Server,
+  Smartphone,
+  Monitor,
+  CircuitBoard,
+  Workflow,
+  TestTube,
+  FileSearch,
+  PenTool,
+  Bot,
+  Gauge,
+  ShieldCheck,
+  DollarSign,
+  Clock,
+  UserCheck,
+  Building,
+  Briefcase,
+  GraduationCap,
+  Lightbulb,
+  Star,
+  Heart,
+  MessageSquare,
+  Video,
+  Mic,
+  BarChart,
+  LineChart,
+  PieChart,
+  Activity,
+  Fingerprint,
+  KeyRound,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  GitMerge,
+  GitPullRequest,
+  BugOff,
+  Puzzle,
+  PlayCircle,
+  PauseCircle,
+  StopCircle,
+  FastForward,
+  Rewind,
+  Volume2,
+  VolumeX,
+  Wifi,
+  WifiOff,
+  Bluetooth,
+  Cast,
+  Airplay,
+  Navigation,
+  MapPin,
+  Compass,
+  Map,
+  Navigation2,
+  Globe2,
+  Plane,
+  Train,
+  Car,
+  Ship,
+  Anchor,
+  Mountain,
+  TreePine,
+  Flower,
+  Sun,
+  Moon,
+  CloudRain,
+  CloudSnow,
+  Wind,
+  Droplets,
+  Thermometer,
+  Umbrella,
+  Coffee,
+  Pizza,
+  Apple,
+  Cherry,
+  Grape,
+  Banana
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VibeProfile {
   id: string;
@@ -166,11 +292,263 @@ const defaultProfile: VibeProfile = {
   }
 };
 
+// Project Templates
+const projectTemplates: VibeProfile[] = [
+  {
+    ...defaultProfile,
+    id: 'template-saas',
+    name: 'SaaS Platform',
+    description: 'Modern SaaS application with subscription billing',
+    projectType: 'fullstack',
+    targetAudience: 'Business customers',
+    businessGoals: ['Recurring revenue', 'Scalability', 'User retention'],
+    stack: {
+      frontend: ['React', 'TypeScript', 'Tailwind', 'Framer Motion'],
+      backend: ['Node.js', 'Express', 'GraphQL', 'Prisma'],
+      database: ['PostgreSQL', 'Redis'],
+      devops: ['Docker', 'Kubernetes', 'AWS', 'GitHub Actions'],
+      ai: ['OpenAI GPT-4', 'Embeddings']
+    },
+    quality: {
+      codeStyle: 'clean',
+      testingLevel: 'comprehensive',
+      documentation: 'detailed',
+      performance: 90,
+      accessibility: 95,
+      security: 95
+    },
+    security: {
+      authentication: 'multi-factor',
+      dataEncryption: true,
+      apiRateLimiting: true,
+      contentSecurity: true,
+      auditLogging: true
+    },
+    integrations: {
+      github: true,
+      openai: true,
+      stripe: true,
+      twilio: true,
+      custom: ['Slack', 'Zapier', 'Segment']
+    }
+  },
+  {
+    ...defaultProfile,
+    id: 'template-ecommerce',
+    name: 'E-Commerce Store',
+    description: 'Online shopping platform with payment processing',
+    projectType: 'fullstack',
+    targetAudience: 'Online shoppers',
+    businessGoals: ['Increase sales', 'Customer experience', 'Inventory management'],
+    stack: {
+      frontend: ['Next.js', 'TypeScript', 'Tailwind', 'SWR'],
+      backend: ['Node.js', 'NestJS', 'REST API'],
+      database: ['PostgreSQL', 'Elasticsearch'],
+      devops: ['Vercel', 'Cloudflare', 'GitHub Actions'],
+      ai: ['Recommendation engine', 'Chat support']
+    },
+    integrations: {
+      github: true,
+      openai: false,
+      stripe: true,
+      twilio: true,
+      custom: ['Shopify', 'PayPal', 'FedEx', 'Analytics']
+    }
+  },
+  {
+    ...defaultProfile,
+    id: 'template-ai-app',
+    name: 'AI-Powered Application',
+    description: 'Application leveraging AI for core functionality',
+    projectType: 'ai',
+    targetAudience: 'Tech-savvy users',
+    businessGoals: ['Innovation', 'Automation', 'User engagement'],
+    stack: {
+      frontend: ['React', 'TypeScript', 'Tailwind', 'Recharts'],
+      backend: ['Python', 'FastAPI', 'Celery'],
+      database: ['PostgreSQL', 'Pinecone', 'Redis'],
+      devops: ['Docker', 'Railway', 'GitHub Actions'],
+      ai: ['OpenAI GPT-4', 'DALL-E 3', 'Whisper', 'LangChain', 'Embeddings']
+    },
+    integrations: {
+      github: true,
+      openai: true,
+      stripe: false,
+      twilio: false,
+      custom: ['Hugging Face', 'Replicate', 'Stability AI']
+    }
+  },
+  {
+    ...defaultProfile,
+    id: 'template-mobile',
+    name: 'Mobile Application',
+    description: 'Cross-platform mobile app',
+    projectType: 'mobile',
+    targetAudience: 'Mobile users',
+    businessGoals: ['User engagement', 'App store ranking', 'Retention'],
+    stack: {
+      frontend: ['React Native', 'TypeScript', 'Expo'],
+      backend: ['Node.js', 'Express', 'GraphQL'],
+      database: ['PostgreSQL', 'Firebase'],
+      devops: ['EAS Build', 'CodePush', 'GitHub Actions'],
+      ai: ['ML Kit', 'TensorFlow Lite']
+    },
+    integrations: {
+      github: true,
+      openai: false,
+      stripe: true,
+      twilio: true,
+      custom: ['Push notifications', 'Analytics', 'Crash reporting']
+    }
+  },
+  {
+    ...defaultProfile,
+    id: 'template-startup-mvp',
+    name: 'Startup MVP',
+    description: 'Minimal viable product for quick validation',
+    projectType: 'fullstack',
+    targetAudience: 'Early adopters',
+    businessGoals: ['Market validation', 'User feedback', 'Fast iteration'],
+    stack: {
+      frontend: ['Next.js', 'TypeScript', 'Tailwind'],
+      backend: ['Node.js', 'Prisma', 'tRPC'],
+      database: ['PostgreSQL'],
+      devops: ['Vercel', 'PlanetScale'],
+      ai: ['OpenAI GPT-3.5']
+    },
+    constraints: {
+      budget: 'minimal',
+      timeline: 'asap',
+      teamSize: 1,
+      complianceRequirements: []
+    },
+    quality: {
+      codeStyle: 'pragmatic',
+      testingLevel: 'basic',
+      documentation: 'minimal',
+      performance: 70,
+      accessibility: 70,
+      security: 75
+    }
+  }
+];
+
+// AI Recommendation Engine
+const getAIRecommendations = (profile: VibeProfile) => {
+  const recommendations = [];
+  
+  // Performance recommendations
+  if (profile.quality.performance < 80) {
+    recommendations.push({
+      type: 'performance',
+      title: 'Performance Optimization',
+      description: 'Consider implementing caching, CDN, and code splitting',
+      priority: 'high',
+      impact: 'high',
+      suggestions: ['Add Redis caching', 'Use Cloudflare CDN', 'Implement lazy loading']
+    });
+  }
+  
+  // Security recommendations
+  if (!profile.security.dataEncryption) {
+    recommendations.push({
+      type: 'security',
+      title: 'Enable Data Encryption',
+      description: 'Encrypt sensitive data at rest and in transit',
+      priority: 'critical',
+      impact: 'critical',
+      suggestions: ['Use HTTPS everywhere', 'Encrypt database', 'Use secure cookies']
+    });
+  }
+  
+  // Stack recommendations based on project type
+  if (profile.projectType === 'ai' && !profile.stack.ai.some(t => t.includes('LangChain'))) {
+    recommendations.push({
+      type: 'stack',
+      title: 'Add LangChain',
+      description: 'LangChain simplifies AI application development',
+      priority: 'medium',
+      impact: 'high',
+      suggestions: ['Integrate LangChain for prompt management', 'Use chains for complex workflows']
+    });
+  }
+  
+  // Testing recommendations
+  if (profile.quality.testingLevel === 'none' || profile.quality.testingLevel === 'basic') {
+    recommendations.push({
+      type: 'quality',
+      title: 'Improve Test Coverage',
+      description: 'Add comprehensive testing to reduce bugs',
+      priority: 'high',
+      impact: 'high',
+      suggestions: ['Add unit tests', 'Implement integration tests', 'Set up E2E testing']
+    });
+  }
+  
+  return recommendations;
+};
+
 export function VibeProfilerV3() {
   const [profile, setProfile] = useState<VibeProfile>(defaultProfile);
-  const [templates, setTemplates] = useState<VibeProfile[]>([]);
+  const [templates, setTemplates] = useState<VibeProfile[]>(projectTemplates);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [wizardStep, setWizardStep] = useState(0);
+  const [isWizardMode, setIsWizardMode] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [profileHistory, setProfileHistory] = useState<VibeProfile[]>([]);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'json' | 'yaml' | 'toml'>('json');
+  
+  // Wizard steps configuration
+  const wizardSteps = [
+    { title: 'Project Basics', icon: Rocket, description: 'Name and type' },
+    { title: 'Tech Stack', icon: Layers, description: 'Choose technologies' },
+    { title: 'Quality Standards', icon: Trophy, description: 'Set quality bar' },
+    { title: 'Security', icon: Shield, description: 'Security requirements' },
+    { title: 'AI Configuration', icon: Bot, description: 'AI agent settings' },
+    { title: 'Constraints', icon: Target, description: 'Budget and timeline' },
+    { title: 'Review', icon: CheckCircle, description: 'Review and save' }
+  ];
+  
+  // Calculate profile completeness
+  const profileCompleteness = useMemo(() => {
+    let complete = 0;
+    let total = 0;
+    
+    // Check basic fields
+    if (profile.name) complete++;
+    total++;
+    if (profile.description) complete++;
+    total++;
+    if (profile.targetAudience) complete++;
+    total++;
+    if (profile.businessGoals.length > 0) complete++;
+    total++;
+    
+    // Check stack
+    if (profile.stack.frontend.length > 0) complete++;
+    total++;
+    if (profile.stack.backend.length > 0) complete++;
+    total++;
+    
+    // Check quality settings
+    if (profile.quality.codeStyle) complete++;
+    total++;
+    if (profile.quality.testingLevel !== 'none') complete++;
+    total++;
+    
+    return Math.round((complete / total) * 100);
+  }, [profile]);
+  
+  // Update AI recommendations when profile changes
+  useEffect(() => {
+    const recommendations = getAIRecommendations(profile);
+    setAiRecommendations(recommendations);
+  }, [profile]);
 
   // Last inn profil hvis Electron er tilgjengelig
   useEffect(() => {

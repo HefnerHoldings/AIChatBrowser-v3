@@ -1411,3 +1411,252 @@ export type InsertWorkflowAction = z.infer<typeof insertWorkflowActionSchema>;
 export type InsertWorkflowRun = z.infer<typeof insertWorkflowRunSchema>;
 export type InsertWorkflowChange = z.infer<typeof insertWorkflowChangeSchema>;
 export type InsertWorkflowSchedule = z.infer<typeof insertWorkflowScheduleSchema>;
+
+// ========== Gamification and Vibecoding Tables ==========
+
+export const userProfiles = pgTable("user_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique().references(() => users.id),
+  username: text("username").notNull(),
+  level: integer("level").notNull().default(1),
+  experience: integer("experience").notNull().default(0),
+  totalPoints: integer("total_points").notNull().default(0),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  lastActivityDate: timestamp("last_activity_date"),
+  preferences: jsonb("preferences").notNull().default({}),
+  stats: jsonb("stats").notNull().default({}),
+  avatar: text("avatar"),
+  title: text("title").default('Novice Developer'),
+  badges: jsonb("badges").notNull().default([]),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+}, (table) => ({
+  userIdIdx: index("user_profiles_user_id_idx").on(table.userId),
+  levelIdx: index("user_profiles_level_idx").on(table.level),
+}));
+
+export const achievements = pgTable("achievements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull(),
+  category: varchar("category", { length: 50 }).notNull(), // explorer, builder, collaborator, innovator, speedster
+  rarity: varchar("rarity", { length: 20 }).notNull(), // common, rare, epic, legendary, mythic
+  points: integer("points").notNull(),
+  conditionType: varchar("condition_type", { length: 50 }).notNull(),
+  conditionTarget: integer("condition_target").notNull(),
+  conditionMetadata: jsonb("condition_metadata"),
+  hidden: boolean("hidden").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const userAchievements = pgTable("user_achievements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  achievementId: varchar("achievement_id").notNull().references(() => achievements.id),
+  unlockedAt: timestamp("unlocked_at").notNull().default(sql`now()`),
+  progress: integer("progress").notNull().default(100),
+  notified: boolean("notified").notNull().default(false),
+}, (table) => ({
+  userAchievementIdx: index("user_achievements_user_idx").on(table.userId, table.achievementId),
+}));
+
+export const dailyChallenges = pgTable("daily_challenges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // speed, quality, quantity, collaboration
+  difficulty: varchar("difficulty", { length: 20 }).notNull(), // easy, medium, hard, expert
+  rewardPoints: integer("reward_points").notNull(),
+  rewardXP: integer("reward_xp").notNull(),
+  rewardBadgeId: varchar("reward_badge_id"),
+  requirements: jsonb("requirements").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+}, (table) => ({
+  dateIdx: index("daily_challenges_date_idx").on(table.date),
+  activeIdx: index("daily_challenges_active_idx").on(table.active),
+}));
+
+export const userChallenges = pgTable("user_challenges", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  challengeId: varchar("challenge_id").notNull().references(() => dailyChallenges.id),
+  startedAt: timestamp("started_at").notNull().default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+  progress: integer("progress").notNull().default(0),
+  status: varchar("status", { length: 20 }).notNull().default('active'), // active, completed, failed, abandoned
+}, (table) => ({
+  userChallengeIdx: index("user_challenges_user_idx").on(table.userId, table.challengeId),
+}));
+
+export const leaderboards = pgTable("leaderboards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  period: varchar("period", { length: 20 }).notNull(), // daily, weekly, monthly, all-time
+  category: varchar("category", { length: 50 }).notNull(), // points, xp, streaks, achievements
+  score: integer("score").notNull(),
+  rank: integer("rank"),
+  metadata: jsonb("metadata"),
+  calculatedAt: timestamp("calculated_at").notNull().default(sql`now()`),
+}, (table) => ({
+  leaderboardIdx: index("leaderboards_idx").on(table.period, table.category, table.score),
+  userLeaderboardIdx: index("leaderboards_user_idx").on(table.userId),
+}));
+
+export const vibeProfiles = pgTable("vibe_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  projectType: varchar("project_type", { length: 50 }).notNull(), // web, mobile, desktop, api, fullstack, ai, blockchain
+  targetAudience: text("target_audience"),
+  businessGoals: jsonb("business_goals").notNull().default([]),
+  stack: jsonb("stack").notNull(), // frontend, backend, database, devops, ai arrays
+  quality: jsonb("quality").notNull(), // codeStyle, testingLevel, documentation, performance, accessibility, security
+  security: jsonb("security").notNull(), // authentication, dataEncryption, apiRateLimiting, etc.
+  constraints: jsonb("constraints").notNull(), // budget, timeline, teamSize, compliance
+  agentConfig: jsonb("agent_config").notNull(), // autonomyLevel, decisionMaking, creativityLevel, etc.
+  integrations: jsonb("integrations").notNull().default({}),
+  isTemplate: boolean("is_template").notNull().default(false),
+  isPublic: boolean("is_public").notNull().default(false),
+  version: text("version").notNull().default('1.0.0'),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+}, (table) => ({
+  userVibeIdx: index("vibe_profiles_user_idx").on(table.userId),
+  templateIdx: index("vibe_profiles_template_idx").on(table.isTemplate),
+}));
+
+export const workflowTemplates = pgTable("workflow_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 50 }).notNull(), // data-extraction, automation, testing, monitoring, etc.
+  tags: jsonb("tags").notNull().default([]),
+  nodes: jsonb("nodes").notNull(), // ReactFlow nodes configuration
+  edges: jsonb("edges").notNull(), // ReactFlow edges configuration
+  variables: jsonb("variables").notNull().default({}),
+  settings: jsonb("settings").notNull().default({}),
+  isPublic: boolean("is_public").notNull().default(false),
+  usageCount: integer("usage_count").notNull().default(0),
+  rating: real("rating"),
+  version: text("version").notNull().default('1.0.0'),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+}, (table) => ({
+  userWorkflowIdx: index("workflow_templates_user_idx").on(table.userId),
+  categoryIdx: index("workflow_templates_category_idx").on(table.category),
+  publicIdx: index("workflow_templates_public_idx").on(table.isPublic),
+}));
+
+export const gamificationEvents = pgTable("gamification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  eventType: varchar("event_type", { length: 50 }).notNull(), // goal_completed, level_up, achievement_unlocked, etc.
+  eventData: jsonb("event_data").notNull(),
+  points: integer("points").notNull().default(0),
+  experience: integer("experience").notNull().default(0),
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+}, (table) => ({
+  userEventIdx: index("gamification_events_user_idx").on(table.userId),
+  timestampIdx: index("gamification_events_timestamp_idx").on(table.timestamp),
+}));
+
+export const collaborationSessions = pgTable("collaboration_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roomId: varchar("room_id").notNull().unique(),
+  hostUserId: varchar("host_user_id").notNull().references(() => users.id),
+  participants: jsonb("participants").notNull().default([]),
+  projectId: varchar("project_id"),
+  fileId: varchar("file_id"),
+  mode: varchar("mode", { length: 30 }).notNull(), // pair-programming, review, brainstorming
+  status: varchar("status", { length: 20 }).notNull().default('active'), // active, paused, ended
+  startedAt: timestamp("started_at").notNull().default(sql`now()`),
+  endedAt: timestamp("ended_at"),
+  metadata: jsonb("metadata").notNull().default({}),
+}, (table) => ({
+  roomIdx: index("collaboration_sessions_room_idx").on(table.roomId),
+  hostIdx: index("collaboration_sessions_host_idx").on(table.hostUserId),
+  statusIdx: index("collaboration_sessions_status_idx").on(table.status),
+}));
+
+// Insert schemas for gamification tables
+export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAchievementSchema = createInsertSchema(achievements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  unlockedAt: true,
+});
+
+export const insertDailyChallengeSchema = createInsertSchema(dailyChallenges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserChallengeSchema = createInsertSchema(userChallenges).omit({
+  id: true,
+  startedAt: true,
+});
+
+export const insertLeaderboardSchema = createInsertSchema(leaderboards).omit({
+  id: true,
+  calculatedAt: true,
+});
+
+export const insertVibeProfileSchema = createInsertSchema(vibeProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWorkflowTemplateSchema = createInsertSchema(workflowTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGamificationEventSchema = createInsertSchema(gamificationEvents).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertCollaborationSessionSchema = createInsertSchema(collaborationSessions).omit({
+  id: true,
+  startedAt: true,
+});
+
+// Types for gamification tables
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type Achievement = typeof achievements.$inferSelect;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type DailyChallenge = typeof dailyChallenges.$inferSelect;
+export type UserChallenge = typeof userChallenges.$inferSelect;
+export type Leaderboard = typeof leaderboards.$inferSelect;
+export type VibeProfile = typeof vibeProfiles.$inferSelect;
+export type WorkflowTemplate = typeof workflowTemplates.$inferSelect;
+export type GamificationEvent = typeof gamificationEvents.$inferSelect;
+export type CollaborationSession = typeof collaborationSessions.$inferSelect;
+
+export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
+export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+export type InsertDailyChallenge = z.infer<typeof insertDailyChallengeSchema>;
+export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
+export type InsertLeaderboard = z.infer<typeof insertLeaderboardSchema>;
+export type InsertVibeProfile = z.infer<typeof insertVibeProfileSchema>;
+export type InsertWorkflowTemplate = z.infer<typeof insertWorkflowTemplateSchema>;
+export type InsertGamificationEvent = z.infer<typeof insertGamificationEventSchema>;
+export type InsertCollaborationSession = z.infer<typeof insertCollaborationSessionSchema>;
