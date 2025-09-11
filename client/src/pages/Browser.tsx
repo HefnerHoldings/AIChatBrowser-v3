@@ -15,7 +15,7 @@ import { WebView } from '@/components/WebView';
 import { ExtensionsAPI } from '@/components/ExtensionsAPI';
 import { WorkflowManager } from '@/components/WorkflowManager';
 import { AITesting } from '@/components/AITesting';
-import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
+import AgentDashboard from '@/components/agents/AgentDashboard';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { Marketplace } from '@/components/vibecoding/Marketplace';
 import { OutreachHub } from '@/components/outreach/OutreachHub';
@@ -1985,7 +1985,7 @@ export default function Browser() {
 
         {/* Agent Team Tab */}
         <TabsContent value="agent-team" className="flex-1 p-0">
-          <MultiAgentTeam />
+          <AgentDashboard />
         </TabsContent>
 
       </Tabs>

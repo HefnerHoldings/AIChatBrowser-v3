@@ -1432,6 +1432,7 @@ export class AgentOrchestrator extends EventEmitter {
   private agents = new Map<AgentType, BaseAgent>();
   private taskQueue: AgentTask[] = [];
   private activeConsensus = new Map<string, ConsensusRequest>();
+  private consensusRequests = new Map<string, ConsensusRequest>(); // Added for consensus voting
   private taskAssignments = new Map<string, AgentType>();
   private orchestrationMode: 'manual' | 'copilot' | 'autopilot' | 'pm' = 'copilot';
 
@@ -1463,6 +1464,22 @@ export class AgentOrchestrator extends EventEmitter {
         this.handleTaskFailure(data);
       });
     });
+  }
+
+  // Process the task queue
+  private processTaskQueue(): void {
+    // Process pending tasks from the queue
+    const pendingTasks = this.taskQueue.filter(t => t.status === 'pending');
+    if (pendingTasks.length > 0) {
+      const nextTask = pendingTasks[0];
+      // Trigger task execution asynchronously
+      setImmediate(() => {
+        this.executeTask(nextTask).catch(error => {
+          console.error('Failed to execute task:', error);
+          this.emit('task-error', { task: nextTask, error });
+        });
+      });
+    }
   }
 
   async executeTask(task: AgentTask): Promise<any> {
@@ -1762,6 +1779,173 @@ export class AgentOrchestrator extends EventEmitter {
 
   getMode(): string {
     return this.orchestrationMode;
+  }
+
+  // New methods for API endpoints
+  getAgents(): any[] {
+    const agents: any[] = [];
+    this.agents.forEach((agent, type) => {
+      agents.push({
+        id: `${type}-1`,
+        type,
+        status: agent.getStatus(),
+        metrics: agent.getMetrics(),
+        capabilities: agent.getCapabilities(),
+        currentTask: null,
+        confidence: 85
+      });
+    });
+    return agents;
+  }
+
+  getTasks(): AgentTask[] {
+    return [...this.taskQueue];
+  }
+
+  async createTask(taskData: Partial<AgentTask>): Promise<AgentTask> {
+    const task: AgentTask = {
+      id: taskData.id || `task-${Date.now()}`,
+      type: taskData.type || 'general',
+      description: taskData.description || '',
+      priority: taskData.priority || TaskPriority.MEDIUM,
+      context: taskData.context || {},
+      status: 'pending',
+      createdAt: new Date(),
+      dependencies: taskData.dependencies || [],
+      subtasks: taskData.subtasks || []
+    };
+
+    this.taskQueue.push(task);
+    this.emit('task-created', task);
+    
+    // Process task queue
+    this.processTaskQueue();
+    
+    return task;
+  }
+
+  pauseAgent(agentId: string): void {
+    const [type] = agentId.split('-');
+    const agent = this.agents.get(type as AgentType);
+    if (agent) {
+      // Set agent status to waiting (paused)
+      (agent as any).status = AgentStatus.WAITING;
+      this.emit('agent-paused', { agentId, type });
+    }
+  }
+
+  resumeAgent(agentId: string): void {
+    const [type] = agentId.split('-');
+    const agent = this.agents.get(type as AgentType);
+    if (agent) {
+      // Set agent status to idle (resumed)
+      (agent as any).status = AgentStatus.IDLE;
+      this.emit('agent-resumed', { agentId, type });
+      // Process any pending tasks
+      this.processTaskQueue();
+    }
+  }
+
+  resetAgent(agentId: string): void {
+    const [type] = agentId.split('-');
+    const agent = this.agents.get(type as AgentType);
+    if (agent) {
+      // Reset agent metrics
+      (agent as any).metrics = {
+        tasksCompleted: 0,
+        tasksFailed: 0,
+        averageTime: 0,
+        successRate: 100
+      };
+      (agent as any).status = AgentStatus.IDLE;
+      this.emit('agent-reset', { agentId, type });
+    }
+  }
+
+  getKnowledgeBase(): any {
+    const knowledge: any[] = [];
+    let idCounter = 1;
+    
+    // Mock knowledge entries for demonstration
+    this.agents.forEach((agent, type) => {
+      knowledge.push({
+        id: String(idCounter++),
+        agentId: `${type}-1`,
+        agentType: type,
+        category: 'patterns',
+        key: `${type}-strategy`,
+        value: { pattern: 'default', confidence: 90 },
+        confidence: 90,
+        timestamp: new Date(),
+        usageCount: 10,
+        successRate: 85,
+        tags: [type, 'strategy', 'pattern']
+      });
+    });
+    
+    return knowledge;
+  }
+
+  submitConsensusVote(requestId: string, agentId: string, vote: boolean): void {
+    const request = this.consensusRequests.get(requestId);
+    if (request) {
+      request.votes.set(agentId.split('-')[0] as AgentType, vote);
+      
+      // Check if consensus reached
+      const yesVotes = Array.from(request.votes.values()).filter(v => v === true).length;
+      if (yesVotes >= request.requiredVotes) {
+        // Consensus reached
+        this.emit('consensus-reached', { requestId, result: 'approved' });
+        this.consensusRequests.delete(requestId);
+      }
+    }
+  }
+
+  updateSettings(agentSettings: any, globalSettings: any): void {
+    // Store settings (in production, persist to database)
+    this.emit('settings-updated', { agentSettings, globalSettings });
+    
+    // Apply global settings
+    if (globalSettings) {
+      if (globalSettings.debugMode !== undefined) {
+        // Enable/disable debug logging
+      }
+      if (globalSettings.consensusThreshold !== undefined) {
+        // Update consensus threshold
+      }
+    }
+    
+    // Apply agent-specific settings
+    if (agentSettings) {
+      Object.keys(agentSettings).forEach(agentId => {
+        const settings = agentSettings[agentId];
+        const [type] = agentId.split('-');
+        const agent = this.agents.get(type as AgentType);
+        if (agent && settings) {
+          // Apply personality, performance, learning settings
+          (agent as any).confidence = settings.personality?.collaboration || 70;
+        }
+      });
+    }
+  }
+
+  getAgentMetricsById(agentId: string): any {
+    const [type] = agentId.split('-');
+    const agent = this.agents.get(type as AgentType);
+    if (agent) {
+      return agent.getMetrics();
+    }
+    return null;
+  }
+
+  updateAgentConfiguration(agentId: string, config: any): void {
+    const [type] = agentId.split('-');
+    const agent = this.agents.get(type as AgentType);
+    if (agent && config) {
+      // Apply configuration to agent
+      (agent as any).confidence = config.confidence || 85;
+      this.emit('agent-configured', { agentId, config });
+    }
   }
 }
 

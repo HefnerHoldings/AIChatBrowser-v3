@@ -332,8 +332,6 @@ export const savedPasswords = pgTable("saved_passwords", {
 export const insertDownloadSchema = createInsertSchema(downloads).omit({
   id: true,
   startedAt: true,
-  completedAt: true,
-  progress: true,
 });
 
 // Insert schema for saved passwords

@@ -9,6 +9,7 @@ import { createQASuite, TestType, TestStatus } from "./qa-suite";
 import { createSelectorStudio, SelectorType, DomainProfile } from "./selector-studio";
 import { registerOrganizationRoutes } from "./organizationRoutes";
 import { registerOutreachRoutes } from "./outreach/api-routes";
+import { AgentWebSocketServer } from "./agent-websocket";
 import { 
   insertProjectSchema, 
   insertWorkflowSchema, 
@@ -3471,12 +3472,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Agent Control API Endpoints
+  app.get("/api/agents", (req, res) => {
+    try {
+      const agents = agentOrchestrator.getAgents();
+      res.json(agents);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/agents/tasks", (req, res) => {
+    try {
+      const tasks = agentOrchestrator.getTasks();
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/tasks", async (req, res) => {
+    try {
+      const task = await agentOrchestrator.createTask(req.body);
+      res.json(task);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/:agentId/pause", (req, res) => {
+    try {
+      const { agentId } = req.params;
+      agentOrchestrator.pauseAgent(agentId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/:agentId/resume", (req, res) => {
+    try {
+      const { agentId } = req.params;
+      agentOrchestrator.resumeAgent(agentId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/:agentId/reset", (req, res) => {
+    try {
+      const { agentId } = req.params;
+      agentOrchestrator.resetAgent(agentId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/agents/knowledge", (req, res) => {
+    try {
+      const knowledge = agentOrchestrator.getKnowledgeBase();
+      res.json(knowledge);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/consensus/:requestId/vote", (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { agentId, vote } = req.body;
+      agentOrchestrator.submitConsensusVote(requestId, agentId, vote);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/agents/settings", (req, res) => {
+    try {
+      const { agentSettings, globalSettings } = req.body;
+      agentOrchestrator.updateSettings(agentSettings, globalSettings);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/agents/:agentId/metrics", (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const metrics = agentOrchestrator.getAgentMetricsById(agentId);
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Register organization and user profile routes
   registerOrganizationRoutes(app);
   
   // Register outreach engine routes
   registerOutreachRoutes(app);
 
+  // Create HTTP server and WebSocket server
   const httpServer = createServer(app);
+  
+  // Initialize WebSocket server for agents
+  const agentWS = new AgentWebSocketServer(httpServer);
+  agentWS.setOrchestrator(agentOrchestrator);
+  agentWS.startHeartbeat();
+  
   return httpServer;
 }
