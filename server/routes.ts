@@ -3570,6 +3570,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // QA Suite API Routes
+  app.get("/api/qa-suite/suites", async (req, res) => {
+    try {
+      const suites = await qaSuite.getTestSuites();
+      res.json(suites || []);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch test suites" });
+    }
+  });
+
+  app.get("/api/qa-suite/results", async (req, res) => {
+    try {
+      const results = await qaSuite.getTestResults();
+      res.json(results || []);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch test results" });
+    }
+  });
+
+  app.post("/api/qa-suite/suites/:id/run", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await qaSuite.runTestSuite(id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to run test suite" });
+    }
+  });
+
+  app.post("/api/qa-suite/suites/:id/stop", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await qaSuite.stopTestSuite(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to stop test suite" });
+    }
+  });
+
+  // Selector Studio API Routes
+  app.get("/api/selector-studio/selectors", async (req, res) => {
+    try {
+      const selectors = await selectorStudio.getSelectors();
+      res.json(selectors || []);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch selectors" });
+    }
+  });
+
+  app.get("/api/selector-studio/profiles", async (req, res) => {
+    try {
+      const profiles = await selectorStudio.getDomainProfiles();
+      res.json(profiles || []);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch domain profiles" });
+    }
+  });
+
+  app.post("/api/selector-studio/test", async (req, res) => {
+    try {
+      const { selector } = req.body;
+      const result = await selectorStudio.testSelector(selector);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to test selector" });
+    }
+  });
+
+  app.post("/api/selector-studio/validate", async (req, res) => {
+    try {
+      const { selector, type, url } = req.body;
+      const result = await selectorStudio.validateSelector(selector, type, url);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to validate selector" });
+    }
+  });
+
+  app.post("/api/browser-engine/picker/activate", async (req, res) => {
+    try {
+      // Activate element picker in browser
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to activate picker" });
+    }
+  });
+
+  app.post("/api/browser-engine/picker/deactivate", async (req, res) => {
+    try {
+      // Deactivate element picker in browser
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to deactivate picker" });
+    }
+  });
+
   // Register organization and user profile routes
   registerOrganizationRoutes(app);
   

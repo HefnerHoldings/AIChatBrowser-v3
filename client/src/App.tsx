@@ -12,6 +12,8 @@ import Browser from "@/pages/Browser";
 import Settings from "@/pages/Settings";
 import UserProfile from "@/pages/UserProfile";
 import OutreachDashboard from "@/pages/OutreachDashboard";
+import QASuiteDashboard from "@/pages/QASuiteDashboard";
+import SelectorStudio from "@/pages/SelectorStudio";
 
 // Initialize sidebars on app start
 initializeSidebars();
@@ -24,6 +26,8 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/profile" component={UserProfile} />
       <Route path="/outreach" component={OutreachDashboard} />
+      <Route path="/qa-suite" component={QASuiteDashboard} />
+      <Route path="/selector-studio" component={SelectorStudio} />
       <Route component={NotFound} />
     </Switch>
   );

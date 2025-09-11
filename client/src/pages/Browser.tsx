@@ -1117,6 +1117,10 @@ export default function Browser() {
                 <Users className="mr-2 h-4 w-4" />
                 AI Team
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/selector-studio'}>
+                <Target className="mr-2 h-4 w-4" />
+                Selector Studio V2
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -1178,6 +1182,10 @@ export default function Browser() {
               <DropdownMenuItem onClick={() => setActiveView("ai-testing")}>
                 <Bot className="mr-2 h-4 w-4" />
                 AI Testing
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/qa-suite'}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                QA Suite Pro
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
