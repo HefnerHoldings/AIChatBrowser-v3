@@ -79,7 +79,7 @@ export class NativeBrowserEngine extends EventEmitter {
 
   // Initialize browser engine (simulated)
   async initialize(options: BrowserContextOptions = {}): Promise<void> {
-    console.log(`Initializing simulated ${this.engineType} browser with options:`, options);
+    // Initializing simulated browser
     
     // Store context options
     this.contexts.set('default', options);
@@ -283,7 +283,7 @@ export class NativeBrowserEngine extends EventEmitter {
   async executeScript(tabId: string, script: string): Promise<any> {
     const tab = this.tabs.get(tabId);
     if (tab) {
-      console.log(`Executing script in tab ${tabId}:`, script);
+      // Executing script in tab
       return { success: true, result: 'simulated result' };
     }
     return null;
@@ -293,7 +293,7 @@ export class NativeBrowserEngine extends EventEmitter {
   async screenshot(tabId: string, options?: any): Promise<Buffer> {
     const tab = this.tabs.get(tabId);
     if (tab) {
-      console.log(`Generating iframe content for tab ${tabId}`);
+      // Generating iframe content
       
       // Generate iframe HTML content for actual web page display
       const iframeContent = this.generateIframeContent(tab.url);
@@ -541,25 +541,25 @@ export class NativeBrowserEngine extends EventEmitter {
 
   // Clear cookies for a tab (simulated)
   async clearCookies(tabId: string): Promise<void> {
-    console.log(`Clearing cookies for tab ${tabId}`);
+    // Clearing cookies
     this.emit('cookiesCleared', { tabId });
   }
 
   // Clear cache for a tab (simulated)
   async clearCache(tabId: string): Promise<void> {
-    console.log(`Clearing cache for tab ${tabId}`);
+    // Clearing cache
     this.emit('cacheCleared', { tabId });
   }
 
   // Set download behavior (simulated)
   async setDownloadBehavior(tabId: string, downloadPath: string): Promise<void> {
-    console.log(`Setting download path for tab ${tabId}: ${downloadPath}`);
+    // Setting download path
     this.emit('downloadBehaviorSet', { tabId, downloadPath });
   }
 
   // Emulate device (simulated)
   async emulateDevice(tabId: string, deviceName: string): Promise<void> {
-    console.log(`Emulating device ${deviceName} for tab ${tabId}`);
+    // Emulating device
     const tab = this.tabs.get(tabId);
     if (tab) {
       // Update viewport based on device
@@ -578,7 +578,7 @@ export class NativeBrowserEngine extends EventEmitter {
 
   // Enable extensions (simulated)
   async enableExtensions(extensions: string[]): Promise<void> {
-    console.log(`Enabling extensions: ${extensions.join(', ')}`);
+    // Enabling extensions
     this.emit('extensionsEnabled', { extensions });
   }
 }

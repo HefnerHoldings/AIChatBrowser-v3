@@ -8,43 +8,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { DownloadsManager } from '@/components/DownloadsManager';
-import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { HistoryPanel } from '@/components/HistoryPanel';
-import { TabPreview } from '@/components/TabPreview';
-import { FindBar } from '@/components/FindBar';
 import { PasswordManager } from '@/components/PasswordManager';
-import { ReaderMode } from '@/components/ReaderMode';
-import { SessionRestore } from '@/components/SessionRestore';
-import { TabGroups } from '@/components/TabGroups';
 import { BookmarksPanel } from '@/components/BookmarksPanel';
-import { MediaControls } from '@/components/MediaControls';
-import { Extensions } from '@/components/Extensions';
-import { PerformanceMonitor } from '@/components/PerformanceMonitor';
 import { WebView } from '@/components/WebView';
-import { NetworkLayer } from '@/components/NetworkLayer';
-import { SecuritySandbox } from '@/components/SecuritySandbox';
-import { WebAPIs } from '@/components/WebAPIs';
-import { RenderingEngine } from '@/components/RenderingEngine';
-import { AIAssistant } from '@/components/AIAssistant';
-import { WorkflowSuggestions } from '@/components/WorkflowSuggestions';
 import { ExtensionsAPI } from '@/components/ExtensionsAPI';
-import { ContentScriptInjector } from '@/components/ContentScriptInjector';
-import { PWAManager } from '@/components/PWAManager';
 import { WorkflowManager } from '@/components/WorkflowManager';
 import { AITesting } from '@/components/AITesting';
-import { GoalTracker } from '@/components/GoalTracker';
 import { MultiAgentTeam } from '@/components/vibecoding/MultiAgentTeam';
 import { VibePlatform } from '@/components/vibecoding/VibePlatform';
 import { Marketplace } from '@/components/vibecoding/Marketplace';
 import { OutreachHub } from '@/components/outreach/OutreachHub';
 import { ProductivityInsights } from '@/components/ProductivityInsights';
 import { WorkflowBuilder } from '@/components/WorkflowBuilder/WorkflowBuilder';
-import { AdaptiveSidebar } from '@/components/AdaptiveSidebar';
-import { WorkflowAIChat } from '@/components/WorkflowAIChat';
-import { VoiceControl } from '@/components/VoiceControl';
-import { ActionRecorder } from '@/components/ActionRecorder';
-import { ResizableSidebar } from '@/components/ResizableSidebar';
-import { RightSidebarTools } from '@/components/RightSidebarTools';
 import { DynamicSidebar } from '@/components/sidebars/DynamicSidebar';
 import { useSidebarManager } from '@/contexts/SidebarManagerContext';
 import { SidebarWrapper } from '@/components/sidebars/SidebarWrapper';
@@ -52,11 +28,7 @@ import { LeftWorkflowSidebar } from '@/components/sidebars/LeftWorkflowSidebar';
 import { RightDeveloperSidebar } from '@/components/sidebars/RightDeveloperSidebar';
 import { CollapsibleSidebar } from '@/components/sidebars/CollapsibleSidebar';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
-import { MadEasyLogo } from '@/components/MadEasyLogo';
-import { SidebarContainer } from '@/components/SidebarContainer';
 import { AIChatOverlay } from '@/components/AIChatOverlay';
-import { DraggableToolPanel } from '@/components/DraggableToolPanel';
-import { useSidebar } from '@/contexts/SidebarContext';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -75,8 +47,6 @@ import {
   ChevronDown,
   Bookmark as BookmarkIcon,
   Key,
-  BookOpen,
-  Folder,
   History,
   Settings,
   User,
@@ -85,16 +55,8 @@ import {
   Code2,
   Maximize2,
   Minimize2,
-  Printer,
-  ZoomIn,
-  ZoomOut,
-  Search as SearchIcon,
-  Volume2,
   Puzzle,
   Activity,
-  Wifi,
-  Code,
-  Monitor as MonitorIcon,
   CheckCircle,
   Layers,
   Database,
@@ -105,15 +67,8 @@ import {
   Users,
   ShoppingBag,
   Send,
-  Mic,
-  Clock,
-  Calendar,
-  Target,
-  Trophy,
-  Video,
   ChevronLeft,
   ChevronRight,
-  Brain
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -163,7 +118,6 @@ interface HistoryItem {
 export default function Browser() {
   const { toast } = useToast();
   const { config, toggleSidebar, toggleMode } = useSidebarManager();
-  const queryClient = useQueryClient();
   const [browserInstance, setBrowserInstance] = useState<BrowserInstance | null>(null);
   const [activeTab, setActiveTab] = useState<BrowserTab | null>(null);
   const [urlInput, setUrlInput] = useState('');
@@ -171,41 +125,21 @@ export default function Browser() {
   const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [currentPageBookmark, setCurrentPageBookmark] = useState<any>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
-  const [detectedFormData, setDetectedFormData] = useState<{username: string, password: string, domain: string} | null>(null);
-  const [showReaderMode, setShowReaderMode] = useState(false);
-  const [showMediaControls, setShowMediaControls] = useState(false);
-  const [showExtensions, setShowExtensions] = useState(false);
-  const [showPerformance, setShowPerformance] = useState(false);
-  const [showNetworkLayer, setShowNetworkLayer] = useState(false);
-  const [showSecurity, setShowSecurity] = useState(false);
-  const [showWebAPIs, setShowWebAPIs] = useState(false);
-  const [showRenderingEngine, setShowRenderingEngine] = useState(false);
-  const [showTabGroups, setShowTabGroups] = useState(false);
-  const [tabGroups, setTabGroups] = useState<any[]>([]);
   const [showDevTools, setShowDevTools] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showFullscreenBar, setShowFullscreenBar] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [showFindBar, setShowFindBar] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [activeView, setActiveView] = useState('browser');
-  const [showProductivityInsights, setShowProductivityInsights] = useState(false);
   const [showExtensionsAPI, setShowExtensionsAPI] = useState(false);
   const [showPWAManager, setShowPWAManager] = useState(false);
   const [showWorkflowBuilder, setShowWorkflowBuilder] = useState(false);
-  const [showWorkflowChat, setShowWorkflowChat] = useState(false);
-  const [showVoiceControl, setShowVoiceControl] = useState(false);
-  const [showActionRecorder, setShowActionRecorder] = useState(false);
   const [rightToolsCollapsed, setRightToolsCollapsed] = useState(false);
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
-  const [pageContent, setPageContent] = useState<string>('');
-  const [suggestionsCount, setSuggestionsCount] = useState(0);
+  const [pageContent, setPageContent] = useState('');
+  const [showFindBar, setShowFindBar] = useState(false);
   
   // Check if current URL is bookmarked
   const checkBookmarkStatus = async (url: string) => {
@@ -214,7 +148,7 @@ export default function Browser() {
       setIsBookmarked(response.isBookmarked);
       setCurrentPageBookmark(response.bookmark);
     } catch (error) {
-      console.error('Failed to check bookmark status:', error);
+      // Failed to check bookmark status
     }
   };
   
@@ -251,78 +185,6 @@ export default function Browser() {
     }
   };
   
-  // Initialize panel states from localStorage
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
-    const saved = localStorage.getItem('workflowPanelCollapsed');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(() => {
-    const saved = localStorage.getItem('developerPanelCollapsed');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [aiAssistantCollapsed, setAiAssistantCollapsed] = useState(() => {
-    const saved = localStorage.getItem('aiAssistantCollapsed');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [leftSidebarWidth, setLeftSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem('leftSidebarWidth');
-    return saved ? parseInt(saved) : 320;
-  });
-  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem('rightSidebarWidth');
-    return saved ? parseInt(saved) : 380;
-  });
-  
-  // Save panel states to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('workflowPanelCollapsed', JSON.stringify(leftPanelCollapsed));
-  }, [leftPanelCollapsed]);
-  
-  useEffect(() => {
-    localStorage.setItem('developerPanelCollapsed', JSON.stringify(rightPanelCollapsed));
-  }, [rightPanelCollapsed]);
-  
-  useEffect(() => {
-    localStorage.setItem('aiAssistantCollapsed', JSON.stringify(aiAssistantCollapsed));
-  }, [aiAssistantCollapsed]);
-
-  useEffect(() => {
-    localStorage.setItem('leftSidebarWidth', leftSidebarWidth.toString());
-  }, [leftSidebarWidth]);
-
-  useEffect(() => {
-    localStorage.setItem('rightSidebarWidth', rightSidebarWidth.toString());
-  }, [rightSidebarWidth]);
-  
-  // Keyboard shortcuts for panels
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Alt key is pressed
-      if (!e.altKey) return;
-      
-      switch(e.key.toLowerCase()) {
-        case 'w':
-          e.preventDefault();
-          setLeftPanelCollapsed((prev: boolean) => !prev);
-          break;
-        case 'd':
-          e.preventDefault();
-          setRightPanelCollapsed((prev: boolean) => !prev);
-          break;
-        case 'a':
-          e.preventDefault();
-          setAiAssistantCollapsed((prev: boolean) => !prev);
-          break;
-        case 't':
-          e.preventDefault();
-          setRightToolsCollapsed((prev: boolean) => !prev);
-          break;
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const addressBarRef = useRef<HTMLDivElement>(null);
@@ -453,7 +315,7 @@ export default function Browser() {
             setPageContent(contentData.content);
           }
         } catch (error) {
-          console.log('Could not extract page content');
+          // Could not extract page content
           // Use simulated content if extraction fails
           setPageContent(`<html><body><h1>${updatedTab.title || 'Page'}</h1></body></html>`);
         }
@@ -511,7 +373,7 @@ export default function Browser() {
         title: activeTab.title || activeTab.url,
         url: activeTab.url,
         favicon: activeTab.favicon
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }, [activeTab?.url, isIncognito]);
 
@@ -682,7 +544,7 @@ export default function Browser() {
           title: tab.title || tab.url,
           url: tab.url,
           favicon: tab.favicon
-        }).catch(console.error);
+        }).catch(() => {});
       }
       
       // Check if bookmarked
@@ -744,7 +606,7 @@ export default function Browser() {
         queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
       }
     } catch (error) {
-      console.error('Failed to go back:', error);
+      // Failed to go back
       toast({
         title: 'Navigation Error',
         description: 'Failed to navigate back',
@@ -794,7 +656,7 @@ export default function Browser() {
         queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
       }
     } catch (error) {
-      console.error('Failed to go forward:', error);
+      // Failed to go forward
       toast({
         title: 'Navigation Error',
         description: 'Failed to navigate forward',
@@ -858,7 +720,7 @@ export default function Browser() {
         });
       }
     } catch (error) {
-      console.error('Failed to reload:', error);
+      // Failed to reload
       toast({
         title: 'Reload Error',
         description: 'Failed to reload page',
@@ -912,7 +774,7 @@ export default function Browser() {
         queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
       }
     } catch (error) {
-      console.error('Failed to stop loading:', error);
+      // Failed to stop loading
       toast({
         title: 'Stop Error',
         description: 'Failed to stop page loading',
@@ -1070,7 +932,7 @@ export default function Browser() {
         queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
       }
     } catch (error) {
-      console.error('Failed to navigate home:', error);
+      // Failed to navigate home
       toast({
         title: 'Navigation Error',
         description: 'Failed to navigate to home',

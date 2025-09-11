@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { windowsAPI } from "./windows-api";
 import { browserManager } from "./browser-manager";
-import { BrowserEngineType, browserEngine } from "./browser-engine";
+import { BrowserEngineType, NativeBrowserEngine } from "./browser-engine-sim";
 import { createAgentOrchestrator, TaskPriority, AgentType } from "./ai-agents";
 import { createQASuite, TestType, TestStatus } from "./qa-suite";
 import { createSelectorStudio, SelectorType, DomainProfile } from "./selector-studio";
@@ -29,6 +29,9 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize browser engine
+  const browserEngine = new NativeBrowserEngine(BrowserEngineType.CHROMIUM);
+  
   // Initialize AI Agent Orchestrator
   const agentOrchestrator = createAgentOrchestrator(browserManager);
   
@@ -294,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await browserEngine.initialize();
       } catch (e) {
         // Already initialized or initialization error
-        console.log('Browser engine initialization:', e);
+        // Browser engine initialization error
       }
       
       // Create a new tab for workflow execution
@@ -385,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
     } catch (error) {
-      console.error('Workflow execution error:', error);
+      // Workflow execution error
       res.status(500).json({ 
         message: "Failed to execute workflow",
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -1336,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      console.log('Proxying request to:', url);
+      // Proxying request
 
       // Validate and normalize URL
       let targetUrl = url;
@@ -1364,7 +1367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const contentType = response.headers.get('content-type');
-      console.log('Response content-type:', contentType);
+      // Response content-type
       
       if (contentType?.includes('text/html')) {
         let html = await response.text();
@@ -1420,7 +1423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
     } catch (error) {
-      console.error('Proxy fetch error:', error);
+      // Proxy fetch error
       
       // Return a user-friendly error page
       res.status(500).send(`
@@ -1521,7 +1524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
       
     } catch (error) {
-      console.error('Proxy error:', error);
+      // Proxy error
       res.status(500).send(`
         <html>
           <head>
