@@ -29,6 +29,7 @@ import { RightDeveloperSidebar } from '@/components/sidebars/RightDeveloperSideb
 import { CollapsibleSidebar } from '@/components/sidebars/CollapsibleSidebar';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { AIChatOverlay } from '@/components/AIChatOverlay';
+import { MadEasyLogo } from '@/components/MadEasyLogo';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -69,6 +70,8 @@ import {
   Send,
   ChevronLeft,
   ChevronRight,
+  Target,
+  Brain,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -140,6 +143,7 @@ export default function Browser() {
   const [rightToolsCollapsed, setRightToolsCollapsed] = useState(false);
   const [pageContent, setPageContent] = useState('');
   const [showFindBar, setShowFindBar] = useState(false);
+  const [activeView, setActiveView] = useState('browser');
   
   // Check if current URL is bookmarked
   const checkBookmarkStatus = async (url: string) => {
