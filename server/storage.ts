@@ -49,7 +49,7 @@ import {
   workflowStepConfigs
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or } from "drizzle-orm";
+import { eq, desc, and, or, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -108,9 +108,11 @@ export interface IStorage {
   deleteBookmark(id: string): Promise<boolean>;
   
   // Browser History
-  getBrowserHistory(): Promise<BrowserHistory[]>;
+  getBrowserHistory(limit?: number, offset?: number, searchQuery?: string): Promise<BrowserHistory[]>;
   addToHistory(history: InsertBrowserHistory): Promise<BrowserHistory>;
+  deleteHistoryItem(id: string): Promise<boolean>;
   clearHistory(): Promise<void>;
+  getHistoryCount(): Promise<number>;
   
   // Downloads
   getDownloads(): Promise<Download[]>;
@@ -440,25 +442,75 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBookmark(id: string): Promise<boolean> {
     const result = await db.delete(bookmarks).where(eq(bookmarks.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Browser History
-  async getBrowserHistory(): Promise<BrowserHistory[]> {
-    return await db.select().from(browserHistory).orderBy(desc(browserHistory.lastVisited)).limit(100);
+  async getBrowserHistory(limit: number = 100, offset: number = 0, searchQuery?: string): Promise<BrowserHistory[]> {
+    let query = db.select().from(browserHistory);
+    
+    if (searchQuery) {
+      const searchPattern = `%${searchQuery}%`;
+      query = query.where(
+        or(
+          sql`${browserHistory.title} ILIKE ${searchPattern}`,
+          sql`${browserHistory.url} ILIKE ${searchPattern}`
+        )
+      );
+    }
+    
+    return await query
+      .orderBy(desc(browserHistory.lastVisited))
+      .limit(limit)
+      .offset(offset);
   }
 
   async addToHistory(insertHistory: InsertBrowserHistory): Promise<BrowserHistory> {
-    const id = randomUUID();
-    const [history] = await db
-      .insert(browserHistory)
-      .values({ ...insertHistory, id })
-      .returning();
-    return history;
+    // Check if URL already exists
+    const [existing] = await db
+      .select()
+      .from(browserHistory)
+      .where(eq(browserHistory.url, insertHistory.url))
+      .limit(1);
+    
+    if (existing) {
+      // Update visit count and last visited time
+      const [updated] = await db
+        .update(browserHistory)
+        .set({
+          visitCount: sql`${browserHistory.visitCount} + 1`,
+          lastVisited: new Date(),
+          title: insertHistory.title, // Update title in case it changed
+          favicon: insertHistory.favicon // Update favicon in case it changed
+        })
+        .where(eq(browserHistory.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new history entry
+      const id = randomUUID();
+      const [history] = await db
+        .insert(browserHistory)
+        .values({ ...insertHistory, id, visitCount: 1 })
+        .returning();
+      return history;
+    }
+  }
+  
+  async deleteHistoryItem(id: string): Promise<boolean> {
+    const result = await db.delete(browserHistory).where(eq(browserHistory.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async clearHistory(): Promise<void> {
     await db.delete(browserHistory);
+  }
+  
+  async getHistoryCount(): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(browserHistory);
+    return result?.count || 0;
   }
 
   // Downloads
@@ -491,7 +543,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDownload(id: string): Promise<boolean> {
     const result = await db.delete(downloads).where(eq(downloads.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Saved Passwords
@@ -526,7 +578,7 @@ export class DatabaseStorage implements IStorage {
 
   async deletePassword(id: string): Promise<boolean> {
     const result = await db.delete(savedPasswords).where(eq(savedPasswords.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Workflow AI Chats
@@ -536,9 +588,9 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(workflowAIChats)
         .where(eq(workflowAIChats.workflowId, workflowId))
-        .orderBy(desc(workflowAIChats.timestamp));
+        .orderBy(desc(workflowAIChats.createdAt));
     }
-    return await db.select().from(workflowAIChats).orderBy(desc(workflowAIChats.timestamp));
+    return await db.select().from(workflowAIChats).orderBy(desc(workflowAIChats.createdAt));
   }
 
   async getWorkflowAIChatsBySession(sessionId: string): Promise<WorkflowAIChat[]> {
@@ -546,7 +598,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(workflowAIChats)
       .where(eq(workflowAIChats.sessionId, sessionId))
-      .orderBy(workflowAIChats.timestamp);
+      .orderBy(workflowAIChats.createdAt);
   }
 
   async createWorkflowAIChat(insertChat: InsertWorkflowAIChat): Promise<WorkflowAIChat> {
@@ -594,7 +646,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(workflowStepConfigs)
       .where(eq(workflowStepConfigs.workflowId, workflowId))
-      .orderBy(workflowStepConfigs.stepOrder);
+      .orderBy(workflowStepConfigs.stepIndex);
   }
 
   async createWorkflowStepConfig(insertConfig: InsertWorkflowStepConfig): Promise<WorkflowStepConfig> {
@@ -617,7 +669,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWorkflowStepConfig(id: string): Promise<boolean> {
     const result = await db.delete(workflowStepConfigs).where(eq(workflowStepConfigs.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Workflow Templates
@@ -655,10 +707,6 @@ export class DatabaseStorage implements IStorage {
     return workflow;
   }
 }
-
-// Use DatabaseStorage if database is available, otherwise fallback to MemStorage
-const isDatabaseAvailable = !!process.env.DATABASE_URL;
-export const storage: IStorage = isDatabaseAvailable ? new DatabaseStorage() : new MemStorage();
 
 // MemStorage implementation for fallback
 class MemStorage implements IStorage {
@@ -981,8 +1029,9 @@ class MemStorage implements IStorage {
       projectId: insertRecord.projectId || null,
       title: insertRecord.title,
       status: insertRecord.status || 'proposed',
-      context: insertRecord.context || null,
-      decision: insertRecord.decision || null,
+      decisionDate: insertRecord.decisionDate || null,
+      context: insertRecord.context,
+      decision: insertRecord.decision,
       consequences: insertRecord.consequences || null,
       alternatives: insertRecord.alternatives || null,
       relatedRecords: insertRecord.relatedRecords || null,
@@ -1024,28 +1073,59 @@ class MemStorage implements IStorage {
     return this.bookmarks.delete(id);
   }
 
-  async getBrowserHistory(): Promise<BrowserHistory[]> {
-    return Array.from(this.browserHistory.values())
-      .sort((a, b) => b.visitedAt.getTime() - a.visitedAt.getTime())
-      .slice(0, 100);
+  async getBrowserHistory(limit: number = 100, offset: number = 0, searchQuery?: string): Promise<BrowserHistory[]> {
+    let history = Array.from(this.browserHistory.values());
+    
+    if (searchQuery) {
+      const search = searchQuery.toLowerCase();
+      history = history.filter(h => 
+        h.title.toLowerCase().includes(search) || 
+        h.url.toLowerCase().includes(search)
+      );
+    }
+    
+    return history
+      .sort((a, b) => b.lastVisited.getTime() - a.lastVisited.getTime())
+      .slice(offset, offset + limit);
   }
 
   async addToHistory(insertHistory: InsertBrowserHistory): Promise<BrowserHistory> {
-    const id = randomUUID();
-    const history: BrowserHistory = { 
-      id,
-      title: insertHistory.title,
-      url: insertHistory.url,
-      favicon: insertHistory.favicon || null,
-      visitCount: insertHistory.visitCount || 1,
-      visitedAt: new Date() 
-    };
-    this.browserHistory.set(id, history);
-    return history;
+    // Check if URL already exists
+    const existing = Array.from(this.browserHistory.values()).find(h => h.url === insertHistory.url);
+    
+    if (existing) {
+      // Update existing history entry
+      existing.visitCount++;
+      existing.lastVisited = new Date();
+      existing.title = insertHistory.title;
+      if (insertHistory.favicon) existing.favicon = insertHistory.favicon;
+      return existing;
+    } else {
+      // Create new history entry
+      const id = randomUUID();
+      const history: BrowserHistory = { 
+        id,
+        title: insertHistory.title,
+        url: insertHistory.url,
+        favicon: insertHistory.favicon || null,
+        visitCount: 1,
+        lastVisited: new Date() 
+      };
+      this.browserHistory.set(id, history);
+      return history;
+    }
   }
 
+  async deleteHistoryItem(id: string): Promise<boolean> {
+    return this.browserHistory.delete(id);
+  }
+  
   async clearHistory(): Promise<void> {
     this.browserHistory.clear();
+  }
+  
+  async getHistoryCount(): Promise<number> {
+    return this.browserHistory.size;
   }
 
   async getDownloads(): Promise<Download[]> {
@@ -1128,7 +1208,7 @@ class MemStorage implements IStorage {
   async getWorkflowAIChatsBySession(sessionId: string): Promise<WorkflowAIChat[]> {
     return Array.from(this.workflowAIChats.values())
       .filter(c => c.sessionId === sessionId)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
   async createWorkflowAIChat(insertChat: InsertWorkflowAIChat): Promise<WorkflowAIChat> {
@@ -1140,7 +1220,7 @@ class MemStorage implements IStorage {
       role: insertChat.role,
       content: insertChat.content,
       metadata: insertChat.metadata || null,
-      timestamp: new Date() 
+      createdAt: new Date() 
     };
     this.workflowAIChats.set(id, chat);
     return chat;
@@ -1158,9 +1238,8 @@ class MemStorage implements IStorage {
     const session: WorkflowVoiceSession = { 
       sessionId: insertSession.sessionId,
       workflowId: insertSession.workflowId || null,
-      transcript: insertSession.transcript || null,
-      audioUrl: insertSession.audioUrl || null,
-      duration: insertSession.duration || null,
+      transcript: insertSession.transcript || [],
+      context: insertSession.context || null,
       metadata: insertSession.metadata || null,
       createdAt: new Date(),
       endedAt: null
@@ -1180,7 +1259,7 @@ class MemStorage implements IStorage {
   async getWorkflowStepConfigs(workflowId: string): Promise<WorkflowStepConfig[]> {
     return Array.from(this.workflowStepConfigs.values())
       .filter(c => c.workflowId === workflowId)
-      .sort((a, b) => a.stepOrder - b.stepOrder);
+      .sort((a, b) => a.stepIndex - b.stepIndex);
   }
 
   async createWorkflowStepConfig(insertConfig: InsertWorkflowStepConfig): Promise<WorkflowStepConfig> {
@@ -1188,8 +1267,9 @@ class MemStorage implements IStorage {
     const config: WorkflowStepConfig = { 
       id,
       workflowId: insertConfig.workflowId,
-      stepOrder: insertConfig.stepOrder,
-      type: insertConfig.type,
+      stepIndex: insertConfig.stepIndex,
+      stepIndex: insertConfig.stepIndex,
+      stepType: insertConfig.stepType,
       name: insertConfig.name,
       description: insertConfig.description || null,
       config: insertConfig.config || {},
@@ -1236,3 +1316,7 @@ class MemStorage implements IStorage {
     return workflow;
   }
 }
+
+// Use DatabaseStorage if database is available, otherwise fallback to MemStorage
+const isDatabaseAvailable = !!process.env.DATABASE_URL;
+export const storage: IStorage = isDatabaseAvailable ? new DatabaseStorage() : new MemStorage();

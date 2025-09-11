@@ -2116,8 +2116,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Browser History endpoints
   app.get("/api/browser-history", async (req, res) => {
     try {
-      const history = await storage.getBrowserHistory();
-      res.json(history);
+      const { limit = 100, offset = 0, search } = req.query;
+      const history = await storage.getBrowserHistory(
+        Number(limit),
+        Number(offset),
+        search as string
+      );
+      const total = await storage.getHistoryCount();
+      res.json({
+        items: history,
+        total,
+        limit: Number(limit),
+        offset: Number(offset)
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -2134,6 +2145,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ error: error.message });
       }
+    }
+  });
+  
+  app.delete("/api/browser-history/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteHistoryItem(id);
+      if (!deleted) {
+        res.status(404).json({ message: "History item not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
   
