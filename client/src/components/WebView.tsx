@@ -17,7 +17,8 @@ import {
   Maximize,
   Minimize,
   Eye,
-  EyeOff
+  EyeOff,
+  ExternalLink
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,7 @@ export function WebView({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isProxyMode, setIsProxyMode] = useState(true); // Enable proxy by default for external sites
   const [proxyContent, setProxyContent] = useState('');
+  const [proxyBlobUrl, setProxyBlobUrl] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState(navigator.onLine);
   const [blockedResources, setBlockedResources] = useState<string[]>([]);
   const [permissions, setPermissions] = useState({
@@ -113,10 +115,9 @@ export function WebView({
     };
   }, []);
 
-  // CSP og Sandbox policies
+  // CSP og Sandbox policies - mer permissive for proxy content
   const sandboxAttributes = [
     'allow-scripts',
-    'allow-same-origin',
     'allow-forms',
     'allow-popups',
     'allow-popups-to-escape-sandbox',
@@ -124,7 +125,8 @@ export function WebView({
     'allow-orientation-lock',
     'allow-pointer-lock',
     'allow-modals',
-    'allow-top-navigation-by-user-activation'
+    'allow-top-navigation-by-user-activation',
+    'allow-downloads'
   ].join(' ');
 
   // Load URL with proxy fallback for CORS
@@ -162,27 +164,24 @@ export function WebView({
             const contentType = response.headers.get('content-type');
             
             if (contentType?.includes('text/html')) {
-              let html = await response.text();
+              const html = await response.text();
               
-              // Inject base tag to fix relative URLs, but only if targetUrl is a valid URL
-              try {
-                const baseUrl = new URL(targetUrl).origin;
-                const baseTag = `<base href="${baseUrl}/" target="_self">`;
-                
-                // Inject base tag after <head> or at the beginning if no head tag
-                if (html.includes('<head>')) {
-                  html = html.replace('<head>', `<head>${baseTag}`);
-                } else if (html.includes('<HEAD>')) {
-                  html = html.replace('<HEAD>', `<HEAD>${baseTag}`);
-                } else {
-                  // If no head tag, add it
-                  html = `<head>${baseTag}</head>${html}`;
-                }
-              } catch (e) {
-                console.warn('Could not create base tag for URL:', targetUrl);
+              // Log the HTML for debugging
+              console.log('Received HTML length:', html.length);
+              console.log('Received HTML (first 500 chars):', html.substring(0, 500));
+              
+              // Create a blob URL for the HTML content
+              const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+              const blobUrl = URL.createObjectURL(blob);
+              
+              // Clean up old blob URL if exists
+              if (proxyBlobUrl) {
+                URL.revokeObjectURL(proxyBlobUrl);
               }
               
+              setProxyBlobUrl(blobUrl);
               setProxyContent(html);
+              console.log('ProxyContent set, blob URL created');
               setPageInfo(prev => ({
                 ...prev,
                 url: targetUrl,
@@ -520,6 +519,15 @@ export function WebView({
     }
   }, [url, isActive]);
 
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (proxyBlobUrl) {
+        URL.revokeObjectURL(proxyBlobUrl);
+      }
+    };
+  }, [proxyBlobUrl]);
+
   const getSecurityIcon = () => {
     switch(pageInfo.securityState) {
       case 'secure':
@@ -644,14 +652,34 @@ export function WebView({
               Prøv igjen
             </Button>
           </div>
-        ) : isProxyMode && proxyContent ? (
-          <iframe
-            srcDoc={proxyContent}
-            className="w-full h-full border-0"
-            sandbox={sandboxAttributes}
-            allow="camera; microphone; geolocation; fullscreen"
-            title={`ProxyView - ${tabId}`}
-          />
+        ) : isProxyMode && pageInfo.url && !pageInfo.url.startsWith('about:') ? (
+          <div className="flex flex-col items-center justify-center h-full p-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <Shield className="w-16 h-16 text-blue-600 mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Ekstern side blokkert av sikkerhetsgrunner</h2>
+            <p className="text-gray-600 text-center mb-6 max-w-md">
+              På grunn av nettleserens sikkerhetsinnstillinger kan vi ikke vise {new URL(pageInfo.url).hostname} direkte i dette vinduet.
+            </p>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => window.open(pageInfo.url, '_blank')}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Åpne i ny fane
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsProxyMode(false)}
+              >
+                <EyeOff className="w-4 h-4 mr-2" />
+                Prøv uten proxy
+              </Button>
+            </div>
+            <div className="mt-6 p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-sm text-gray-500 mb-2">URL:</p>
+              <code className="text-sm bg-gray-100 px-2 py-1 rounded">{pageInfo.url}</code>
+            </div>
+          </div>
         ) : (
           <iframe
             ref={iframeRef}
