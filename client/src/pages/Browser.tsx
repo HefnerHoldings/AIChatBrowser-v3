@@ -72,6 +72,7 @@ import {
   ChevronRight,
   Target,
   Brain,
+  Download,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -131,6 +132,7 @@ export default function Browser() {
   const [isIncognito, setIsIncognito] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
+  const [showDownloads, setShowDownloads] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -1355,7 +1357,7 @@ export default function Browser() {
             {/* Navigation Bar */}
             {!isFullscreen && (
               <div className={`border-b ${isIncognito ? 'bg-zinc-800 border-zinc-700' : 'bg-card'}`}>
-                <div className="flex items-center gap-2 px-3 py-2">
+                <div className="flex items-center gap-2 px-2 py-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1409,7 +1411,7 @@ export default function Browser() {
                         }
                       }}
                       placeholder="Søk eller skriv inn adresse"
-                      className={`pr-10 ${isIncognito ? 'bg-zinc-700 border-zinc-600 text-zinc-100' : ''}`}
+                      className={`h-8 pr-10 ${isIncognito ? 'bg-zinc-700 border-zinc-600 text-zinc-100' : ''}`}
                       data-testid="url-input"
                     />
                     {isIncognito && (
@@ -1550,7 +1552,14 @@ export default function Browser() {
                       <Bot className="h-4 w-4" />
                     </Button>
                     
-                    <DownloadsManager />
+                    <Button
+                      variant={showDownloads ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => setShowDownloads(!showDownloads)}
+                      title="Nedlastinger (Ctrl+J)"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   {/* Browser Menu */}
@@ -1990,6 +1999,24 @@ export default function Browser() {
             }
           }}
         />
+      )}
+
+      {showDownloads && (
+        <div className="fixed top-0 right-0 w-96 h-full bg-background border-l shadow-lg z-50">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="font-semibold">Nedlastinger</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDownloads(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <DownloadsManager />
+          </div>
+        </div>
       )}
 
       {showPasswords && (
