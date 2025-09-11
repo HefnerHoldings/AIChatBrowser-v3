@@ -162,7 +162,26 @@ export function WebView({
             const contentType = response.headers.get('content-type');
             
             if (contentType?.includes('text/html')) {
-              const html = await response.text();
+              let html = await response.text();
+              
+              // Inject base tag to fix relative URLs, but only if targetUrl is a valid URL
+              try {
+                const baseUrl = new URL(targetUrl).origin;
+                const baseTag = `<base href="${baseUrl}/" target="_self">`;
+                
+                // Inject base tag after <head> or at the beginning if no head tag
+                if (html.includes('<head>')) {
+                  html = html.replace('<head>', `<head>${baseTag}`);
+                } else if (html.includes('<HEAD>')) {
+                  html = html.replace('<HEAD>', `<HEAD>${baseTag}`);
+                } else {
+                  // If no head tag, add it
+                  html = `<head>${baseTag}</head>${html}`;
+                }
+              } catch (e) {
+                console.warn('Could not create base tag for URL:', targetUrl);
+              }
+              
               setProxyContent(html);
               setPageInfo(prev => ({
                 ...prev,
@@ -626,9 +645,12 @@ export function WebView({
             </Button>
           </div>
         ) : isProxyMode && proxyContent ? (
-          <div 
-            className="w-full h-full overflow-auto"
-            dangerouslySetInnerHTML={{ __html: proxyContent }}
+          <iframe
+            srcDoc={proxyContent}
+            className="w-full h-full border-0"
+            sandbox={sandboxAttributes}
+            allow="camera; microphone; geolocation; fullscreen"
+            title={`ProxyView - ${tabId}`}
           />
         ) : (
           <iframe
