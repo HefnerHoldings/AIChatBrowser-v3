@@ -144,13 +144,24 @@ export default function Browser() {
   const [pageContent, setPageContent] = useState('');
   const [showFindBar, setShowFindBar] = useState(false);
   const [activeView, setActiveView] = useState('browser');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [showReaderMode, setShowReaderMode] = useState(false);
+  const [showMediaControls, setShowMediaControls] = useState(false);
+  const [showExtensions, setShowExtensions] = useState(false);
+  const [showPerformance, setShowPerformance] = useState(false);
+  const [showNetworkLayer, setShowNetworkLayer] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
+  const [showWebAPIs, setShowWebAPIs] = useState(false);
+  const [showRenderingEngine, setShowRenderingEngine] = useState(false);
   
   // Check if current URL is bookmarked
   const checkBookmarkStatus = async (url: string) => {
     try {
-      const response = await apiRequest(`/api/bookmarks/check?url=${encodeURIComponent(url)}`);
-      setIsBookmarked(response.isBookmarked);
-      setCurrentPageBookmark(response.bookmark);
+      const response = await apiRequest('GET', `/api/bookmarks/check?url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+      setIsBookmarked(data.isBookmarked);
+      setCurrentPageBookmark(data.bookmark);
     } catch (error) {
       // Failed to check bookmark status
     }
@@ -163,22 +174,18 @@ export default function Browser() {
     try {
       if (isBookmarked && currentPageBookmark) {
         // Remove bookmark
-        await apiRequest(`/api/bookmarks/${currentPageBookmark.id}`, {
-          method: 'DELETE',
-        });
+        await apiRequest('DELETE', `/api/bookmarks/${currentPageBookmark.id}`);
         setIsBookmarked(false);
         setCurrentPageBookmark(null);
         toast({ title: 'Bokmerke fjernet' });
       } else {
         // Add bookmark
-        const bookmark = await apiRequest('/api/bookmarks', {
-          method: 'POST',
-          body: JSON.stringify({
-            title: activeTab.title || 'Untitled',
-            url: activeTab.url,
-            favicon: activeTab.favicon,
-          }),
+        const response = await apiRequest('POST', '/api/bookmarks', {
+          title: activeTab.title || 'Untitled',
+          url: activeTab.url,
+          favicon: activeTab.favicon,
         });
+        const bookmark = await response.json();
         setIsBookmarked(true);
         setCurrentPageBookmark(bookmark);
         toast({ title: 'Bokmerke lagt til' });
@@ -1017,9 +1024,9 @@ export default function Browser() {
     let timeout: NodeJS.Timeout;
     const handleMouseMove = (e: MouseEvent) => {
       if (e.clientY < 50) {
-        setShowFullscreenBar(true);
+        setIsFullscreen(true);
         clearTimeout(timeout);
-        timeout = setTimeout(() => setShowFullscreenBar(false), 3000);
+        timeout = setTimeout(() => setIsFullscreen(false), 3000);
       }
     };
     
@@ -1254,9 +1261,9 @@ export default function Browser() {
                             >
                               {/* Security indicator */}
                               {tab.url.startsWith('https://') ? (
-                                <Shield className="w-3 h-3 text-green-500 shrink-0" title="Sikker tilkobling" />
+                                <Shield className="w-3 h-3 text-green-500 shrink-0" />
                               ) : tab.url.startsWith('http://') ? (
-                                <Shield className="w-3 h-3 text-yellow-500 shrink-0" title="Ikke sikker" />
+                                <Shield className="w-3 h-3 text-yellow-500 shrink-0" />
                               ) : null}
                               
                               {/* Favicon */}
@@ -1333,8 +1340,8 @@ export default function Browser() {
               </div>
             )}
 
-            {/* Tab Preview */}
-            {hoveredTab && browserInstance && !isFullscreen && (() => {
+            {/* Tab Preview - disabled until component is implemented */}
+            {/* {hoveredTab && browserInstance && !isFullscreen && (() => {
               const tab = browserInstance.tabs.find(t => t.id === hoveredTab);
               return tab ? (
                 <TabPreview
@@ -1343,7 +1350,7 @@ export default function Browser() {
                   isActive={hoveredTab === activeTab?.id}
                 />
               ) : null;
-            })()}
+            })()} */}
 
             {/* Navigation Bar */}
             {!isFullscreen && (
@@ -1368,7 +1375,7 @@ export default function Browser() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={isNavigating ? handleStop : handleReload}
+                    onClick={isNavigating ? handleStop : () => handleReload(false)}
                   >
                     {isNavigating ? (
                       <X className="h-4 w-4" />
@@ -1419,7 +1426,8 @@ export default function Browser() {
                     >
                       <Search className="h-4 w-4" />
                     </Button>
-                    {showSuggestions && urlInput && (
+                    {/* Search suggestions temporarily disabled */}
+                    {/* {showSuggestions && urlInput && (
                       <SearchSuggestions
                         query={urlInput}
                         isOpen={showSuggestions}
@@ -1431,7 +1439,7 @@ export default function Browser() {
                           setShowSuggestions(false);
                         }}
                       />
-                    )}
+                    )} */}
                   </div>
 
                   {/* Action Buttons */}
@@ -1616,7 +1624,7 @@ export default function Browser() {
             )}
                 
             {/* Bookmarks bar */}
-            {!isFullscreen && showBookmarks && bookmarks.length > 0 && (
+            {!isFullscreen && showBookmarksPanel && bookmarks.length > 0 && (
               <div className="flex items-center bg-accent/30 border-b border-border px-3 py-1 gap-2 overflow-x-auto">
                 {bookmarks.map(bookmark => (
                   <Button
@@ -2026,11 +2034,12 @@ export default function Browser() {
         </div>
       )}
 
-      {showPWAManager && (
+      {/* PWA Manager - disabled until component is implemented */}
+      {/* {showPWAManager && (
         <div className="fixed top-0 right-0 w-[500px] h-full bg-background border-l shadow-lg z-50">
           <PWAManager onClose={() => setShowPWAManager(false)} />
         </div>
-      )}
+      )} */}
 
 
       {/* Workflow Builder Modal */}
@@ -2057,6 +2066,8 @@ export default function Browser() {
 
 
 
+      {/* These features are temporarily disabled as the components are not yet implemented */}
+      {/* 
       {showFindBar && (
         <FindBar
           isOpen={showFindBar}
@@ -2113,6 +2124,7 @@ export default function Browser() {
           onClose={() => setShowRenderingEngine(false)}
         />
       )}
+      */}
       
       {/* AI Chat Overlay - vises kun hvis ikke i sidemenyene */}
       <AIChatOverlay />
