@@ -1405,6 +1405,9 @@ export default function Browser() {
                       type="text"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}
+                      onFocus={(e) => {
+                        e.target.select();
+                      }}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           handleNavigate();
