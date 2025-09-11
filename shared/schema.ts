@@ -624,3 +624,196 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   productivityMetrics: many(productivityMetrics),
   trackingNotifications: many(trackingNotifications),
 }));
+
+// ========== OUTREACH ENGINE TABLES ==========
+
+// Evidence Store table
+export const evidence = pgTable("evidence", {
+  evidence_id: varchar("evidence_id").primaryKey().default(sql`gen_random_uuid()`),
+  prospect_id: varchar("prospect_id").notNull(),
+  source: varchar("source").notNull(), // google_review, trustpilot, news, etc.
+  url: text("url").notNull(),
+  title: text("title").notNull(),
+  snippet: text("snippet").notNull(),
+  published_at: timestamp("published_at").notNull(),
+  language: varchar("language").default("no"),
+  authority: real("authority").default(0.5), // 0-1 authority score
+  hash: varchar("hash").notNull().unique(), // For deduplication
+  quotes: jsonb("quotes").default([]),
+  raw_data: jsonb("raw_data").default({}),
+  classification: jsonb("classification"), // Event classification data
+  processed_at: timestamp("processed_at").default(sql`now()`),
+  created_at: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Prospects table
+export const outreachProspects = pgTable("outreach_prospects", {
+  prospect_id: varchar("prospect_id").primaryKey().default(sql`gen_random_uuid()`),
+  company: text("company").notNull(),
+  domain: text("domain").notNull(),
+  contact_name: text("contact_name"),
+  email: text("email"),
+  phone: text("phone"),
+  linkedin_url: text("linkedin_url"),
+  industry: text("industry"),
+  size: varchar("size"), // small, medium, large, enterprise
+  location: text("location"),
+  score: real("score").default(0), // Lead score 0-1
+  status: varchar("status").default("active"), // active, paused, blacklisted
+  tags: jsonb("tags").default([]),
+  custom_fields: jsonb("custom_fields").default({}),
+  last_contacted: timestamp("last_contacted"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+  updated_at: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Hooks (Engagement Opportunities) table
+export const hooks = pgTable("hooks", {
+  hook_id: varchar("hook_id").primaryKey().default(sql`gen_random_uuid()`),
+  prospect_id: varchar("prospect_id").notNull().references(() => outreachProspects.prospect_id),
+  hook_type: varchar("hook_type").notNull(), // review_win, award, product_launch, etc.
+  headline: text("headline").notNull(),
+  quote: text("quote"),
+  evidence_refs: jsonb("evidence_refs").default([]), // Array of evidence IDs
+  freshness_days: integer("freshness_days").notNull(),
+  score: real("score").default(0), // Relevance score 0-1
+  confidence: real("confidence").default(0.5),
+  status: varchar("status").default("pending"), // pending, used, expired
+  created_at: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Campaigns table
+export const outreachCampaigns = pgTable("outreach_campaigns", {
+  campaign_id: varchar("campaign_id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: varchar("status").default("draft"), // draft, active, paused, completed
+  type: varchar("type").default("outbound"), // outbound, nurture, re-engagement
+  target_criteria: jsonb("target_criteria").default({}), // Filtering criteria for prospects
+  channels: jsonb("channels").default([]), // ['email', 'sms', 'linkedin']
+  schedule_config: jsonb("schedule_config").default({}),
+  message_templates: jsonb("message_templates").default([]),
+  ab_tests: jsonb("ab_tests").default([]),
+  metrics: jsonb("metrics").default({}),
+  budget: real("budget"),
+  max_prospects: integer("max_prospects"),
+  daily_limit: integer("daily_limit"),
+  created_by: varchar("created_by"),
+  started_at: timestamp("started_at"),
+  completed_at: timestamp("completed_at"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`),
+  updated_at: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Message Variants table
+export const messageVariants = pgTable("message_variants", {
+  variant_id: varchar("variant_id").primaryKey().default(sql`gen_random_uuid()`),
+  campaign_id: varchar("campaign_id").references(() => outreachCampaigns.campaign_id),
+  hook_id: varchar("hook_id").references(() => hooks.hook_id),
+  channel: varchar("channel").notNull(), // email, sms, linkedin, slack, whatsapp
+  variant_name: text("variant_name"),
+  subject: text("subject"), // For email
+  body_text: text("body_text").notNull(),
+  body_html: text("body_html"), // For email
+  language: varchar("language").default("no"),
+  voice_profile: jsonb("voice_profile").default({}),
+  personalization_tokens: jsonb("personalization_tokens").default([]),
+  generator_meta: jsonb("generator_meta").default({}),
+  test_group: varchar("test_group"), // A, B, C for A/B testing
+  confidence: real("confidence").default(0.8),
+  performance_metrics: jsonb("performance_metrics").default({}),
+  created_at: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Send Schedules table
+export const sendSchedules = pgTable("send_schedules", {
+  schedule_id: varchar("schedule_id").primaryKey().default(sql`gen_random_uuid()`),
+  prospect_id: varchar("prospect_id").notNull().references(() => outreachProspects.prospect_id),
+  campaign_id: varchar("campaign_id").notNull().references(() => outreachCampaigns.campaign_id),
+  steps: jsonb("steps").notNull().default([]), // Array of send steps
+  caps: jsonb("caps").default({}), // Send limits
+  consent_ok: boolean("consent_ok").default(false),
+  status: varchar("status").default("pending"), // pending, active, completed, cancelled
+  started_at: timestamp("started_at"),
+  completed_at: timestamp("completed_at"),
+  created_at: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Outreach Messages (Sent) table
+export const outreachMessages = pgTable("outreach_messages", {
+  message_id: varchar("message_id").primaryKey().default(sql`gen_random_uuid()`),
+  campaign_id: varchar("campaign_id").references(() => outreachCampaigns.campaign_id),
+  prospect_id: varchar("prospect_id").references(() => outreachProspects.prospect_id),
+  variant_id: varchar("variant_id").references(() => messageVariants.variant_id),
+  schedule_id: varchar("schedule_id").references(() => sendSchedules.schedule_id),
+  channel: varchar("channel").notNull(),
+  subject: text("subject"),
+  body: text("body").notNull(),
+  status: varchar("status").default("queued"), // queued, sent, delivered, bounced, failed
+  provider_id: text("provider_id"), // External provider message ID
+  delivered_at: timestamp("delivered_at"),
+  opened_at: timestamp("opened_at"),
+  clicked_at: timestamp("clicked_at"),
+  replied_at: timestamp("replied_at"),
+  bounced_at: timestamp("bounced_at"),
+  unsubscribed_at: timestamp("unsubscribed_at"),
+  error_message: text("error_message"),
+  metadata: jsonb("metadata").default({}),
+  created_at: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Insert schemas for outreach tables
+export const insertEvidenceSchema = createInsertSchema(evidence).omit({
+  evidence_id: true,
+  created_at: true,
+  processed_at: true
+});
+
+export const insertOutreachProspectSchema = createInsertSchema(outreachProspects).omit({
+  prospect_id: true,
+  created_at: true,
+  updated_at: true
+});
+
+export const insertHookSchema = createInsertSchema(hooks).omit({
+  hook_id: true,
+  created_at: true
+});
+
+export const insertOutreachCampaignSchema = createInsertSchema(outreachCampaigns).omit({
+  campaign_id: true,
+  created_at: true,
+  updated_at: true
+});
+
+export const insertMessageVariantSchema = createInsertSchema(messageVariants).omit({
+  variant_id: true,
+  created_at: true
+});
+
+export const insertSendScheduleSchema = createInsertSchema(sendSchedules).omit({
+  schedule_id: true,
+  created_at: true
+});
+
+export const insertOutreachMessageSchema = createInsertSchema(outreachMessages).omit({
+  message_id: true,
+  created_at: true
+});
+
+// Types for outreach tables
+export type Evidence = typeof evidence.$inferSelect;
+export type OutreachProspect = typeof outreachProspects.$inferSelect;
+export type Hook = typeof hooks.$inferSelect;
+export type OutreachCampaign = typeof outreachCampaigns.$inferSelect;
+export type MessageVariant = typeof messageVariants.$inferSelect;
+export type SendSchedule = typeof sendSchedules.$inferSelect;
+export type OutreachMessage = typeof outreachMessages.$inferSelect;
+
+export type InsertEvidence = z.infer<typeof insertEvidenceSchema>;
+export type InsertOutreachProspect = z.infer<typeof insertOutreachProspectSchema>;
+export type InsertHook = z.infer<typeof insertHookSchema>;
+export type InsertOutreachCampaign = z.infer<typeof insertOutreachCampaignSchema>;
+export type InsertMessageVariant = z.infer<typeof insertMessageVariantSchema>;
+export type InsertSendSchedule = z.infer<typeof insertSendScheduleSchema>;
+export type InsertOutreachMessage = z.infer<typeof insertOutreachMessageSchema>;

@@ -11,6 +11,7 @@ import Home from "@/pages/home";
 import Browser from "@/pages/Browser";
 import Settings from "@/pages/Settings";
 import UserProfile from "@/pages/UserProfile";
+import OutreachDashboard from "@/pages/OutreachDashboard";
 
 // Initialize sidebars on app start
 initializeSidebars();
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/browser" component={Browser} />
       <Route path="/settings" component={Settings} />
       <Route path="/profile" component={UserProfile} />
+      <Route path="/outreach" component={OutreachDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
