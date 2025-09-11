@@ -469,11 +469,29 @@ export default function Browser() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 't') {
+      // Navigation shortcuts
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleBack();
+      } else if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleForward();
+      } else if (e.altKey && e.key === 'Home') {
+        e.preventDefault();
+        handleHome();
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        handleReload(e.shiftKey); // Shift+F5 for hard reload
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        handleReload(e.shiftKey); // Ctrl+Shift+R for hard reload
+      }
+      // Other shortcuts
+      else if (e.ctrlKey || e.metaKey) {
+        if (e.key === 't' && !e.shiftKey) {
           e.preventDefault();
           handleNewTab();
-        } else if (e.key === 'w') {
+        } else if (e.key === 'w' && !e.shiftKey) {
           e.preventDefault();
           handleCloseTab(activeTab?.id || '');
         } else if (e.key === 't' && e.shiftKey) {
@@ -482,9 +500,6 @@ export default function Browser() {
         } else if (e.key === 'l') {
           e.preventDefault();
           document.getElementById('url-input')?.focus();
-        } else if (e.key === 'r') {
-          e.preventDefault();
-          handleReload();
         } else if (e.key === 'd') {
           e.preventDefault();
           handleBookmarkToggle();
@@ -497,9 +512,6 @@ export default function Browser() {
         } else if (e.key === 'h') {
           e.preventDefault();
           setShowHistory(!showHistory);
-        } else if (e.key === 'w') {
-          e.preventDefault();
-          setShowWorkflowBuilder(!showWorkflowBuilder);
         }
       } else if (e.key === 'Tab' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
         e.preventDefault();
@@ -648,23 +660,49 @@ export default function Browser() {
     if (!browserInstance || !activeTab || !activeTab.canGoBack) return;
     
     try {
-      // Use the navigate endpoint with browser history command
-      const response = await apiRequest('POST', 
-        `/api/browser-engine/instance/${browserInstance.id}/tab/${activeTab.id}/navigate`,
-        { url: 'javascript:history.back()' }
-      );
+      setIsNavigating(true);
       
-      // Don't update navigation state optimistically - let the actual navigation update it
-      // The browser engine will handle the history navigation
+      const response = await apiRequest('POST', '/api/browser-engine/tab/navigate-back', {
+        instanceId: browserInstance.id,
+        tabId: activeTab.id
+      });
       
-      // Invalidate cache to get updated state from backend
-      queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+      const data = await response.json();
+      
+      if (data.success && data.tab) {
+        // Update tab with new state from backend
+        const updatedTab = {
+          ...activeTab,
+          url: data.tab.url,
+          title: data.tab.title || data.tab.url,
+          canGoBack: data.tab.canGoBack,
+          canGoForward: data.tab.canGoForward,
+          isLoading: false
+        };
+        
+        setActiveTab(updatedTab);
+        setUrlInput(updatedTab.url);
+        
+        const updatedTabs = browserInstance.tabs.map(tab => 
+          tab.id === activeTab.id ? updatedTab : tab
+        );
+        setBrowserInstance({
+          ...browserInstance,
+          tabs: updatedTabs
+        });
+        
+        // Invalidate query cache after navigation
+        queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+      }
     } catch (error) {
+      console.error('Failed to go back:', error);
       toast({
         title: 'Navigation Error',
         description: 'Failed to navigate back',
         variant: 'destructive'
       });
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -672,30 +710,58 @@ export default function Browser() {
     if (!browserInstance || !activeTab || !activeTab.canGoForward) return;
     
     try {
-      // Use the navigate endpoint with browser history command
-      const response = await apiRequest('POST', 
-        `/api/browser-engine/instance/${browserInstance.id}/tab/${activeTab.id}/navigate`,
-        { url: 'javascript:history.forward()' }
-      );
+      setIsNavigating(true);
       
-      // Don't update navigation state optimistically - let the actual navigation update it
-      // The browser engine will handle the history navigation
+      const response = await apiRequest('POST', '/api/browser-engine/tab/navigate-forward', {
+        instanceId: browserInstance.id,
+        tabId: activeTab.id
+      });
       
-      // Invalidate cache to get updated state from backend
-      queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+      const data = await response.json();
+      
+      if (data.success && data.tab) {
+        // Update tab with new state from backend
+        const updatedTab = {
+          ...activeTab,
+          url: data.tab.url,
+          title: data.tab.title || data.tab.url,
+          canGoBack: data.tab.canGoBack,
+          canGoForward: data.tab.canGoForward,
+          isLoading: false
+        };
+        
+        setActiveTab(updatedTab);
+        setUrlInput(updatedTab.url);
+        
+        const updatedTabs = browserInstance.tabs.map(tab => 
+          tab.id === activeTab.id ? updatedTab : tab
+        );
+        setBrowserInstance({
+          ...browserInstance,
+          tabs: updatedTabs
+        });
+        
+        // Invalidate query cache after navigation
+        queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+      }
     } catch (error) {
+      console.error('Failed to go forward:', error);
       toast({
         title: 'Navigation Error',
         description: 'Failed to navigate forward',
         variant: 'destructive'
       });
+    } finally {
+      setIsNavigating(false);
     }
   };
 
-  const handleReload = async () => {
+  const handleReload = async (hard: boolean = false) => {
     if (!browserInstance || !activeTab) return;
     
     try {
+      setIsNavigating(true);
+      
       // Set loading state
       const loadingTab = { ...activeTab, isLoading: true };
       setActiveTab(loadingTab);
@@ -708,31 +774,49 @@ export default function Browser() {
         tabs: updatedTabs
       });
       
-      await apiRequest('POST', '/api/browser-engine/tab/reload', {
+      const response = await apiRequest('POST', '/api/browser-engine/tab/reload', {
         instanceId: browserInstance.id,
         tabId: activeTab.id,
-        hard: false
+        hard
       });
       
-      // Clear loading state after a delay
-      setTimeout(() => {
-        const reloadedTab = { ...activeTab, isLoading: false };
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update tab state after reload
+        const reloadedTab = { 
+          ...activeTab, 
+          isLoading: false,
+          canGoBack: data.tab?.canGoBack || activeTab.canGoBack,
+          canGoForward: data.tab?.canGoForward || activeTab.canGoForward
+        };
         setActiveTab(reloadedTab);
         
         const finalTabs = browserInstance.tabs.map(tab => 
           tab.id === activeTab.id ? reloadedTab : tab
         );
-        setBrowserInstance(prev => prev ? {
-          ...prev,
+        setBrowserInstance({
+          ...browserInstance,
           tabs: finalTabs
-        } : null);
-      }, 1500);
+        });
+        
+        // Invalidate query cache after reload
+        queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+        
+        toast({
+          title: 'Page refreshed',
+          description: `${activeTab.title || activeTab.url} was reloaded`
+        });
+      }
     } catch (error) {
+      console.error('Failed to reload:', error);
       toast({
         title: 'Reload Error',
         description: 'Failed to reload page',
         variant: 'destructive'
       });
+    } finally {
+      setIsNavigating(false);
     }
   };
   
@@ -782,28 +866,48 @@ export default function Browser() {
   const handleStop = async () => {
     if (!browserInstance || !activeTab) return;
     
-    setIsNavigating(false);
-    
     try {
+      setIsNavigating(false);
+      
       // Call stop API
-      await apiRequest('POST', '/api/browser-engine/tab/stop', {
+      const response = await apiRequest('POST', '/api/browser-engine/tab/stop', {
         instanceId: browserInstance.id,
         tabId: activeTab.id
       });
       
-      // Update tab state
-      const stoppedTab = { ...activeTab, isLoading: false };
-      setActiveTab(stoppedTab);
+      const data = await response.json();
       
-      const updatedTabs = browserInstance.tabs.map(tab => 
-        tab.id === activeTab.id ? stoppedTab : tab
-      );
-      setBrowserInstance({
-        ...browserInstance,
-        tabs: updatedTabs
-      });
+      if (data.success && data.tab) {
+        // Update tab with state from backend
+        const stoppedTab = { 
+          ...activeTab, 
+          isLoading: false,
+          canGoBack: data.tab.canGoBack,
+          canGoForward: data.tab.canGoForward
+        };
+        setActiveTab(stoppedTab);
+        
+        const updatedTabs = browserInstance.tabs.map(tab => 
+          tab.id === activeTab.id ? stoppedTab : tab
+        );
+        setBrowserInstance({
+          ...browserInstance,
+          tabs: updatedTabs
+        });
+        
+        // Invalidate query cache after stop
+        queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+      }
     } catch (error) {
       console.error('Failed to stop loading:', error);
+      toast({
+        title: 'Stop Error',
+        description: 'Failed to stop page loading',
+        variant: 'destructive'
+      });
+    } finally {
+      // Ensure loading state is cleared even on error
+      setIsNavigating(false);
     }
   };
 
@@ -914,18 +1018,53 @@ export default function Browser() {
     }
   };
 
-  const handleHome = () => {
-    if (activeTab && browserInstance) {
+  const handleHome = async () => {
+    if (!activeTab || !browserInstance) return;
+    
+    try {
       const homeUrl = 'about:home';
       setUrlInput(homeUrl);
-      const updatedTabs = browserInstance.tabs.map(tab => 
-        tab.id === activeTab.id ? { ...tab, url: homeUrl, title: 'Ny fane' } : tab
+      setIsNavigating(true);
+      
+      const response = await apiRequest(
+        'POST',
+        `/api/browser-engine/instance/${browserInstance.id}/tab/${activeTab.id}/navigate`,
+        { url: homeUrl }
       );
-      setBrowserInstance({
-        ...browserInstance,
-        tabs: updatedTabs
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        const updatedTab = { 
+          ...activeTab, 
+          url: homeUrl, 
+          title: 'Ny fane',
+          canGoBack: true, // Can go back after navigating to home
+          canGoForward: false // Clear forward history
+        };
+        
+        setActiveTab(updatedTab);
+        
+        const updatedTabs = browserInstance.tabs.map(tab => 
+          tab.id === activeTab.id ? updatedTab : tab
+        );
+        setBrowserInstance({
+          ...browserInstance,
+          tabs: updatedTabs
+        });
+        
+        // Invalidate query cache after navigation
+        queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+      }
+    } catch (error) {
+      console.error('Failed to navigate home:', error);
+      toast({
+        title: 'Navigation Error',
+        description: 'Failed to navigate to home',
+        variant: 'destructive'
       });
-      setActiveTab({ ...activeTab, url: homeUrl, title: 'Ny fane' });
+    } finally {
+      setIsNavigating(false);
     }
   };
   

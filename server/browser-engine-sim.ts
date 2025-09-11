@@ -70,6 +70,7 @@ export class NativeBrowserEngine extends EventEmitter {
   private performance: Map<string, any> = new Map();
   private tabHistory: Map<string, string[]> = new Map();
   private tabHistoryIndex: Map<string, number> = new Map();
+  private loadingTimers: Map<string, NodeJS.Timeout[]> = new Map();
   
   constructor(engineType: BrowserEngineType = BrowserEngineType.CHROMIUM) {
     super();
@@ -126,6 +127,13 @@ export class NativeBrowserEngine extends EventEmitter {
   // Close tab (simulated)
   async closeTab(tabId: string): Promise<void> {
     if (this.tabs.has(tabId)) {
+      // Clear any pending timers for this tab
+      const timers = this.loadingTimers.get(tabId);
+      if (timers) {
+        timers.forEach(timer => clearTimeout(timer));
+        this.loadingTimers.delete(tabId);
+      }
+      
       this.tabs.delete(tabId);
       this.emit('tabClosed', { tabId });
     }
@@ -206,6 +214,23 @@ export class NativeBrowserEngine extends EventEmitter {
     const tab = this.tabs.get(tabId);
     if (tab) {
       this.simulatePageLoad(tabId, tab.url);
+    }
+  }
+
+  // Stop loading (simulated)
+  async stop(tabId: string): Promise<void> {
+    const tab = this.tabs.get(tabId);
+    if (tab) {
+      // Clear any pending loading timers
+      const timers = this.loadingTimers.get(tabId);
+      if (timers) {
+        timers.forEach(timer => clearTimeout(timer));
+        this.loadingTimers.delete(tabId);
+      }
+      
+      // Set tab as not loading
+      tab.isLoading = false;
+      this.emit('loadStop', { tabId });
     }
   }
 
@@ -407,22 +432,31 @@ export class NativeBrowserEngine extends EventEmitter {
     const tab = this.tabs.get(tabId);
     if (!tab) return;
 
+    // Clear any existing timers for this tab
+    const existingTimers = this.loadingTimers.get(tabId);
+    if (existingTimers) {
+      existingTimers.forEach(timer => clearTimeout(timer));
+      this.loadingTimers.delete(tabId);
+    }
+
     // Set loading state
     tab.isLoading = true;
     this.emit('loadStart', { tabId, url });
 
+    const timers: NodeJS.Timeout[] = [];
+
     // Simulate network activity
-    setTimeout(() => {
+    timers.push(setTimeout(() => {
       this.emit('network', { 
         tabId, 
         type: 'request',
         url,
         method: 'GET' 
       });
-    }, 100);
+    }, 100));
 
     // Simulate page loaded
-    setTimeout(() => {
+    timers.push(setTimeout(() => {
       if (this.tabs.has(tabId)) {
         tab.isLoading = false;
         tab.title = this.getTitleFromUrl(url);
@@ -430,8 +464,14 @@ export class NativeBrowserEngine extends EventEmitter {
         
         // Simulate DOM ready
         this.emit('domReady', { tabId });
+        
+        // Clear timers after completion
+        this.loadingTimers.delete(tabId);
       }
-    }, 500);
+    }, 500));
+
+    // Store timers for this tab
+    this.loadingTimers.set(tabId, timers);
   }
 
   // Helper: Get title from URL

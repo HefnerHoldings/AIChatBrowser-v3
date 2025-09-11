@@ -1717,16 +1717,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Instance ID and Tab ID required' });
       }
       
-      // Execute reload script
-      const script = hard ? 
-        'location.reload(true);' : 
-        'location.reload();';
+      // Use proper refresh method
+      await browserManager.refresh(instanceId, tabId);
       
-      await browserManager.executeScript(instanceId, tabId, script);
+      // Get updated tab state
+      const tabInfo = await browserManager.getTabInfo(instanceId, tabId);
       
       res.json({ 
         success: true,
-        message: `Fane lastet på nytt ${hard ? '(hard reload)' : ''}`
+        message: `Fane lastet på nytt ${hard ? '(hard reload)' : ''}`,
+        tab: tabInfo
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1741,12 +1741,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Instance ID and Tab ID required' });
       }
       
-      // Execute stop script
-      await browserManager.executeScript(instanceId, tabId, 'window.stop();');
+      // Use proper stop method
+      await browserManager.stop(instanceId, tabId);
+      
+      // Get updated tab state
+      const tabInfo = await browserManager.getTabInfo(instanceId, tabId);
       
       res.json({ 
         success: true,
-        message: 'Lasting stoppet'
+        message: 'Lasting stoppet',
+        tab: tabInfo
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1761,11 +1765,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Instance ID and Tab ID required' });
       }
       
-      await browserManager.executeScript(instanceId, tabId, 'history.back();');
+      // Use proper goBack method
+      await browserManager.goBack(instanceId, tabId);
+      
+      // Get updated tab state
+      const tabInfo = await browserManager.getTabInfo(instanceId, tabId);
       
       res.json({ 
         success: true,
-        message: 'Navigerte tilbake'
+        message: 'Navigerte tilbake',
+        tab: tabInfo
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1780,11 +1789,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Instance ID and Tab ID required' });
       }
       
-      await browserManager.executeScript(instanceId, tabId, 'history.forward();');
+      // Use proper goForward method
+      await browserManager.goForward(instanceId, tabId);
+      
+      // Get updated tab state
+      const tabInfo = await browserManager.getTabInfo(instanceId, tabId);
       
       res.json({ 
         success: true,
-        message: 'Navigerte fremover'
+        message: 'Navigerte fremover',
+        tab: tabInfo
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

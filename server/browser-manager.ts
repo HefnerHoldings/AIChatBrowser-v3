@@ -232,6 +232,71 @@ export class BrowserManager extends EventEmitter {
     }
   }
 
+  // Go back in tab history
+  async goBack(instanceId: string, tabId: string): Promise<void> {
+    const instance = this.instances.get(instanceId);
+    if (instance) {
+      await instance.engine.goBack(tabId);
+      const tab = instance.tabs.get(tabId);
+      if (tab) {
+        // Update tab state after going back
+        const updatedTab = await this.getTabInfo(instanceId, tabId);
+        if (updatedTab) {
+          Object.assign(tab, updatedTab);
+        }
+      }
+      this.emit('navigation', { instanceId, tabId, direction: 'back' });
+    }
+  }
+
+  // Go forward in tab history
+  async goForward(instanceId: string, tabId: string): Promise<void> {
+    const instance = this.instances.get(instanceId);
+    if (instance) {
+      await instance.engine.goForward(tabId);
+      const tab = instance.tabs.get(tabId);
+      if (tab) {
+        // Update tab state after going forward
+        const updatedTab = await this.getTabInfo(instanceId, tabId);
+        if (updatedTab) {
+          Object.assign(tab, updatedTab);
+        }
+      }
+      this.emit('navigation', { instanceId, tabId, direction: 'forward' });
+    }
+  }
+
+  // Refresh tab
+  async refresh(instanceId: string, tabId: string): Promise<void> {
+    const instance = this.instances.get(instanceId);
+    if (instance) {
+      await instance.engine.refresh(tabId);
+      this.emit('refresh', { instanceId, tabId });
+    }
+  }
+
+  // Stop loading tab
+  async stop(instanceId: string, tabId: string): Promise<void> {
+    const instance = this.instances.get(instanceId);
+    if (instance) {
+      await instance.engine.stop(tabId);
+      const tab = instance.tabs.get(tabId);
+      if (tab) {
+        tab.isLoading = false;
+      }
+      this.emit('stop', { instanceId, tabId });
+    }
+  }
+
+  // Get tab info
+  async getTabInfo(instanceId: string, tabId: string): Promise<BrowserTab | null> {
+    const instance = this.instances.get(instanceId);
+    if (instance) {
+      return instance.tabs.get(tabId) || null;
+    }
+    return null;
+  }
+
   // Execute script in tab
   async executeScript(instanceId: string, tabId: string, script: string): Promise<any> {
     const instance = this.instances.get(instanceId);
