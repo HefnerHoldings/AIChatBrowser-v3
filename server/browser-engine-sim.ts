@@ -162,6 +162,51 @@ export class NativeBrowserEngine extends EventEmitter {
       tab.canGoForward = false;
       
       this.simulatePageLoad(tabId, url);
+      
+      // Simulate downloads if URL ends with downloadable extensions
+      const downloadableExtensions = ['.pdf', '.zip', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg', '.gif', '.mp4', '.mp3', '.exe', '.dmg', '.apk'];
+      const lowerUrl = url.toLowerCase();
+      const hasDownloadableExtension = downloadableExtensions.some(ext => lowerUrl.includes(ext));
+      
+      if (hasDownloadableExtension) {
+        // Extract filename and extension
+        const urlParts = url.split('/');
+        const filename = urlParts[urlParts.length - 1] || 'download';
+        const extension = filename.split('.').pop() || '';
+        
+        // Determine mime type based on extension
+        const mimeTypes: Record<string, string> = {
+          pdf: 'application/pdf',
+          zip: 'application/zip',
+          doc: 'application/msword',
+          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          xls: 'application/vnd.ms-excel',
+          xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          png: 'image/png',
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          gif: 'image/gif',
+          mp4: 'video/mp4',
+          mp3: 'audio/mpeg',
+          exe: 'application/x-msdownload',
+          dmg: 'application/x-apple-diskimage',
+          apk: 'application/vnd.android.package-archive'
+        };
+        
+        const mimeType = mimeTypes[extension] || 'application/octet-stream';
+        
+        // Generate random file size (between 100KB and 50MB)
+        const fileSize = Math.floor(Math.random() * 50 * 1024 * 1024) + 100 * 1024;
+        
+        // Emit download event
+        this.emit('download', {
+          tabId,
+          url,
+          filename,
+          mimeType,
+          size: fileSize
+        });
+      }
     }
   }
 

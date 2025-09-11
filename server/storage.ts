@@ -1216,7 +1216,17 @@ class MemStorage implements IStorage {
   }
 
   async getDownloads(): Promise<Download[]> {
-    return Array.from(this.downloads.values()).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    return Array.from(this.downloads.values())
+      .sort((a, b) => {
+        // First sort by status (active downloads first)
+        const statusOrder = { 'downloading': 0, 'pending': 1, 'completed': 2, 'failed': 3, 'cancelled': 4 };
+        const statusDiff = (statusOrder[a.status as keyof typeof statusOrder] || 5) - 
+                          (statusOrder[b.status as keyof typeof statusOrder] || 5);
+        if (statusDiff !== 0) return statusDiff;
+        
+        // Then sort by date (newest first)
+        return (b.startedAt?.getTime() || 0) - (a.startedAt?.getTime() || 0);
+      });
   }
 
   async getDownload(id: string): Promise<Download | undefined> {
@@ -1232,8 +1242,9 @@ class MemStorage implements IStorage {
       path: insertDownload.path || null,
       size: insertDownload.size || null,
       mimeType: insertDownload.mimeType || null,
-      state: insertDownload.state || 'pending',
-      progress: insertDownload.progress || 0,
+      status: insertDownload.status || 'pending',
+      progress: 0,
+      error: insertDownload.error || null,
       startedAt: new Date(),
       completedAt: null 
     };
@@ -1244,7 +1255,15 @@ class MemStorage implements IStorage {
   async updateDownload(id: string, updates: Partial<InsertDownload>): Promise<Download | undefined> {
     const download = this.downloads.get(id);
     if (!download) return undefined;
-    const updatedDownload = { ...download, ...updates };
+    
+    // Merge updates properly
+    const updatedDownload: Download = { 
+      ...download, 
+      ...updates,
+      // Set completedAt when status becomes completed
+      completedAt: updates.status === 'completed' ? new Date() : download.completedAt
+    };
+    
     this.downloads.set(id, updatedDownload);
     return updatedDownload;
   }

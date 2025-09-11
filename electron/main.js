@@ -136,6 +136,16 @@ function createMenu() {
         }},
         { label: 'Fullskjerm', accelerator: 'F11', role: 'togglefullscreen' },
         { type: 'separator' },
+        { label: 'Nedlastinger', accelerator: 'CmdOrCtrl+J', click: () => {
+          mainWindow.webContents.send('open-downloads');
+        }},
+        { label: 'Historikk', accelerator: 'CmdOrCtrl+H', click: () => {
+          mainWindow.webContents.send('open-history');
+        }},
+        { label: 'Bokmerker', accelerator: 'CmdOrCtrl+Shift+B', click: () => {
+          mainWindow.webContents.send('open-bookmarks');
+        }},
+        { type: 'separator' },
         { label: 'Utviklerverktøy', accelerator: 'CmdOrCtrl+Shift+I', role: 'toggleDevTools' }
       ]
     },

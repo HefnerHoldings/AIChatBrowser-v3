@@ -783,6 +783,213 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Downloads Management Endpoints
+  app.get("/api/downloads", async (req, res) => {
+    try {
+      const { status, mimeType, search, limit = 100, offset = 0 } = req.query;
+      
+      let downloads = await storage.getDownloads();
+      
+      // Filter by status
+      if (status) {
+        downloads = downloads.filter(d => d.status === status);
+      }
+      
+      // Filter by mimeType
+      if (mimeType) {
+        downloads = downloads.filter(d => d.mimeType?.includes(mimeType as string));
+      }
+      
+      // Search by filename
+      if (search) {
+        const searchTerm = (search as string).toLowerCase();
+        downloads = downloads.filter(d => 
+          d.filename.toLowerCase().includes(searchTerm) ||
+          d.url.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Pagination
+      const total = downloads.length;
+      downloads = downloads.slice(Number(offset), Number(offset) + Number(limit));
+      
+      res.json({ 
+        downloads, 
+        total,
+        hasMore: Number(offset) + downloads.length < total 
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch downloads" });
+    }
+  });
+
+  app.get("/api/downloads/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const download = await storage.getDownload(id);
+      if (!download) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json(download);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch download" });
+    }
+  });
+
+  app.post("/api/downloads", async (req, res) => {
+    try {
+      const data = insertDownloadSchema.parse(req.body);
+      const download = await storage.createDownload(data);
+      
+      // Simulate download progress for demo purposes
+      if (download.status === 'pending') {
+        // Start simulated download after creation
+        setTimeout(() => simulateDownloadProgress(download.id), 100);
+      }
+      
+      res.json(download);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid download data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create download" });
+      }
+    }
+  });
+
+  app.patch("/api/downloads/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = insertDownloadSchema.partial().parse(req.body);
+      const download = await storage.updateDownload(id, updates);
+      if (!download) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json(download);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid download data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update download" });
+      }
+    }
+  });
+
+  app.delete("/api/downloads/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteDownload(id);
+      if (!success) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete download" });
+    }
+  });
+
+  app.post("/api/downloads/:id/cancel", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const download = await storage.updateDownload(id, { status: 'cancelled' });
+      if (!download) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      res.json(download);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to cancel download" });
+    }
+  });
+
+  app.post("/api/downloads/:id/retry", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const download = await storage.getDownload(id);
+      if (!download) {
+        res.status(404).json({ message: "Download not found" });
+        return;
+      }
+      
+      // Reset download for retry
+      const updated = await storage.updateDownload(id, { 
+        status: 'pending',
+        progress: 0,
+        error: null,
+        completedAt: null
+      });
+      
+      // Start simulated download
+      setTimeout(() => simulateDownloadProgress(id), 100);
+      
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to retry download" });
+    }
+  });
+
+  app.delete("/api/downloads/clear-completed", async (req, res) => {
+    try {
+      const downloads = await storage.getDownloads();
+      const completed = downloads.filter(d => d.status === 'completed');
+      
+      // Delete all completed downloads
+      await Promise.all(completed.map(d => storage.deleteDownload(d.id)));
+      
+      res.json({ success: true, cleared: completed.length });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to clear completed downloads" });
+    }
+  });
+
+  // Helper function to simulate download progress
+  async function simulateDownloadProgress(downloadId: string) {
+    const download = await storage.getDownload(downloadId);
+    if (!download || download.status !== 'pending') return;
+    
+    // Start downloading
+    await storage.updateDownload(downloadId, { 
+      status: 'downloading',
+      progress: 0 
+    });
+    
+    // Simulate progress updates
+    const totalTime = 5000 + Math.random() * 10000; // 5-15 seconds
+    const intervals = 10;
+    const timePerInterval = totalTime / intervals;
+    
+    for (let i = 1; i <= intervals; i++) {
+      await new Promise(resolve => setTimeout(resolve, timePerInterval));
+      
+      const currentDownload = await storage.getDownload(downloadId);
+      if (!currentDownload || currentDownload.status === 'cancelled') {
+        return;
+      }
+      
+      const progress = Math.min(100, Math.floor((i / intervals) * 100));
+      await storage.updateDownload(downloadId, { progress });
+      
+      if (progress === 100) {
+        // Simulate success or failure (90% success rate)
+        if (Math.random() > 0.1) {
+          await storage.updateDownload(downloadId, { 
+            status: 'completed',
+            progress: 100,
+            completedAt: new Date()
+          });
+        } else {
+          await storage.updateDownload(downloadId, { 
+            status: 'failed',
+            error: 'Network error: Connection timeout'
+          });
+        }
+      }
+    }
+  }
+
   // Puppeteer Automation Endpoints
   let puppeteerBrowser: any = null;
   let activePage: any = null;

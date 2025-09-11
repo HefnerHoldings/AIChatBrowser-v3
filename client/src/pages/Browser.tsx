@@ -207,11 +207,6 @@ export default function Browser() {
   const [pageContent, setPageContent] = useState<string>('');
   const [suggestionsCount, setSuggestionsCount] = useState(0);
   
-  // Fetch bookmarks
-  const { data: bookmarks = [] } = useQuery<Bookmark[]>({
-    queryKey: ['/api/bookmarks'],
-  });
-  
   // Check if current URL is bookmarked
   const checkBookmarkStatus = async (url: string) => {
     try {
