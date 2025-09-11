@@ -1576,6 +1576,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Close single tab endpoint
+  app.delete("/api/browser-engine/instance/:instanceId/tab/:tabId", async (req, res) => {
+    try {
+      const { instanceId, tabId } = req.params;
+      
+      if (!instanceId || !tabId) {
+        return res.status(400).json({ error: 'Instance ID and Tab ID required' });
+      }
+      
+      const instance = browserManager.getAllInstances()
+        .find(inst => inst.id === instanceId);
+      
+      if (!instance) {
+        return res.status(404).json({ error: 'Instance not found' });
+      }
+      
+      const tab = instance.tabs.get(tabId);
+      if (!tab) {
+        return res.status(404).json({ error: 'Tab not found' });
+      }
+      
+      // Close the tab
+      await browserManager.closeTab(instanceId, tabId);
+      
+      res.json({ 
+        success: true,
+        closedTabId: tabId,
+        remainingTabs: instance.tabs.size,
+        message: 'Fane lukket'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/browser-engine/tabs/:instanceId", async (req, res) => {
     try {
       const { instanceId } = req.params;

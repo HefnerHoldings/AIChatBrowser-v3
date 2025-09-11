@@ -476,6 +476,9 @@ export default function Browser() {
         } else if (e.key === 'w') {
           e.preventDefault();
           handleCloseTab(activeTab?.id || '');
+        } else if (e.key === 't' && e.shiftKey) {
+          e.preventDefault();
+          handleRestoreClosedTab();
         } else if (e.key === 'l') {
           e.preventDefault();
           document.getElementById('url-input')?.focus();
@@ -497,6 +500,22 @@ export default function Browser() {
         } else if (e.key === 'w') {
           e.preventDefault();
           setShowWorkflowBuilder(!showWorkflowBuilder);
+        }
+      } else if (e.key === 'Tab' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        e.preventDefault();
+        // Switch to previous tab
+        if (browserInstance && browserInstance.tabs.length > 1) {
+          const currentIndex = browserInstance.tabs.findIndex(t => t.id === activeTab?.id);
+          const prevIndex = currentIndex === 0 ? browserInstance.tabs.length - 1 : currentIndex - 1;
+          handleTabSwitch(browserInstance.tabs[prevIndex].id);
+        }
+      } else if (e.key === 'Tab' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        // Switch to next tab
+        if (browserInstance && browserInstance.tabs.length > 1) {
+          const currentIndex = browserInstance.tabs.findIndex(t => t.id === activeTab?.id);
+          const nextIndex = (currentIndex + 1) % browserInstance.tabs.length;
+          handleTabSwitch(browserInstance.tabs[nextIndex].id);
         }
       } else if (e.key === 'F12') {
         e.preventDefault();
@@ -570,6 +589,9 @@ export default function Browser() {
         setActiveTab(remainingTabs[0]);
         setUrlInput(remainingTabs[0].url);
       }
+      
+      // Invalidate cache to ensure UI consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
     } catch (error) {
       toast({
         title: 'Feil',
@@ -579,15 +601,35 @@ export default function Browser() {
     }
   };
 
-  const handleTabSwitch = (tabId: string) => {
+  const handleTabSwitch = async (tabId: string) => {
     const tab = browserInstance?.tabs.find(t => t.id === tabId);
     if (tab && browserInstance) {
+      // Update active tab state
       setActiveTab(tab);
       setUrlInput(tab.url);
       setBrowserInstance({
         ...browserInstance,
         activeTabId: tabId
       });
+      
+      // Note: Tab switching is handled on frontend only since we're using simulated browser
+      // The actual browser instance would maintain its own tab state
+      
+      // Update browser history for new tab
+      if (tab.url && tab.url !== 'about:blank' && !isIncognito) {
+        apiRequest('POST', '/api/browser-history', {
+          title: tab.title || tab.url,
+          url: tab.url,
+          favicon: tab.favicon
+        }).catch(console.error);
+      }
+      
+      // Check if bookmarked
+      const isInBookmarks = bookmarks.some(b => b.url === tab.url);
+      setIsBookmarked(isInBookmarks);
+      
+      // Invalidate cache to ensure UI consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
     }
   };
 
@@ -602,16 +644,96 @@ export default function Browser() {
     navigateMutation.mutate({ tabId: activeTab.id, url });
   };
 
-  const handleBack = () => {
-    handleKeyboardShortcut.mutate('Alt+Left');
+  const handleBack = async () => {
+    if (!browserInstance || !activeTab || !activeTab.canGoBack) return;
+    
+    try {
+      // Use the navigate endpoint with browser history command
+      const response = await apiRequest('POST', 
+        `/api/browser-engine/instance/${browserInstance.id}/tab/${activeTab.id}/navigate`,
+        { url: 'javascript:history.back()' }
+      );
+      
+      // Don't update navigation state optimistically - let the actual navigation update it
+      // The browser engine will handle the history navigation
+      
+      // Invalidate cache to get updated state from backend
+      queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+    } catch (error) {
+      toast({
+        title: 'Navigation Error',
+        description: 'Failed to navigate back',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleForward = () => {
-    handleKeyboardShortcut.mutate('Alt+Right');
+  const handleForward = async () => {
+    if (!browserInstance || !activeTab || !activeTab.canGoForward) return;
+    
+    try {
+      // Use the navigate endpoint with browser history command
+      const response = await apiRequest('POST', 
+        `/api/browser-engine/instance/${browserInstance.id}/tab/${activeTab.id}/navigate`,
+        { url: 'javascript:history.forward()' }
+      );
+      
+      // Don't update navigation state optimistically - let the actual navigation update it
+      // The browser engine will handle the history navigation
+      
+      // Invalidate cache to get updated state from backend
+      queryClient.invalidateQueries({ queryKey: ['/api/browser-engine/instance'] });
+    } catch (error) {
+      toast({
+        title: 'Navigation Error',
+        description: 'Failed to navigate forward',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleReload = () => {
-    handleKeyboardShortcut.mutate('F5');
+  const handleReload = async () => {
+    if (!browserInstance || !activeTab) return;
+    
+    try {
+      // Set loading state
+      const loadingTab = { ...activeTab, isLoading: true };
+      setActiveTab(loadingTab);
+      
+      const updatedTabs = browserInstance.tabs.map(tab => 
+        tab.id === activeTab.id ? loadingTab : tab
+      );
+      setBrowserInstance({
+        ...browserInstance,
+        tabs: updatedTabs
+      });
+      
+      await apiRequest('POST', '/api/browser-engine/tab/reload', {
+        instanceId: browserInstance.id,
+        tabId: activeTab.id,
+        hard: false
+      });
+      
+      // Clear loading state after a delay
+      setTimeout(() => {
+        const reloadedTab = { ...activeTab, isLoading: false };
+        setActiveTab(reloadedTab);
+        
+        const finalTabs = browserInstance.tabs.map(tab => 
+          tab.id === activeTab.id ? reloadedTab : tab
+        );
+        setBrowserInstance(prev => prev ? {
+          ...prev,
+          tabs: finalTabs
+        } : null);
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: 'Reload Error',
+        description: 'Failed to reload page',
+        variant: 'destructive'
+      });
+    }
   };
   
   const handleBookmarkToggle = async () => {
@@ -657,13 +779,138 @@ export default function Browser() {
     }
   };
 
-  const handleStop = () => {
-    handleKeyboardShortcut.mutate('Escape');
+  const handleStop = async () => {
+    if (!browserInstance || !activeTab) return;
+    
+    setIsNavigating(false);
+    
+    try {
+      // Call stop API
+      await apiRequest('POST', '/api/browser-engine/tab/stop', {
+        instanceId: browserInstance.id,
+        tabId: activeTab.id
+      });
+      
+      // Update tab state
+      const stoppedTab = { ...activeTab, isLoading: false };
+      setActiveTab(stoppedTab);
+      
+      const updatedTabs = browserInstance.tabs.map(tab => 
+        tab.id === activeTab.id ? stoppedTab : tab
+      );
+      setBrowserInstance({
+        ...browserInstance,
+        tabs: updatedTabs
+      });
+    } catch (error) {
+      console.error('Failed to stop loading:', error);
+    }
   };
 
   const handleRefresh = () => {
     if (activeTab && browserInstance) {
-      navigateMutation.mutate({ tabId: activeTab.id, url: activeTab.url });
+      handleReload();
+    }
+  };
+  
+  // Duplicate current tab
+  const handleDuplicateTab = async (tabId: string) => {
+    if (!browserInstance) return;
+    
+    try {
+      const response = await apiRequest('POST', '/api/browser-engine/tab/duplicate', {
+        instanceId: browserInstance.id,
+        tabId
+      });
+      
+      const data = await response.json();
+      const newTab: BrowserTab = {
+        id: data.tab.id,
+        title: data.tab.title || 'Ny fane',
+        url: data.tab.url,
+        favicon: data.tab.favicon,
+        isLoading: false,
+        canGoBack: false,
+        canGoForward: false
+      };
+      
+      setBrowserInstance({
+        ...browserInstance,
+        tabs: [...browserInstance.tabs, newTab],
+        activeTabId: newTab.id
+      });
+      
+      setActiveTab(newTab);
+      setUrlInput(newTab.url);
+      
+      toast({
+        title: 'Fane duplisert',
+        description: 'Ny fane opprettet med samme URL'
+      });
+    } catch (error) {
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke duplisere fane',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  // Close other tabs
+  const handleCloseOtherTabs = async (tabId: string) => {
+    if (!browserInstance) return;
+    
+    try {
+      await apiRequest('POST', '/api/browser-engine/tab/close-others', {
+        instanceId: browserInstance.id,
+        tabId
+      });
+      
+      const tab = browserInstance.tabs.find(t => t.id === tabId);
+      if (tab) {
+        setBrowserInstance({
+          ...browserInstance,
+          tabs: [tab],
+          activeTabId: tab.id
+        });
+        setActiveTab(tab);
+        setUrlInput(tab.url);
+      }
+      
+      toast({
+        title: 'Faner lukket',
+        description: 'Alle andre faner er lukket'
+      });
+    } catch (error) {
+      toast({
+        title: 'Feil',
+        description: 'Kunne ikke lukke andre faner',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  // Restore recently closed tab
+  const handleRestoreClosedTab = () => {
+    const recentlyClosed = JSON.parse(localStorage.getItem('recently_closed_tabs') || '[]');
+    if (recentlyClosed.length > 0 && browserInstance) {
+      const tabToRestore = recentlyClosed[0];
+      createNewTab(browserInstance.id, tabToRestore.url);
+      
+      // Remove from recently closed
+      recentlyClosed.shift();
+      localStorage.setItem('recently_closed_tabs', JSON.stringify(recentlyClosed));
+      
+      toast({
+        title: 'Fane gjenåpnet',
+        description: `Gjenåpnet: ${tabToRestore.title || tabToRestore.url}`
+      });
+    } else {
+      toast({
+        title: 'Ingen lukkede faner',
+        description: 'Ingen nylig lukkede faner å gjenåpne',
+        variant: 'default'
+      });
     }
   };
 
@@ -964,50 +1211,90 @@ export default function Browser() {
                   {browserInstance && browserInstance.tabs.length > 0 ? (
                     <>
                       {browserInstance.tabs.map(tab => (
-                        <div
-                          key={tab.id}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[120px] max-w-[200px] group relative transition-all ${
-                            activeTab?.id === tab.id 
-                              ? 'bg-background border-t border-l border-r shadow-sm' 
-                              : 'bg-muted/30 hover:bg-muted/50 border border-transparent'
-                          }`}
-                          onClick={() => handleTabSwitch(tab.id)}
-                          onMouseEnter={(e) => {
-                            if (hoverTimeout) clearTimeout(hoverTimeout);
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setHoverTimeout(setTimeout(() => {
-                              setHoveredTab(tab.id);
-                              setHoverPosition({ x: rect.left, y: rect.bottom });
-                            }, 500));
-                          }}
-                          onMouseLeave={() => {
-                            if (hoverTimeout) clearTimeout(hoverTimeout);
-                            setHoveredTab(null);
-                          }}
-                        >
-                          {tab.favicon ? (
-                            <img src={tab.favicon} alt="" className="w-3 h-3 shrink-0" />
-                          ) : (
-                            <Globe className="w-3 h-3 text-muted-foreground shrink-0" />
-                          )}
-                          <span className="flex-1 text-xs truncate">
-                            {tab.title || 'Ny fane'}
-                          </span>
-                          {tab.isLoading && (
-                            <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCloseTab(tab.id);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <DropdownMenu key={tab.id}>
+                          <DropdownMenuTrigger asChild>
+                            <div
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer min-w-[120px] max-w-[200px] group relative transition-all ${
+                                activeTab?.id === tab.id 
+                                  ? 'bg-background border-t border-l border-r shadow-sm' 
+                                  : 'bg-muted/30 hover:bg-muted/50 border border-transparent'
+                              }`}
+                              onClick={() => handleTabSwitch(tab.id)}
+                              onContextMenu={(e) => e.preventDefault()}
+                              onMouseEnter={(e) => {
+                                if (hoverTimeout) clearTimeout(hoverTimeout);
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setHoverTimeout(setTimeout(() => {
+                                  setHoveredTab(tab.id);
+                                  setHoverPosition({ x: rect.left, y: rect.bottom });
+                                }, 500));
+                              }}
+                              onMouseLeave={() => {
+                                if (hoverTimeout) clearTimeout(hoverTimeout);
+                                setHoveredTab(null);
+                              }}
+                            >
+                              {/* Security indicator */}
+                              {tab.url.startsWith('https://') ? (
+                                <Shield className="w-3 h-3 text-green-500 shrink-0" title="Sikker tilkobling" />
+                              ) : tab.url.startsWith('http://') ? (
+                                <Shield className="w-3 h-3 text-yellow-500 shrink-0" title="Ikke sikker" />
+                              ) : null}
+                              
+                              {/* Favicon */}
+                              {tab.favicon ? (
+                                <img src={tab.favicon} alt="" className="w-3 h-3 shrink-0" />
+                              ) : (
+                                <Globe className="w-3 h-3 text-muted-foreground shrink-0" />
+                              )}
+                              
+                              <span className="flex-1 text-xs truncate">
+                                {tab.title || 'Ny fane'}
+                              </span>
+                              
+                              {/* Loading indicator */}
+                              {tab.isLoading && (
+                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                              )}
+                              
+                              {/* Close button */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCloseTab(tab.id);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            <DropdownMenuItem onClick={() => handleDuplicateTab(tab.id)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Dupliser fane
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                window.open(tab.url, '_blank');
+                              }}
+                            >
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              Åpne i nytt vindu
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleCloseOtherTabs(tab.id)}>
+                              <X className="mr-2 h-4 w-4" />
+                              Lukk andre faner
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCloseTab(tab.id)}>
+                              <X className="mr-2 h-4 w-4" />
+                              Lukk fane
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       ))}
                       <Button
                         variant="ghost"
