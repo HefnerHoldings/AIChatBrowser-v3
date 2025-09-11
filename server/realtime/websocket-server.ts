@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 import jwt from 'jsonwebtoken';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
-import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -134,11 +134,12 @@ export class UnifiedWebSocketServer extends EventEmitter {
   private wss: WebSocketServer;
   private connections: Map<string, ClientConnection> = new Map();
   private rooms: Map<string, Room> = new Map();
-  private redis: Redis;
-  private subscriber: Redis;
-  private rateLimiter: RateLimiterRedis;
+  private redis: Redis | null = null;
+  private subscriber: Redis | null = null;
+  private rateLimiter: RateLimiterRedis | RateLimiterMemory;
   private messageQueue: Map<string, WSMessage[]> = new Map();
   private heartbeatInterval: NodeJS.Timeout | null = null;
+  private useRedis: boolean = false;
 
   constructor(server: HttpServer) {
     super();
@@ -150,27 +151,78 @@ export class UnifiedWebSocketServer extends EventEmitter {
       maxPayload: 10 * 1024 * 1024, // 10MB
     });
 
-    // Initialize Redis for pub/sub and scaling
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-    });
-
-    this.subscriber = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-    });
+    // Try to initialize Redis for pub/sub and scaling
+    this.initializeRedis();
 
     // Initialize Rate Limiter
-    this.rateLimiter = new RateLimiterRedis({
-      storeClient: this.redis,
-      keyPrefix: 'ws-rate-limit',
-      points: 100, // Number of messages
-      duration: 1, // Per second
-      blockDuration: 10, // Block for 10 seconds if exceeded
-    });
+    if (this.redis) {
+      this.rateLimiter = new RateLimiterRedis({
+        storeClient: this.redis,
+        keyPrefix: 'ws-rate-limit',
+        points: 100, // Number of messages
+        duration: 1, // Per second
+        blockDuration: 10, // Block for 10 seconds if exceeded
+      });
+    } else {
+      // Fallback to memory rate limiter if Redis is not available
+      this.rateLimiter = new RateLimiterMemory({
+        points: 100, // Number of messages
+        duration: 1, // Per second
+        blockDuration: 10, // Block for 10 seconds if exceeded
+      });
+    }
 
     this.initialize();
+  }
+
+  private initializeRedis(): void {
+    try {
+      // Try to connect to Redis
+      this.redis = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null, // Don't retry
+        lazyConnect: true,
+      });
+
+      this.subscriber = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null, // Don't retry
+        lazyConnect: true,
+      });
+
+      // Try to connect
+      this.redis.connect().then(() => {
+        this.useRedis = true;
+        console.log('Redis connected for WebSocket scaling');
+        return this.subscriber.connect();
+      }).catch(error => {
+        console.log('Redis not available, using in-memory fallback for WebSockets');
+        this.redis = null;
+        this.subscriber = null;
+        this.useRedis = false;
+      });
+
+      // Handle Redis errors silently
+      if (this.redis) {
+        this.redis.on('error', () => {
+          // Silently ignore Redis errors
+        });
+      }
+      if (this.subscriber) {
+        this.subscriber.on('error', () => {
+          // Silently ignore Redis errors
+        });
+      }
+    } catch (error) {
+      console.log('Redis initialization failed, using in-memory fallback');
+      this.redis = null;
+      this.subscriber = null;
+      this.useRedis = false;
+    }
   }
 
   private initialize(): void {
@@ -664,6 +716,8 @@ export class UnifiedWebSocketServer extends EventEmitter {
   }
 
   private setupRedisPubSub(): void {
+    if (!this.subscriber) return;
+    
     // Subscribe to Redis channels for horizontal scaling
     this.subscriber.subscribe('ws-broadcast', 'room-broadcast', 'room-join', 'room-leave');
 
@@ -699,6 +753,8 @@ export class UnifiedWebSocketServer extends EventEmitter {
   }
 
   private async publishToRedis(channel: string, data: any): Promise<void> {
+    if (!this.redis) return;
+    
     try {
       await this.redis.publish(channel, JSON.stringify(data));
     } catch (error) {

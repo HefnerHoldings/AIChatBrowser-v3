@@ -91,7 +91,13 @@ import {
   marketplaceDependencies,
   marketplaceDownloads,
   marketplaceTransactions,
-  marketplaceExecutionLogs
+  marketplaceExecutionLogs,
+  watchedWorkflows,
+  workflowTriggers,
+  workflowActions,
+  workflowRuns,
+  workflowChanges,
+  workflowSchedules
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql, like, gte } from "drizzle-orm";
@@ -867,6 +873,228 @@ export class DatabaseStorage implements IStorage {
     
     return workflow;
   }
+
+  // Watched Workflows
+  async getWatchedWorkflows(status?: string): Promise<WatchedWorkflow[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(watchedWorkflows)
+        .where(eq(watchedWorkflows.status, status))
+        .orderBy(desc(watchedWorkflows.createdAt));
+    }
+    return await db.select().from(watchedWorkflows).orderBy(desc(watchedWorkflows.createdAt));
+  }
+
+  async getWatchedWorkflow(id: string): Promise<WatchedWorkflow | null> {
+    const [workflow] = await db.select().from(watchedWorkflows).where(eq(watchedWorkflows.id, id));
+    return workflow || null;
+  }
+
+  async createWatchedWorkflow(insertWorkflow: InsertWatchedWorkflow): Promise<WatchedWorkflow> {
+    const id = randomUUID();
+    const [workflow] = await db
+      .insert(watchedWorkflows)
+      .values({ ...insertWorkflow, id })
+      .returning();
+    return workflow;
+  }
+
+  async updateWatchedWorkflow(id: string, updates: Partial<InsertWatchedWorkflow>): Promise<WatchedWorkflow | null> {
+    const [workflow] = await db
+      .update(watchedWorkflows)
+      .set(updates)
+      .where(eq(watchedWorkflows.id, id))
+      .returning();
+    return workflow || null;
+  }
+
+  async deleteWatchedWorkflow(id: string): Promise<boolean> {
+    const result = await db.delete(watchedWorkflows).where(eq(watchedWorkflows.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Workflow Triggers
+  async getWorkflowTriggers(workflowId: string): Promise<WorkflowTrigger[]> {
+    return await db
+      .select()
+      .from(workflowTriggers)
+      .where(eq(workflowTriggers.workflowId, workflowId))
+      .orderBy(workflowTriggers.createdAt);
+  }
+
+  async createWorkflowTrigger(insertTrigger: InsertWorkflowTrigger): Promise<WorkflowTrigger> {
+    const id = randomUUID();
+    const [trigger] = await db
+      .insert(workflowTriggers)
+      .values({ ...insertTrigger, id })
+      .returning();
+    return trigger;
+  }
+
+  async updateWorkflowTrigger(id: string, updates: Partial<InsertWorkflowTrigger>): Promise<WorkflowTrigger | null> {
+    const [trigger] = await db
+      .update(workflowTriggers)
+      .set(updates)
+      .where(eq(workflowTriggers.id, id))
+      .returning();
+    return trigger || null;
+  }
+
+  async deleteWorkflowTrigger(id: string): Promise<boolean> {
+    const result = await db.delete(workflowTriggers).where(eq(workflowTriggers.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Workflow Actions
+  async getWorkflowActions(workflowId: string): Promise<WorkflowAction[]> {
+    return await db
+      .select()
+      .from(workflowActions)
+      .where(eq(workflowActions.workflowId, workflowId))
+      .orderBy(workflowActions.order);
+  }
+
+  async getWorkflowAction(id: string): Promise<WorkflowAction | null> {
+    const [action] = await db.select().from(workflowActions).where(eq(workflowActions.id, id));
+    return action || null;
+  }
+
+  async createWorkflowAction(insertAction: InsertWorkflowAction): Promise<WorkflowAction> {
+    const id = randomUUID();
+    const [action] = await db
+      .insert(workflowActions)
+      .values({ ...insertAction, id })
+      .returning();
+    return action;
+  }
+
+  async updateWorkflowAction(id: string, updates: Partial<InsertWorkflowAction>): Promise<WorkflowAction | null> {
+    const [action] = await db
+      .update(workflowActions)
+      .set(updates)
+      .where(eq(workflowActions.id, id))
+      .returning();
+    return action || null;
+  }
+
+  async deleteWorkflowAction(id: string): Promise<boolean> {
+    const result = await db.delete(workflowActions).where(eq(workflowActions.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Workflow Runs
+  async getWorkflowRuns(filters?: { workflowId?: string; status?: string; limit?: number }): Promise<WorkflowRun[]> {
+    let query = db.select().from(workflowRuns);
+    
+    if (filters?.workflowId) {
+      query = query.where(eq(workflowRuns.workflowId, filters.workflowId));
+    }
+    if (filters?.status) {
+      query = query.where(eq(workflowRuns.status, filters.status));
+    }
+    
+    query = query.orderBy(desc(workflowRuns.startedAt));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    return await query;
+  }
+
+  async getWorkflowRun(id: string): Promise<WorkflowRun | null> {
+    const [run] = await db.select().from(workflowRuns).where(eq(workflowRuns.id, id));
+    return run || null;
+  }
+
+  async createWorkflowRun(insertRun: InsertWorkflowRun): Promise<WorkflowRun> {
+    const id = randomUUID();
+    const [run] = await db
+      .insert(workflowRuns)
+      .values({ ...insertRun, id })
+      .returning();
+    return run;
+  }
+
+  async updateWorkflowRun(id: string, updates: Partial<InsertWorkflowRun>): Promise<WorkflowRun | null> {
+    const [run] = await db
+      .update(workflowRuns)
+      .set(updates)
+      .where(eq(workflowRuns.id, id))
+      .returning();
+    return run || null;
+  }
+
+  // Workflow Changes
+  async getWorkflowChanges(filters?: { workflowId?: string; runId?: string; acknowledged?: boolean }): Promise<WorkflowChange[]> {
+    let query = db.select().from(workflowChanges);
+    
+    const conditions = [];
+    if (filters?.workflowId) {
+      conditions.push(eq(workflowChanges.workflowId, filters.workflowId));
+    }
+    if (filters?.runId) {
+      conditions.push(eq(workflowChanges.runId, filters.runId));
+    }
+    if (filters?.acknowledged !== undefined) {
+      conditions.push(eq(workflowChanges.acknowledged, filters.acknowledged));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query.orderBy(desc(workflowChanges.detectedAt));
+  }
+
+  async createWorkflowChange(insertChange: InsertWorkflowChange): Promise<WorkflowChange> {
+    const id = randomUUID();
+    const [change] = await db
+      .insert(workflowChanges)
+      .values({ ...insertChange, id })
+      .returning();
+    return change;
+  }
+
+  async acknowledgeWorkflowChange(id: string): Promise<void> {
+    await db
+      .update(workflowChanges)
+      .set({ acknowledged: true })
+      .where(eq(workflowChanges.id, id));
+  }
+
+  // Workflow Schedules
+  async getWorkflowSchedules(workflowId: string): Promise<WorkflowSchedule[]> {
+    return await db
+      .select()
+      .from(workflowSchedules)
+      .where(eq(workflowSchedules.workflowId, workflowId))
+      .orderBy(workflowSchedules.priority);
+  }
+
+  async createWorkflowSchedule(insertSchedule: InsertWorkflowSchedule): Promise<WorkflowSchedule> {
+    const id = randomUUID();
+    const [schedule] = await db
+      .insert(workflowSchedules)
+      .values({ ...insertSchedule, id })
+      .returning();
+    return schedule;
+  }
+
+  async updateWorkflowSchedule(id: string, updates: Partial<InsertWorkflowSchedule>): Promise<WorkflowSchedule | null> {
+    const [schedule] = await db
+      .update(workflowSchedules)
+      .set(updates)
+      .where(eq(workflowSchedules.id, id))
+      .returning();
+    return schedule || null;
+  }
+
+  async deleteWorkflowSchedule(id: string): Promise<boolean> {
+    const result = await db.delete(workflowSchedules).where(eq(workflowSchedules.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
 }
 
 // MemStorage implementation for fallback
@@ -900,6 +1128,14 @@ class MemStorage implements IStorage {
   private marketplaceDownloads: Map<string, MarketplaceDownload> = new Map();
   private marketplaceTransactions: Map<string, MarketplaceTransaction> = new Map();
   private marketplaceExecutionLogs: Map<string, MarketplaceExecutionLog> = new Map();
+  
+  // Watched Workflows Maps
+  private watchedWorkflows: Map<string, WatchedWorkflow> = new Map();
+  private workflowTriggers: Map<string, WorkflowTrigger> = new Map();
+  private workflowActions: Map<string, WorkflowAction> = new Map();
+  private workflowRuns: Map<string, WorkflowRun> = new Map();
+  private workflowChanges: Map<string, WorkflowChange> = new Map();
+  private workflowSchedules: Map<string, WorkflowSchedule> = new Map();
 
   constructor() {
     this.seedData();
@@ -1868,6 +2104,281 @@ class MemStorage implements IStorage {
     };
     this.marketplaceExecutionLogs.set(id, log);
     return log;
+  }
+
+  // Watched Workflows
+  async getWatchedWorkflows(status?: string): Promise<WatchedWorkflow[]> {
+    const workflows = Array.from(this.watchedWorkflows.values());
+    return status ? workflows.filter(w => w.status === status) : workflows;
+  }
+
+  async getWatchedWorkflow(id: string): Promise<WatchedWorkflow | null> {
+    return this.watchedWorkflows.get(id) || null;
+  }
+
+  async createWatchedWorkflow(insertWorkflow: InsertWatchedWorkflow): Promise<WatchedWorkflow> {
+    const id = randomUUID();
+    const workflow: WatchedWorkflow = {
+      id,
+      name: insertWorkflow.name,
+      description: insertWorkflow.description || null,
+      playbookId: insertWorkflow.playbookId || null,
+      status: insertWorkflow.status || 'active',
+      scheduleType: insertWorkflow.scheduleType || 'rrule',
+      scheduleConfig: insertWorkflow.scheduleConfig || {},
+      nextRun: insertWorkflow.nextRun || null,
+      lastRun: insertWorkflow.lastRun || null,
+      changeDetection: insertWorkflow.changeDetection || false,
+      changeDetectionConfig: insertWorkflow.changeDetectionConfig || {},
+      config: insertWorkflow.config || {},
+      metrics: insertWorkflow.metrics || {
+        totalRuns: 0,
+        successfulRuns: 0,
+        failedRuns: 0,
+        averageDuration: 0,
+        changesDetected: 0
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.watchedWorkflows.set(id, workflow);
+    return workflow;
+  }
+
+  async updateWatchedWorkflow(id: string, updates: Partial<InsertWatchedWorkflow>): Promise<WatchedWorkflow | null> {
+    const workflow = this.watchedWorkflows.get(id);
+    if (!workflow) return null;
+    const updated = { ...workflow, ...updates, updatedAt: new Date() };
+    this.watchedWorkflows.set(id, updated);
+    return updated;
+  }
+
+  async deleteWatchedWorkflow(id: string): Promise<boolean> {
+    return this.watchedWorkflows.delete(id);
+  }
+
+  // Workflow Triggers
+  async getWorkflowTriggers(workflowId: string): Promise<WorkflowTrigger[]> {
+    return Array.from(this.workflowTriggers.values())
+      .filter(t => t.workflowId === workflowId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async createWorkflowTrigger(insertTrigger: InsertWorkflowTrigger): Promise<WorkflowTrigger> {
+    const id = randomUUID();
+    const trigger: WorkflowTrigger = {
+      id,
+      workflowId: insertTrigger.workflowId,
+      type: insertTrigger.type,
+      name: insertTrigger.name,
+      enabled: insertTrigger.enabled ?? true,
+      config: insertTrigger.config || {},
+      lastTriggered: insertTrigger.lastTriggered || null,
+      triggerCount: insertTrigger.triggerCount || 0,
+      createdAt: new Date()
+    };
+    this.workflowTriggers.set(id, trigger);
+    return trigger;
+  }
+
+  async updateWorkflowTrigger(id: string, updates: Partial<InsertWorkflowTrigger>): Promise<WorkflowTrigger | null> {
+    const trigger = this.workflowTriggers.get(id);
+    if (!trigger) return null;
+    const updated = { ...trigger, ...updates };
+    this.workflowTriggers.set(id, updated);
+    return updated;
+  }
+
+  async deleteWorkflowTrigger(id: string): Promise<boolean> {
+    return this.workflowTriggers.delete(id);
+  }
+
+  // Workflow Actions
+  async getWorkflowActions(workflowId: string): Promise<WorkflowAction[]> {
+    return Array.from(this.workflowActions.values())
+      .filter(a => a.workflowId === workflowId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async getWorkflowAction(id: string): Promise<WorkflowAction | null> {
+    return this.workflowActions.get(id) || null;
+  }
+
+  async createWorkflowAction(insertAction: InsertWorkflowAction): Promise<WorkflowAction> {
+    const id = randomUUID();
+    const action: WorkflowAction = {
+      id,
+      workflowId: insertAction.workflowId,
+      type: insertAction.type,
+      name: insertAction.name,
+      enabled: insertAction.enabled ?? true,
+      order: insertAction.order || 0,
+      config: insertAction.config || {},
+      retryOnFailure: insertAction.retryOnFailure ?? true,
+      retryAttempts: insertAction.retryAttempts || 3,
+      retryDelay: insertAction.retryDelay || 5000,
+      createdAt: new Date()
+    };
+    this.workflowActions.set(id, action);
+    return action;
+  }
+
+  async updateWorkflowAction(id: string, updates: Partial<InsertWorkflowAction>): Promise<WorkflowAction | null> {
+    const action = this.workflowActions.get(id);
+    if (!action) return null;
+    const updated = { ...action, ...updates };
+    this.workflowActions.set(id, updated);
+    return updated;
+  }
+
+  async deleteWorkflowAction(id: string): Promise<boolean> {
+    return this.workflowActions.delete(id);
+  }
+
+  // Workflow Runs
+  async getWorkflowRuns(filters?: { workflowId?: string; status?: string; limit?: number }): Promise<WorkflowRun[]> {
+    let runs = Array.from(this.workflowRuns.values());
+    
+    if (filters?.workflowId) {
+      runs = runs.filter(r => r.workflowId === filters.workflowId);
+    }
+    if (filters?.status) {
+      runs = runs.filter(r => r.status === filters.status);
+    }
+    
+    runs.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    
+    if (filters?.limit) {
+      runs = runs.slice(0, filters.limit);
+    }
+    
+    return runs;
+  }
+
+  async getWorkflowRun(id: string): Promise<WorkflowRun | null> {
+    return this.workflowRuns.get(id) || null;
+  }
+
+  async createWorkflowRun(insertRun: InsertWorkflowRun): Promise<WorkflowRun> {
+    const id = randomUUID();
+    const run: WorkflowRun = {
+      id,
+      workflowId: insertRun.workflowId,
+      runNumber: insertRun.runNumber,
+      status: insertRun.status || 'pending',
+      triggerType: insertRun.triggerType,
+      triggeredBy: insertRun.triggeredBy || null,
+      startedAt: insertRun.startedAt || new Date(),
+      completedAt: insertRun.completedAt || null,
+      duration: insertRun.duration || null,
+      steps: insertRun.steps || [],
+      extractedData: insertRun.extractedData || null,
+      changesDetected: insertRun.changesDetected || null,
+      actionsExecuted: insertRun.actionsExecuted || [],
+      logs: insertRun.logs || [],
+      screenshots: insertRun.screenshots || [],
+      error: insertRun.error || null,
+      createdAt: new Date()
+    };
+    this.workflowRuns.set(id, run);
+    return run;
+  }
+
+  async updateWorkflowRun(id: string, updates: Partial<InsertWorkflowRun>): Promise<WorkflowRun | null> {
+    const run = this.workflowRuns.get(id);
+    if (!run) return null;
+    const updated = { ...run, ...updates };
+    this.workflowRuns.set(id, updated);
+    return updated;
+  }
+
+  // Workflow Changes
+  async getWorkflowChanges(filters?: { workflowId?: string; runId?: string; acknowledged?: boolean }): Promise<WorkflowChange[]> {
+    let changes = Array.from(this.workflowChanges.values());
+    
+    if (filters?.workflowId) {
+      changes = changes.filter(c => c.workflowId === filters.workflowId);
+    }
+    if (filters?.runId) {
+      changes = changes.filter(c => c.runId === filters.runId);
+    }
+    if (filters?.acknowledged !== undefined) {
+      changes = changes.filter(c => c.acknowledged === filters.acknowledged);
+    }
+    
+    return changes.sort((a, b) => b.detectedAt.getTime() - a.detectedAt.getTime());
+  }
+
+  async createWorkflowChange(insertChange: InsertWorkflowChange): Promise<WorkflowChange> {
+    const id = randomUUID();
+    const change: WorkflowChange = {
+      id,
+      workflowId: insertChange.workflowId,
+      runId: insertChange.runId,
+      changeType: insertChange.changeType,
+      severity: insertChange.severity || 'low',
+      previousValue: insertChange.previousValue || null,
+      currentValue: insertChange.currentValue || null,
+      diff: insertChange.diff || null,
+      selector: insertChange.selector || null,
+      url: insertChange.url || null,
+      screenshot: insertChange.screenshot || null,
+      similarity: insertChange.similarity || null,
+      changeScore: insertChange.changeScore || null,
+      notified: insertChange.notified || false,
+      acknowledged: insertChange.acknowledged || false,
+      detectedAt: new Date()
+    };
+    this.workflowChanges.set(id, change);
+    return change;
+  }
+
+  async acknowledgeWorkflowChange(id: string): Promise<void> {
+    const change = this.workflowChanges.get(id);
+    if (change) {
+      change.acknowledged = true;
+      this.workflowChanges.set(id, change);
+    }
+  }
+
+  // Workflow Schedules
+  async getWorkflowSchedules(workflowId: string): Promise<WorkflowSchedule[]> {
+    return Array.from(this.workflowSchedules.values())
+      .filter(s => s.workflowId === workflowId)
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  }
+
+  async createWorkflowSchedule(insertSchedule: InsertWorkflowSchedule): Promise<WorkflowSchedule> {
+    const id = randomUUID();
+    const schedule: WorkflowSchedule = {
+      id,
+      workflowId: insertSchedule.workflowId,
+      scheduleType: insertSchedule.scheduleType,
+      scheduleExpression: insertSchedule.scheduleExpression,
+      timezone: insertSchedule.timezone || 'UTC',
+      enabled: insertSchedule.enabled ?? true,
+      priority: insertSchedule.priority || 0,
+      nextRun: insertSchedule.nextRun || null,
+      lastRun: insertSchedule.lastRun || null,
+      runCount: insertSchedule.runCount || 0,
+      maxRuns: insertSchedule.maxRuns || null,
+      metadata: insertSchedule.metadata || {},
+      createdAt: new Date()
+    };
+    this.workflowSchedules.set(id, schedule);
+    return schedule;
+  }
+
+  async updateWorkflowSchedule(id: string, updates: Partial<InsertWorkflowSchedule>): Promise<WorkflowSchedule | null> {
+    const schedule = this.workflowSchedules.get(id);
+    if (!schedule) return null;
+    const updated = { ...schedule, ...updates };
+    this.workflowSchedules.set(id, updated);
+    return updated;
+  }
+
+  async deleteWorkflowSchedule(id: string): Promise<boolean> {
+    return this.workflowSchedules.delete(id);
   }
 }
 
