@@ -997,5 +997,20 @@ export class NotificationService extends EventEmitter {
   }
 }
 
-// Export singleton instance
-export const notificationService = new NotificationService();
+// Export singleton instance lazily
+let _notificationService: NotificationService | null = null;
+
+export function getNotificationService(): NotificationService {
+  if (!_notificationService) {
+    _notificationService = new NotificationService();
+  }
+  return _notificationService;
+}
+
+// Export a proxy object that lazily creates the service
+export const notificationService = new Proxy({} as NotificationService, {
+  get(_, prop) {
+    const service = getNotificationService();
+    return (service as any)[prop];
+  }
+});

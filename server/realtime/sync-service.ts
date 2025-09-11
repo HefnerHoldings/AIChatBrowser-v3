@@ -798,5 +798,20 @@ class ManualResolutionStrategy extends ConflictResolutionStrategy {
   }
 }
 
-// Export singleton instance
-export const syncService = new SyncService();
+// Export singleton instance lazily
+let _syncService: SyncService | null = null;
+
+export function getSyncService(): SyncService {
+  if (!_syncService) {
+    _syncService = new SyncService();
+  }
+  return _syncService;
+}
+
+// Export a proxy object that lazily creates the service
+export const syncService = new Proxy({} as SyncService, {
+  get(_, prop) {
+    const service = getSyncService();
+    return (service as any)[prop];
+  }
+});

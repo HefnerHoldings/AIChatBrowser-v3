@@ -2,6 +2,31 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('[CRITICAL] Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Log the error but don't exit the process
+  // This prevents the server from crashing on unexpected errors
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  // Log the error but don't exit the process  
+  // This prevents the server from crashing on promise rejections
+});
+
+// Handle SIGTERM and SIGINT gracefully
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, gracefully shutting down...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, gracefully shutting down...');
+  process.exit(0);
+});
+
 export async function createServer() {
   const app = express();
   app.use(express.json());
@@ -43,8 +68,10 @@ export async function createServer() {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    console.error('[Express Error Handler]', err);
     res.status(status).json({ message });
-    throw err;
+    // Don't re-throw the error as it would crash the server
+    // Just log it and continue
   });
 
   // importantly only setup vite in development and after

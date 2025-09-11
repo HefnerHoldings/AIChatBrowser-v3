@@ -2,9 +2,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server as HttpServer } from 'http';
 import { EventEmitter } from 'events';
 import jwt from 'jsonwebtoken';
-import { Redis } from 'ioredis';
+// Redis import moved to dynamic import to prevent loading if not needed
 import { z } from 'zod';
-import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
+import { RateLimiterMemory } from 'rate-limiter-flexible';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -134,9 +134,9 @@ export class UnifiedWebSocketServer extends EventEmitter {
   private wss: WebSocketServer;
   private connections: Map<string, ClientConnection> = new Map();
   private rooms: Map<string, Room> = new Map();
-  private redis: Redis | null = null;
-  private subscriber: Redis | null = null;
-  private rateLimiter: RateLimiterRedis | RateLimiterMemory;
+  private redis: any | null = null;
+  private subscriber: any | null = null;
+  private rateLimiter: RateLimiterMemory;
   private messageQueue: Map<string, WSMessage[]> = new Map();
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private useRedis: boolean = false;
@@ -151,77 +151,101 @@ export class UnifiedWebSocketServer extends EventEmitter {
       maxPayload: 10 * 1024 * 1024, // 10MB
     });
 
-    // Try to initialize Redis for pub/sub and scaling
-    this.initializeRedis();
+    // Always use memory rate limiter - it's more reliable and doesn't require Redis
+    this.rateLimiter = new RateLimiterMemory({
+      points: 100, // Number of messages
+      duration: 1, // Per second
+      blockDuration: 10, // Block for 10 seconds if exceeded
+    });
 
-    // Initialize Rate Limiter
-    if (this.redis) {
-      this.rateLimiter = new RateLimiterRedis({
-        storeClient: this.redis,
-        keyPrefix: 'ws-rate-limit',
-        points: 100, // Number of messages
-        duration: 1, // Per second
-        blockDuration: 10, // Block for 10 seconds if exceeded
-      });
+    // Try to initialize Redis for pub/sub and scaling (optional)
+    // Only if explicitly configured
+    if (process.env.REDIS_HOST && process.env.REDIS_HOST !== 'localhost') {
+      // Defer Redis initialization to avoid immediate connection attempts
+      setTimeout(() => this.initializeRedis(), 1000);
     } else {
-      // Fallback to memory rate limiter if Redis is not available
-      this.rateLimiter = new RateLimiterMemory({
-        points: 100, // Number of messages
-        duration: 1, // Per second
-        blockDuration: 10, // Block for 10 seconds if exceeded
-      });
+      console.log('Redis not configured, using in-memory WebSocket handling');
+      this.useRedis = false;
     }
 
     this.initialize();
   }
 
-  private initializeRedis(): void {
+  private async initializeRedis(): Promise<void> {
     try {
-      // Try to connect to Redis
-      this.redis = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
+      // Dynamic import to prevent loading Redis if not needed
+      const { Redis } = await import('ioredis');
+      
+      const redisConfig = {
+        host: process.env.REDIS_HOST,
         port: parseInt(process.env.REDIS_PORT || '6379'),
         maxRetriesPerRequest: 1,
         retryStrategy: () => null, // Don't retry
         lazyConnect: true,
-      });
+        enableOfflineQueue: false,
+        enableReadyCheck: false,
+        reconnectOnError: () => false,
+      };
 
-      this.subscriber = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        maxRetriesPerRequest: 1,
-        retryStrategy: () => null, // Don't retry
-        lazyConnect: true,
-      });
+      // Create Redis clients
+      this.redis = new Redis(redisConfig);
+      this.subscriber = new Redis(redisConfig);
 
-      // Try to connect
-      this.redis.connect().then(() => {
-        this.useRedis = true;
-        console.log('Redis connected for WebSocket scaling');
-        return this.subscriber.connect();
-      }).catch(error => {
-        console.log('Redis not available, using in-memory fallback for WebSockets');
-        this.redis = null;
-        this.subscriber = null;
-        this.useRedis = false;
-      });
-
-      // Handle Redis errors silently
-      if (this.redis) {
-        this.redis.on('error', () => {
-          // Silently ignore Redis errors
+      // Set up error handlers BEFORE connecting
+      const handleError = (client: any, name: string) => {
+        client.on('error', (err: any) => {
+          if (!this.useRedis) return; // Already using fallback
+          console.log(`Redis ${name} error, switching to in-memory:`, err.message);
+          this.cleanupRedis();
         });
-      }
-      if (this.subscriber) {
-        this.subscriber.on('error', () => {
-          // Silently ignore Redis errors
+        
+        client.on('end', () => {
+          if (!this.useRedis) return;
+          console.log(`Redis ${name} connection ended`);
+          this.cleanupRedis();
         });
-      }
-    } catch (error) {
-      console.log('Redis initialization failed, using in-memory fallback');
+      };
+
+      handleError(this.redis, 'publisher');
+      handleError(this.subscriber, 'subscriber');
+
+      // Try to connect with timeout
+      const connectTimeout = setTimeout(() => {
+        console.log('Redis connection timeout, using in-memory fallback');
+        this.cleanupRedis();
+      }, 5000);
+
+      await Promise.all([
+        this.redis.connect(),
+        this.subscriber.connect()
+      ]);
+
+      clearTimeout(connectTimeout);
+      this.useRedis = true;
+      console.log('Redis connected for WebSocket scaling');
+    } catch (error: any) {
+      console.log('Redis not available, using in-memory fallback:', error?.message || 'Unknown error');
+      this.cleanupRedis();
+    }
+  }
+
+  private cleanupRedis(): void {
+    this.useRedis = false;
+    
+    if (this.redis) {
+      try {
+        this.redis.removeAllListeners();
+        this.redis.disconnect();
+      } catch {}
       this.redis = null;
+    }
+    
+    if (this.subscriber) {
+      try {
+        this.subscriber.removeAllListeners();
+        this.subscriber.disconnect();
+      } catch {}
       this.subscriber = null;
-      this.useRedis = false;
     }
   }
 
