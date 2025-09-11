@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { db } from '../storage';
+import { db } from '../db';
 import { vibeProfiles, workflowTemplates, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 

@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { RRule, rrulestr } from 'rrule';
+import * as rrule from 'rrule';
+const { RRule, rrulestr } = rrule;
 import * as cron from 'node-cron';
 import { storage } from '../storage';
 import type { WatchedWorkflow, WorkflowSchedule } from '@shared/schema';

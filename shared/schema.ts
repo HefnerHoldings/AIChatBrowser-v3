@@ -424,6 +424,215 @@ export type InsertWorkflowAIChat = z.infer<typeof insertWorkflowAIChatSchema>;
 export type InsertWorkflowVoiceSession = z.infer<typeof insertWorkflowVoiceSessionSchema>;
 export type InsertWorkflowStepConfig = z.infer<typeof insertWorkflowStepConfigSchema>;
 
+// ========== Real-time Collaboration Tables ==========
+
+// Sync States table for managing document versions
+export const syncStates = pgTable("sync_states", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().unique(),
+  documentType: varchar("document_type").notNull(), // text, json, binary, workflow, code
+  version: integer("version").notNull().default(0),
+  content: jsonb("content").notNull(),
+  checksum: varchar("checksum").notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Sync Operations table for operational transform history
+export const syncOperations = pgTable("sync_operations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  type: varchar("type").notNull(), // insert, delete, update, move, format
+  userId: varchar("user_id").notNull(),
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+  position: integer("position"),
+  length: integer("length"),
+  content: jsonb("content"),
+  attributes: jsonb("attributes"),
+  parentVersion: integer("parent_version").notNull(),
+  version: integer("version").notNull(),
+  checksum: varchar("checksum"),
+});
+
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // mention, comment, review, etc.
+  priority: varchar("priority").notNull().default("normal"), // low, normal, high, urgent
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  data: jsonb("data"),
+  channels: jsonb("channels").default(["in-app"]), // in-app, email, sms, push
+  read: boolean("read").notNull().default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at"),
+  groupId: varchar("group_id"),
+  actions: jsonb("actions"), // Array of action buttons
+});
+
+// Notification Preferences table
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique().references(() => users.id),
+  preferences: jsonb("preferences").notNull().default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Collaboration Sessions table
+export const collaborationSessions = pgTable("collaboration_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // code, content, design, workflow, etc.
+  hostId: varchar("host_id").notNull().references(() => users.id),
+  status: varchar("status").notNull().default("active"), // active, paused, ended
+  maxParticipants: integer("max_participants").default(10),
+  allowGuests: boolean("allow_guests").default(false),
+  recordSession: boolean("record_session").default(false),
+  config: jsonb("config").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  endedAt: timestamp("ended_at"),
+});
+
+// Session Participants table
+export const sessionParticipants = pgTable("session_participants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => collaborationSessions.id),
+  userId: varchar("user_id").references(() => users.id),
+  username: text("username").notNull(),
+  role: varchar("role").notNull().default("viewer"), // host, editor, viewer, commenter
+  joinedAt: timestamp("joined_at").notNull().default(sql`now()`),
+  leftAt: timestamp("left_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  isGuest: boolean("is_guest").notNull().default(false),
+});
+
+// Comments table
+export const comments = pgTable("comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  targetType: varchar("target_type").notNull(), // document, element, line, etc.
+  targetId: varchar("target_id").notNull(),
+  text: text("text").notNull(),
+  position: jsonb("position"), // { x, y } or { line, column }
+  resolved: boolean("resolved").notNull().default(false),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  parentId: varchar("parent_id"), // For replies
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Reviews table
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // code, content, design, workflow
+  status: varchar("status").notNull().default("pending"), // pending, approved, rejected, changes-requested
+  priority: varchar("priority").notNull().default("medium"),
+  authorId: varchar("author_id").notNull().references(() => users.id),
+  files: jsonb("files").default([]),
+  checklist: jsonb("checklist").default([]),
+  labels: jsonb("labels").default([]),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+  mergedAt: timestamp("merged_at"),
+  closedAt: timestamp("closed_at"),
+});
+
+// Review Comments table
+export const reviewComments = pgTable("review_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reviewId: varchar("review_id").notNull().references(() => reviews.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  text: text("text").notNull(),
+  type: varchar("type").notNull().default("comment"), // comment, approval, rejection
+  fileId: varchar("file_id"),
+  lineNumber: integer("line_number"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Insert schemas for collaboration tables
+export const insertSyncStateSchema = createInsertSchema(syncStates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSyncOperationSchema = createInsertSchema(syncOperations).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+});
+
+export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCollaborationSessionSchema = createInsertSchema(collaborationSessions).omit({
+  id: true,
+  createdAt: true,
+  endedAt: true,
+});
+
+export const insertSessionParticipantSchema = createInsertSchema(sessionParticipants).omit({
+  id: true,
+  joinedAt: true,
+  leftAt: true,
+});
+
+export const insertCommentSchema = createInsertSchema(comments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  resolvedAt: true,
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  mergedAt: true,
+  closedAt: true,
+});
+
+export const insertReviewCommentSchema = createInsertSchema(reviewComments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for collaboration tables
+export type SyncState = typeof syncStates.$inferSelect;
+export type SyncOperation = typeof syncOperations.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
+export type CollaborationSession = typeof collaborationSessions.$inferSelect;
+export type SessionParticipant = typeof sessionParticipants.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
+export type ReviewComment = typeof reviewComments.$inferSelect;
+
+export type InsertSyncState = z.infer<typeof insertSyncStateSchema>;
+export type InsertSyncOperation = z.infer<typeof insertSyncOperationSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
+export type InsertCollaborationSession = z.infer<typeof insertCollaborationSessionSchema>;
+export type InsertSessionParticipant = z.infer<typeof insertSessionParticipantSchema>;
+export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type InsertReviewComment = z.infer<typeof insertReviewCommentSchema>;
+
 // ========== User Profile & Organization Tables ==========
 
 // Session storage table.
@@ -1566,24 +1775,6 @@ export const gamificationEvents = pgTable("gamification_events", {
   timestampIdx: index("gamification_events_timestamp_idx").on(table.timestamp),
 }));
 
-export const collaborationSessions = pgTable("collaboration_sessions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  roomId: varchar("room_id").notNull().unique(),
-  hostUserId: varchar("host_user_id").notNull().references(() => users.id),
-  participants: jsonb("participants").notNull().default([]),
-  projectId: varchar("project_id"),
-  fileId: varchar("file_id"),
-  mode: varchar("mode", { length: 30 }).notNull(), // pair-programming, review, brainstorming
-  status: varchar("status", { length: 20 }).notNull().default('active'), // active, paused, ended
-  startedAt: timestamp("started_at").notNull().default(sql`now()`),
-  endedAt: timestamp("ended_at"),
-  metadata: jsonb("metadata").notNull().default({}),
-}, (table) => ({
-  roomIdx: index("collaboration_sessions_room_idx").on(table.roomId),
-  hostIdx: index("collaboration_sessions_host_idx").on(table.hostUserId),
-  statusIdx: index("collaboration_sessions_status_idx").on(table.status),
-}));
-
 // Insert schemas for gamification tables
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
   id: true,
@@ -1633,11 +1824,6 @@ export const insertGamificationEventSchema = createInsertSchema(gamificationEven
   timestamp: true,
 });
 
-export const insertCollaborationSessionSchema = createInsertSchema(collaborationSessions).omit({
-  id: true,
-  startedAt: true,
-});
-
 // Types for gamification tables
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
@@ -1648,7 +1834,6 @@ export type Leaderboard = typeof leaderboards.$inferSelect;
 export type VibeProfile = typeof vibeProfiles.$inferSelect;
 export type WorkflowTemplate = typeof workflowTemplates.$inferSelect;
 export type GamificationEvent = typeof gamificationEvents.$inferSelect;
-export type CollaborationSession = typeof collaborationSessions.$inferSelect;
 
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
@@ -1659,4 +1844,3 @@ export type InsertLeaderboard = z.infer<typeof insertLeaderboardSchema>;
 export type InsertVibeProfile = z.infer<typeof insertVibeProfileSchema>;
 export type InsertWorkflowTemplate = z.infer<typeof insertWorkflowTemplateSchema>;
 export type InsertGamificationEvent = z.infer<typeof insertGamificationEventSchema>;
-export type InsertCollaborationSession = z.infer<typeof insertCollaborationSessionSchema>;

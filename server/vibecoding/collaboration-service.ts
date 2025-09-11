@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { db } from '../storage';
+import { db } from '../db';
 import { collaborationSessions, users, projects } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { EventEmitter } from 'events';

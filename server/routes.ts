@@ -33,6 +33,9 @@ import {
 import { z } from "zod";
 import { createWorkflowManager } from "./workflows/workflow-manager";
 import { workflowStorage } from "./workflows/workflow-storage";
+import { initializeWebSocketServer } from "./realtime/websocket-server";
+import { syncService } from "./realtime/sync-service";
+import { notificationService } from "./realtime/notification-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize browser engine
@@ -4269,10 +4272,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create HTTP server and WebSocket server
+  // Create HTTP server and WebSocket servers
   const httpServer = createServer(app);
   
-  // Initialize WebSocket server for agents
+  // Initialize Unified WebSocket Server for real-time collaboration
+  const wsServer = initializeWebSocketServer(httpServer);
+  
+  // Setup WebSocket event listeners for different features
+  wsServer.on('/browser:tab-share', (data) => {
+    // Handle browser tab sharing
+    browserManager.shareTab(data);
+  });
+  
+  wsServer.on('/agents:update', (data) => {
+    // Handle agent updates
+    agentOrchestrator.broadcastUpdate(data);
+  });
+  
+  wsServer.on('/workflows:status', (data) => {
+    // Handle workflow status updates
+    workflowManager.broadcastStatus(data);
+  });
+  
+  wsServer.on('/qa:test-result', (data) => {
+    // Handle QA test results
+    qaSuite.broadcastTestResult(data);
+  });
+  
+  // Initialize WebSocket server for agents (legacy, to be migrated to unified server)
   const agentWS = new AgentWebSocketServer(httpServer);
   agentWS.setOrchestrator(agentOrchestrator);
   agentWS.startHeartbeat();
