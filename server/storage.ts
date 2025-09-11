@@ -31,6 +31,28 @@ import {
   type InsertWorkflowAIChat,
   type InsertWorkflowVoiceSession,
   type InsertWorkflowStepConfig,
+  type MarketplaceItem,
+  type MarketplaceVersion,
+  type MarketplaceAuthor,
+  type MarketplaceInstallation,
+  type MarketplaceReview,
+  type MarketplaceLicense,
+  type MarketplacePermission,
+  type MarketplaceDependency,
+  type MarketplaceDownload,
+  type MarketplaceTransaction,
+  type MarketplaceExecutionLog,
+  type InsertMarketplaceItem,
+  type InsertMarketplaceVersion,
+  type InsertMarketplaceAuthor,
+  type InsertMarketplaceInstallation,
+  type InsertMarketplaceReview,
+  type InsertMarketplaceLicense,
+  type InsertMarketplacePermission,
+  type InsertMarketplaceDependency,
+  type InsertMarketplaceDownload,
+  type InsertMarketplaceTransaction,
+  type InsertMarketplaceExecutionLog,
   projects,
   workflows,
   automationTasks,
@@ -46,10 +68,21 @@ import {
   savedPasswords,
   workflowAIChats,
   workflowVoiceSessions,
-  workflowStepConfigs
+  workflowStepConfigs,
+  marketplaceItems,
+  marketplaceVersions,
+  marketplaceAuthors,
+  marketplaceInstallations,
+  marketplaceReviews,
+  marketplaceLicenses,
+  marketplacePermissions,
+  marketplaceDependencies,
+  marketplaceDownloads,
+  marketplaceTransactions,
+  marketplaceExecutionLogs
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sql } from "drizzle-orm";
+import { eq, desc, and, or, sql, like, gte } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -153,6 +186,36 @@ export interface IStorage {
   // Workflow Templates
   getWorkflowTemplates(): Promise<Workflow[]>;
   createWorkflowFromTemplate(templateId: string): Promise<Workflow>;
+  
+  // Marketplace
+  getMarketplaceItems(filters?: { type?: string; category?: string; search?: string; featured?: boolean }): Promise<MarketplaceItem[]>;
+  getMarketplaceItem(id: string): Promise<MarketplaceItem | undefined>;
+  createMarketplaceItem(item: InsertMarketplaceItem): Promise<MarketplaceItem>;
+  updateMarketplaceItem(id: string, updates: Partial<InsertMarketplaceItem>): Promise<MarketplaceItem | undefined>;
+  deleteMarketplaceItem(id: string): Promise<boolean>;
+  
+  getMarketplaceAuthor(id: string): Promise<MarketplaceAuthor | undefined>;
+  getMarketplaceAuthorByUserId(userId: string): Promise<MarketplaceAuthor | undefined>;
+  createMarketplaceAuthor(author: InsertMarketplaceAuthor): Promise<MarketplaceAuthor>;
+  updateMarketplaceAuthor(id: string, updates: Partial<InsertMarketplaceAuthor>): Promise<MarketplaceAuthor | undefined>;
+  
+  getMarketplaceInstallations(userId: string): Promise<MarketplaceInstallation[]>;
+  getMarketplaceInstallation(itemId: string, userId: string): Promise<MarketplaceInstallation | undefined>;
+  createMarketplaceInstallation(installation: InsertMarketplaceInstallation): Promise<MarketplaceInstallation>;
+  updateMarketplaceInstallation(id: string, updates: Partial<InsertMarketplaceInstallation>): Promise<MarketplaceInstallation | undefined>;
+  
+  getMarketplaceReviews(itemId: string): Promise<MarketplaceReview[]>;
+  createMarketplaceReview(review: InsertMarketplaceReview): Promise<MarketplaceReview>;
+  
+  getMarketplaceVersion(id: string): Promise<MarketplaceVersion | undefined>;
+  getMarketplaceVersions(itemId: string): Promise<MarketplaceVersion[]>;
+  createMarketplaceVersion(version: InsertMarketplaceVersion): Promise<MarketplaceVersion>;
+  
+  createMarketplaceLicense(license: InsertMarketplaceLicense): Promise<MarketplaceLicense>;
+  getMarketplaceLicense(licenseKey: string): Promise<MarketplaceLicense | undefined>;
+  
+  trackMarketplaceDownload(download: InsertMarketplaceDownload): Promise<MarketplaceDownload>;
+  recordMarketplaceExecution(log: InsertMarketplaceExecutionLog): Promise<MarketplaceExecutionLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -775,6 +838,19 @@ class MemStorage implements IStorage {
   private workflowAIChats: Map<string, WorkflowAIChat> = new Map();
   private workflowVoiceSessions: Map<string, WorkflowVoiceSession> = new Map();
   private workflowStepConfigs: Map<string, WorkflowStepConfig> = new Map();
+  
+  // Marketplace Maps
+  private marketplaceItems: Map<string, MarketplaceItem> = new Map();
+  private marketplaceVersions: Map<string, MarketplaceVersion> = new Map();
+  private marketplaceAuthors: Map<string, MarketplaceAuthor> = new Map();
+  private marketplaceInstallations: Map<string, MarketplaceInstallation> = new Map();
+  private marketplaceReviews: Map<string, MarketplaceReview> = new Map();
+  private marketplaceLicenses: Map<string, MarketplaceLicense> = new Map();
+  private marketplacePermissions: Map<string, MarketplacePermission> = new Map();
+  private marketplaceDependencies: Map<string, MarketplaceDependency> = new Map();
+  private marketplaceDownloads: Map<string, MarketplaceDownload> = new Map();
+  private marketplaceTransactions: Map<string, MarketplaceTransaction> = new Map();
+  private marketplaceExecutionLogs: Map<string, MarketplaceExecutionLog> = new Map();
 
   constructor() {
     this.seedData();
@@ -1420,6 +1496,329 @@ class MemStorage implements IStorage {
     };
     this.workflows.set(id, workflow);
     return workflow;
+  }
+
+  // Marketplace Methods (stub implementations for MemStorage)
+  async getMarketplaceItems(filters?: { type?: string; category?: string; search?: string; featured?: boolean }): Promise<MarketplaceItem[]> {
+    const items = Array.from(this.marketplaceItems.values());
+    let filtered = items;
+    
+    if (filters?.type) {
+      filtered = filtered.filter(item => item.type === filters.type);
+    }
+    if (filters?.category) {
+      filtered = filtered.filter(item => item.category === filters.category);
+    }
+    if (filters?.search) {
+      const search = filters.search.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.name.toLowerCase().includes(search) ||
+        item.description.toLowerCase().includes(search)
+      );
+    }
+    if (filters?.featured !== undefined) {
+      filtered = filtered.filter(item => item.featured === filters.featured);
+    }
+    
+    return filtered.sort((a, b) => b.downloads - a.downloads);
+  }
+
+  async getMarketplaceItem(id: string): Promise<MarketplaceItem | undefined> {
+    return this.marketplaceItems.get(id);
+  }
+
+  async createMarketplaceItem(insertItem: InsertMarketplaceItem): Promise<MarketplaceItem> {
+    const id = randomUUID();
+    const slug = insertItem.slug || insertItem.name.toLowerCase().replace(/\s+/g, '-');
+    const item: MarketplaceItem = {
+      id,
+      slug,
+      type: insertItem.type,
+      name: insertItem.name,
+      authorId: insertItem.authorId,
+      description: insertItem.description,
+      longDescription: insertItem.longDescription || null,
+      icon: insertItem.icon || null,
+      banner: insertItem.banner || null,
+      screenshots: insertItem.screenshots || [],
+      category: insertItem.category,
+      tags: insertItem.tags || [],
+      status: insertItem.status || 'draft',
+      featured: insertItem.featured || false,
+      visibility: insertItem.visibility || 'public',
+      price: insertItem.price || 0,
+      pricingModel: insertItem.pricingModel || 'one-time',
+      subscriptionPrice: insertItem.subscriptionPrice || null,
+      currency: insertItem.currency || 'USD',
+      revenueShare: insertItem.revenueShare || 0.7,
+      downloads: 0,
+      rating: 0,
+      reviewCount: 0,
+      installCount: 0,
+      sourceUrl: insertItem.sourceUrl || null,
+      documentationUrl: insertItem.documentationUrl || null,
+      supportUrl: insertItem.supportUrl || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      publishedAt: null,
+      lastReviewedAt: null
+    };
+    this.marketplaceItems.set(id, item);
+    return item;
+  }
+
+  async updateMarketplaceItem(id: string, updates: Partial<InsertMarketplaceItem>): Promise<MarketplaceItem | undefined> {
+    const item = this.marketplaceItems.get(id);
+    if (!item) return undefined;
+    const updated = { ...item, ...updates, updatedAt: new Date() };
+    this.marketplaceItems.set(id, updated);
+    return updated;
+  }
+
+  async deleteMarketplaceItem(id: string): Promise<boolean> {
+    return this.marketplaceItems.delete(id);
+  }
+
+  async getMarketplaceAuthor(id: string): Promise<MarketplaceAuthor | undefined> {
+    return this.marketplaceAuthors.get(id);
+  }
+
+  async getMarketplaceAuthorByUserId(userId: string): Promise<MarketplaceAuthor | undefined> {
+    return Array.from(this.marketplaceAuthors.values()).find(a => a.userId === userId);
+  }
+
+  async createMarketplaceAuthor(insertAuthor: InsertMarketplaceAuthor): Promise<MarketplaceAuthor> {
+    const id = randomUUID();
+    const author: MarketplaceAuthor = {
+      id,
+      userId: insertAuthor.userId || null,
+      username: insertAuthor.username,
+      displayName: insertAuthor.displayName,
+      bio: insertAuthor.bio || null,
+      avatar: insertAuthor.avatar || null,
+      website: insertAuthor.website || null,
+      github: insertAuthor.github || null,
+      twitter: insertAuthor.twitter || null,
+      verified: insertAuthor.verified || false,
+      verificationDate: null,
+      totalDownloads: 0,
+      totalRevenue: 0,
+      averageRating: 0,
+      itemsPublished: 0,
+      stripeAccountId: insertAuthor.stripeAccountId || null,
+      payoutSettings: insertAuthor.payoutSettings || {},
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.marketplaceAuthors.set(id, author);
+    return author;
+  }
+
+  async updateMarketplaceAuthor(id: string, updates: Partial<InsertMarketplaceAuthor>): Promise<MarketplaceAuthor | undefined> {
+    const author = this.marketplaceAuthors.get(id);
+    if (!author) return undefined;
+    const updated = { ...author, ...updates, updatedAt: new Date() };
+    this.marketplaceAuthors.set(id, updated);
+    return updated;
+  }
+
+  async getMarketplaceInstallations(userId: string): Promise<MarketplaceInstallation[]> {
+    return Array.from(this.marketplaceInstallations.values())
+      .filter(i => i.userId === userId)
+      .sort((a, b) => b.installedAt.getTime() - a.installedAt.getTime());
+  }
+
+  async getMarketplaceInstallation(itemId: string, userId: string): Promise<MarketplaceInstallation | undefined> {
+    return Array.from(this.marketplaceInstallations.values())
+      .find(i => i.itemId === itemId && i.userId === userId);
+  }
+
+  async createMarketplaceInstallation(insertInstallation: InsertMarketplaceInstallation): Promise<MarketplaceInstallation> {
+    const id = randomUUID();
+    const installation: MarketplaceInstallation = {
+      id,
+      itemId: insertInstallation.itemId,
+      versionId: insertInstallation.versionId,
+      userId: insertInstallation.userId,
+      status: insertInstallation.status || 'active',
+      autoUpdate: insertInstallation.autoUpdate ?? true,
+      settings: insertInstallation.settings || {},
+      permissions: insertInstallation.permissions || [],
+      usageStats: insertInstallation.usageStats || {},
+      lastUsed: null,
+      installedAt: new Date(),
+      uninstalledAt: null
+    };
+    this.marketplaceInstallations.set(id, installation);
+    
+    // Update install count on item
+    const item = this.marketplaceItems.get(insertInstallation.itemId);
+    if (item) {
+      item.installCount++;
+      this.marketplaceItems.set(item.id, item);
+    }
+    
+    return installation;
+  }
+
+  async updateMarketplaceInstallation(id: string, updates: Partial<InsertMarketplaceInstallation>): Promise<MarketplaceInstallation | undefined> {
+    const installation = this.marketplaceInstallations.get(id);
+    if (!installation) return undefined;
+    const updated = { ...installation, ...updates };
+    this.marketplaceInstallations.set(id, updated);
+    return updated;
+  }
+
+  async getMarketplaceReviews(itemId: string): Promise<MarketplaceReview[]> {
+    return Array.from(this.marketplaceReviews.values())
+      .filter(r => r.itemId === itemId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createMarketplaceReview(insertReview: InsertMarketplaceReview): Promise<MarketplaceReview> {
+    const id = randomUUID();
+    const review: MarketplaceReview = {
+      id,
+      itemId: insertReview.itemId,
+      userId: insertReview.userId,
+      versionId: insertReview.versionId || null,
+      rating: insertReview.rating,
+      title: insertReview.title || null,
+      review: insertReview.review || null,
+      helpful: 0,
+      unhelpful: 0,
+      developerResponse: null,
+      developerResponseAt: null,
+      verified: insertReview.verified || false,
+      flagged: false,
+      flagReason: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.marketplaceReviews.set(id, review);
+    
+    // Update item rating
+    const reviews = await this.getMarketplaceReviews(insertReview.itemId);
+    const item = this.marketplaceItems.get(insertReview.itemId);
+    if (item) {
+      item.rating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+      item.reviewCount = reviews.length;
+      this.marketplaceItems.set(item.id, item);
+    }
+    
+    return review;
+  }
+
+  async getMarketplaceVersion(id: string): Promise<MarketplaceVersion | undefined> {
+    return this.marketplaceVersions.get(id);
+  }
+
+  async getMarketplaceVersions(itemId: string): Promise<MarketplaceVersion[]> {
+    return Array.from(this.marketplaceVersions.values())
+      .filter(v => v.itemId === itemId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createMarketplaceVersion(insertVersion: InsertMarketplaceVersion): Promise<MarketplaceVersion> {
+    const id = randomUUID();
+    const version: MarketplaceVersion = {
+      id,
+      itemId: insertVersion.itemId,
+      version: insertVersion.version,
+      changelog: insertVersion.changelog || null,
+      packageUrl: insertVersion.packageUrl || null,
+      packageHash: insertVersion.packageHash || null,
+      packageSize: insertVersion.packageSize || null,
+      minEngineVersion: insertVersion.minEngineVersion || null,
+      maxEngineVersion: insertVersion.maxEngineVersion || null,
+      releaseNotes: insertVersion.releaseNotes || null,
+      breakingChanges: insertVersion.breakingChanges || false,
+      securityScanStatus: insertVersion.securityScanStatus || 'pending',
+      securityScanReport: insertVersion.securityScanReport || null,
+      autoUpdate: insertVersion.autoUpdate ?? true,
+      deprecated: insertVersion.deprecated || false,
+      deprecationReason: insertVersion.deprecationReason || null,
+      createdAt: new Date()
+    };
+    this.marketplaceVersions.set(id, version);
+    return version;
+  }
+
+  async createMarketplaceLicense(insertLicense: InsertMarketplaceLicense): Promise<MarketplaceLicense> {
+    const id = randomUUID();
+    const licenseKey = `${insertLicense.type.toUpperCase()}-${randomUUID().substring(0, 8)}-${randomUUID().substring(0, 8)}`;
+    const license: MarketplaceLicense = {
+      id,
+      itemId: insertLicense.itemId,
+      userId: insertLicense.userId,
+      licenseKey,
+      type: insertLicense.type,
+      status: insertLicense.status || 'active',
+      maxActivations: insertLicense.maxActivations || 1,
+      currentActivations: 0,
+      features: insertLicense.features || {},
+      restrictions: insertLicense.restrictions || {},
+      validFrom: new Date(),
+      validUntil: insertLicense.validUntil || null,
+      createdAt: new Date()
+    };
+    this.marketplaceLicenses.set(id, license);
+    return license;
+  }
+
+  async getMarketplaceLicense(licenseKey: string): Promise<MarketplaceLicense | undefined> {
+    return Array.from(this.marketplaceLicenses.values()).find(l => l.licenseKey === licenseKey);
+  }
+
+  async trackMarketplaceDownload(insertDownload: InsertMarketplaceDownload): Promise<MarketplaceDownload> {
+    const id = randomUUID();
+    const download: MarketplaceDownload = {
+      id,
+      itemId: insertDownload.itemId,
+      versionId: insertDownload.versionId || null,
+      userId: insertDownload.userId || null,
+      ipAddress: insertDownload.ipAddress || null,
+      userAgent: insertDownload.userAgent || null,
+      country: insertDownload.country || null,
+      referrer: insertDownload.referrer || null,
+      downloadedAt: new Date()
+    };
+    this.marketplaceDownloads.set(id, download);
+    
+    // Update download count on item
+    const item = this.marketplaceItems.get(insertDownload.itemId);
+    if (item) {
+      item.downloads++;
+      this.marketplaceItems.set(item.id, item);
+    }
+    
+    return download;
+  }
+
+  async recordMarketplaceExecution(insertLog: InsertMarketplaceExecutionLog): Promise<MarketplaceExecutionLog> {
+    const id = randomUUID();
+    const log: MarketplaceExecutionLog = {
+      id,
+      itemId: insertLog.itemId,
+      installationId: insertLog.installationId || null,
+      userId: insertLog.userId,
+      executionId: insertLog.executionId,
+      sandboxId: insertLog.sandboxId || null,
+      status: insertLog.status,
+      startTime: new Date(),
+      endTime: insertLog.endTime || null,
+      duration: insertLog.duration || null,
+      input: insertLog.input || null,
+      output: insertLog.output || null,
+      error: insertLog.error || null,
+      resourceUsage: insertLog.resourceUsage || null,
+      permissionsUsed: insertLog.permissionsUsed || [],
+      apiCalls: insertLog.apiCalls || [],
+      violations: insertLog.violations || [],
+      createdAt: new Date()
+    };
+    this.marketplaceExecutionLogs.set(id, log);
+    return log;
   }
 }
 

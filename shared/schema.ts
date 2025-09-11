@@ -817,3 +817,300 @@ export type InsertOutreachCampaign = z.infer<typeof insertOutreachCampaignSchema
 export type InsertMessageVariant = z.infer<typeof insertMessageVariantSchema>;
 export type InsertSendSchedule = z.infer<typeof insertSendScheduleSchema>;
 export type InsertOutreachMessage = z.infer<typeof insertOutreachMessageSchema>;
+
+// ========== MARKETPLACE TABLES ==========
+
+// Marketplace Authors (Developer Profiles) table
+export const marketplaceAuthors = pgTable("marketplace_authors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  username: varchar("username").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  bio: text("bio"),
+  avatar: text("avatar"),
+  website: text("website"),
+  github: text("github"),
+  twitter: text("twitter"),
+  verified: boolean("verified").default(false),
+  verificationDate: timestamp("verification_date"),
+  totalDownloads: integer("total_downloads").default(0),
+  totalRevenue: real("total_revenue").default(0),
+  averageRating: real("average_rating").default(0),
+  itemsPublished: integer("items_published").default(0),
+  stripeAccountId: text("stripe_account_id"),
+  payoutSettings: jsonb("payout_settings").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Items (Plugins and Playbooks) table
+export const marketplaceItems = pgTable("marketplace_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type").notNull(), // plugin, playbook
+  name: varchar("name").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  authorId: varchar("author_id").notNull().references(() => marketplaceAuthors.id),
+  description: text("description").notNull(),
+  longDescription: text("long_description"),
+  icon: text("icon"),
+  banner: text("banner"),
+  screenshots: jsonb("screenshots").default([]),
+  category: varchar("category").notNull(), // automation, data-extraction, productivity, etc.
+  tags: text("tags").array().default([]),
+  status: varchar("status").notNull().default("draft"), // draft, pending-review, published, suspended, deprecated
+  featured: boolean("featured").default(false),
+  visibility: varchar("visibility").default("public"), // public, private, unlisted
+  price: real("price").default(0), // 0 = free
+  pricingModel: varchar("pricing_model").default("one-time"), // one-time, subscription, freemium
+  subscriptionPrice: real("subscription_price"),
+  currency: varchar("currency").default("USD"),
+  revenueShare: real("revenue_share").default(0.7), // 70% to developer
+  downloads: integer("downloads").default(0),
+  rating: real("rating").default(0),
+  reviewCount: integer("review_count").default(0),
+  installCount: integer("install_count").default(0),
+  sourceUrl: text("source_url"),
+  documentationUrl: text("documentation_url"),
+  supportUrl: text("support_url"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+  publishedAt: timestamp("published_at"),
+  lastReviewedAt: timestamp("last_reviewed_at"),
+});
+
+// Marketplace Versions table
+export const marketplaceVersions = pgTable("marketplace_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+  version: varchar("version").notNull(), // semver format
+  changelog: text("changelog"),
+  packageUrl: text("package_url"), // S3 or storage URL
+  packageHash: varchar("package_hash"), // SHA256 hash for integrity
+  packageSize: integer("package_size"), // in bytes
+  minEngineVersion: varchar("min_engine_version"), // Minimum browser engine version
+  maxEngineVersion: varchar("max_engine_version"),
+  releaseNotes: text("release_notes"),
+  breakingChanges: boolean("breaking_changes").default(false),
+  securityScanStatus: varchar("security_scan_status").default("pending"), // pending, passed, failed
+  securityScanReport: jsonb("security_scan_report"),
+  autoUpdate: boolean("auto_update").default(true),
+  deprecated: boolean("deprecated").default(false),
+  deprecationReason: text("deprecation_reason"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Permissions table
+export const marketplacePermissions = pgTable("marketplace_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+  permission: varchar("permission").notNull(), // read_dom, write_dom, network, storage, etc.
+  reason: text("reason"), // Why this permission is needed
+  optional: boolean("optional").default(false),
+  riskLevel: varchar("risk_level").default("low"), // low, medium, high
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Dependencies table
+export const marketplaceDependencies = pgTable("marketplace_dependencies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+  dependencyId: varchar("dependency_id").references(() => marketplaceItems.id), // For marketplace dependencies
+  packageName: varchar("package_name"), // For npm dependencies
+  versionRange: varchar("version_range"), // semver range
+  type: varchar("type").notNull(), // marketplace, npm, system
+  required: boolean("required").default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Downloads table
+export const marketplaceDownloads = pgTable("marketplace_downloads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id),
+  versionId: varchar("version_id").references(() => marketplaceVersions.id),
+  userId: varchar("user_id").references(() => users.id),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  country: varchar("country"),
+  referrer: text("referrer"),
+  downloadedAt: timestamp("downloaded_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Installations table
+export const marketplaceInstallations = pgTable("marketplace_installations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id),
+  versionId: varchar("version_id").notNull().references(() => marketplaceVersions.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  status: varchar("status").notNull().default("active"), // active, disabled, uninstalled
+  autoUpdate: boolean("auto_update").default(true),
+  settings: jsonb("settings").default({}),
+  permissions: jsonb("permissions").default([]), // Granted permissions
+  usageStats: jsonb("usage_stats").default({}),
+  lastUsed: timestamp("last_used"),
+  installedAt: timestamp("installed_at").notNull().default(sql`now()`),
+  uninstalledAt: timestamp("uninstalled_at"),
+});
+
+// Marketplace Reviews table
+export const marketplaceReviews = pgTable("marketplace_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  versionId: varchar("version_id").references(() => marketplaceVersions.id),
+  rating: integer("rating").notNull(), // 1-5
+  title: text("title"),
+  review: text("review"),
+  helpful: integer("helpful").default(0),
+  unhelpful: integer("unhelpful").default(0),
+  developerResponse: text("developer_response"),
+  developerResponseAt: timestamp("developer_response_at"),
+  verified: boolean("verified").default(false), // Verified purchase
+  flagged: boolean("flagged").default(false),
+  flagReason: text("flag_reason"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Licenses table
+export const marketplaceLicenses = pgTable("marketplace_licenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  licenseKey: varchar("license_key").notNull().unique(),
+  type: varchar("type").notNull(), // trial, personal, team, enterprise
+  status: varchar("status").notNull().default("active"), // active, expired, revoked
+  maxActivations: integer("max_activations").default(1),
+  currentActivations: integer("current_activations").default(0),
+  features: jsonb("features").default({}),
+  restrictions: jsonb("restrictions").default({}),
+  validFrom: timestamp("valid_from").notNull().default(sql`now()`),
+  validUntil: timestamp("valid_until"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Transactions table
+export const marketplaceTransactions = pgTable("marketplace_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id),
+  authorId: varchar("author_id").notNull().references(() => marketplaceAuthors.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  licenseId: varchar("license_id").references(() => marketplaceLicenses.id),
+  type: varchar("type").notNull(), // purchase, subscription, renewal, refund
+  amount: real("amount").notNull(),
+  currency: varchar("currency").default("USD"),
+  platformFee: real("platform_fee").notNull(),
+  authorRevenue: real("author_revenue").notNull(),
+  paymentMethod: varchar("payment_method"), // stripe, paypal, etc.
+  paymentId: varchar("payment_id"), // External payment ID
+  status: varchar("status").notNull().default("pending"), // pending, completed, failed, refunded
+  refundReason: text("refund_reason"),
+  refundedAt: timestamp("refunded_at"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Marketplace Execution Logs table
+export const marketplaceExecutionLogs = pgTable("marketplace_execution_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  itemId: varchar("item_id").notNull().references(() => marketplaceItems.id),
+  installationId: varchar("installation_id").references(() => marketplaceInstallations.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  executionId: varchar("execution_id").notNull(),
+  sandboxId: varchar("sandbox_id"),
+  status: varchar("status").notNull(), // started, running, completed, failed, timeout
+  startTime: timestamp("start_time").notNull().default(sql`now()`),
+  endTime: timestamp("end_time"),
+  duration: integer("duration"), // in milliseconds
+  input: jsonb("input"),
+  output: jsonb("output"),
+  error: text("error"),
+  resourceUsage: jsonb("resource_usage"), // CPU, memory, network
+  permissionsUsed: jsonb("permissions_used").default([]),
+  apiCalls: jsonb("api_calls").default([]),
+  violations: jsonb("violations").default([]), // Security violations
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Insert schemas for marketplace tables
+export const insertMarketplaceAuthorSchema = createInsertSchema(marketplaceAuthors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMarketplaceItemSchema = createInsertSchema(marketplaceItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMarketplaceVersionSchema = createInsertSchema(marketplaceVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplacePermissionSchema = createInsertSchema(marketplacePermissions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceDependencySchema = createInsertSchema(marketplaceDependencies).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceDownloadSchema = createInsertSchema(marketplaceDownloads).omit({
+  id: true,
+  downloadedAt: true,
+});
+
+export const insertMarketplaceInstallationSchema = createInsertSchema(marketplaceInstallations).omit({
+  id: true,
+  installedAt: true,
+});
+
+export const insertMarketplaceReviewSchema = createInsertSchema(marketplaceReviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMarketplaceLicenseSchema = createInsertSchema(marketplaceLicenses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceTransactionSchema = createInsertSchema(marketplaceTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarketplaceExecutionLogSchema = createInsertSchema(marketplaceExecutionLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for marketplace tables
+export type MarketplaceAuthor = typeof marketplaceAuthors.$inferSelect;
+export type MarketplaceItem = typeof marketplaceItems.$inferSelect;
+export type MarketplaceVersion = typeof marketplaceVersions.$inferSelect;
+export type MarketplacePermission = typeof marketplacePermissions.$inferSelect;
+export type MarketplaceDependency = typeof marketplaceDependencies.$inferSelect;
+export type MarketplaceDownload = typeof marketplaceDownloads.$inferSelect;
+export type MarketplaceInstallation = typeof marketplaceInstallations.$inferSelect;
+export type MarketplaceReview = typeof marketplaceReviews.$inferSelect;
+export type MarketplaceLicense = typeof marketplaceLicenses.$inferSelect;
+export type MarketplaceTransaction = typeof marketplaceTransactions.$inferSelect;
+export type MarketplaceExecutionLog = typeof marketplaceExecutionLogs.$inferSelect;
+
+export type InsertMarketplaceAuthor = z.infer<typeof insertMarketplaceAuthorSchema>;
+export type InsertMarketplaceItem = z.infer<typeof insertMarketplaceItemSchema>;
+export type InsertMarketplaceVersion = z.infer<typeof insertMarketplaceVersionSchema>;
+export type InsertMarketplacePermission = z.infer<typeof insertMarketplacePermissionSchema>;
+export type InsertMarketplaceDependency = z.infer<typeof insertMarketplaceDependencySchema>;
+export type InsertMarketplaceDownload = z.infer<typeof insertMarketplaceDownloadSchema>;
+export type InsertMarketplaceInstallation = z.infer<typeof insertMarketplaceInstallationSchema>;
+export type InsertMarketplaceReview = z.infer<typeof insertMarketplaceReviewSchema>;
+export type InsertMarketplaceLicense = z.infer<typeof insertMarketplaceLicenseSchema>;
+export type InsertMarketplaceTransaction = z.infer<typeof insertMarketplaceTransactionSchema>;
+export type InsertMarketplaceExecutionLog = z.infer<typeof insertMarketplaceExecutionLogSchema>;

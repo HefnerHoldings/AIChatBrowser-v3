@@ -3672,6 +3672,361 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register outreach engine routes
   registerOutreachRoutes(app);
 
+  // Import marketplace services
+  const { marketplaceService } = await import("./marketplace/marketplace-service");
+  const { communityService } = await import("./marketplace/community-service");
+  const { publishingService } = await import("./marketplace/publishing-service");
+  const { revenueService } = await import("./marketplace/revenue-service");
+  const { sandboxRuntime } = await import("./marketplace/sandbox-runtime");
+
+  // Marketplace API Routes
+  
+  // Search and browse marketplace items
+  app.get("/api/marketplace/items", async (req, res) => {
+    try {
+      const params = {
+        query: req.query.query as string,
+        type: req.query.type as 'plugin' | 'playbook',
+        category: req.query.category as string,
+        tags: req.query.tags ? (req.query.tags as string).split(',') : undefined,
+        author: req.query.author as string,
+        minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
+        maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
+        featured: req.query.featured === 'true',
+        verified: req.query.verified === 'true',
+        sortBy: req.query.sortBy as any,
+        sortOrder: req.query.sortOrder as any,
+        limit: req.query.limit ? Number(req.query.limit) : 20,
+        offset: req.query.offset ? Number(req.query.offset) : 0
+      };
+      
+      const result = await marketplaceService.searchItems(params);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch marketplace items" });
+    }
+  });
+
+  // Get item details
+  app.get("/api/marketplace/items/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const details = await marketplaceService.getItemDetails(id);
+      if (!details) {
+        res.status(404).json({ message: "Item not found" });
+        return;
+      }
+      res.json(details);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch item details" });
+    }
+  });
+
+  // Publish new item
+  app.post("/api/marketplace/items", async (req, res) => {
+    try {
+      const { authorId, item, version, permissions } = req.body;
+      // TODO: Get authorId from authenticated user session
+      const publishedItem = await marketplaceService.publishItem(
+        authorId || "default-author",
+        item,
+        version,
+        permissions || []
+      );
+      res.json(publishedItem);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to publish item" });
+    }
+  });
+
+  // Update item
+  app.put("/api/marketplace/items/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { authorId, updates } = req.body;
+      // TODO: Get authorId from authenticated user session
+      const updatedItem = await marketplaceService.updateItem(
+        id,
+        authorId || "default-author",
+        updates
+      );
+      res.json(updatedItem);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update item" });
+    }
+  });
+
+  // Install item
+  app.post("/api/marketplace/items/:id/install", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, versionId } = req.body;
+      // TODO: Get userId from authenticated user session
+      const installation = await marketplaceService.installItem(
+        id,
+        userId || "default-user",
+        versionId
+      );
+      res.json(installation);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to install item" });
+    }
+  });
+
+  // Uninstall item
+  app.post("/api/marketplace/items/:id/uninstall", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId } = req.body;
+      // TODO: Get userId from authenticated user session
+      await marketplaceService.uninstallItem(id, userId || "default-user");
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to uninstall item" });
+    }
+  });
+
+  // Create review
+  app.post("/api/marketplace/items/:id/review", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, rating, title, review } = req.body;
+      // TODO: Get userId from authenticated user session
+      const newReview = await communityService.createReview(
+        id,
+        userId || "default-user",
+        rating,
+        title,
+        review
+      );
+      res.json(newReview);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create review" });
+    }
+  });
+
+  // Get reviews for item
+  app.get("/api/marketplace/items/:id/reviews", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const reviews = await storage.getMarketplaceReviews(id);
+      res.json(reviews);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get author profile
+  app.get("/api/marketplace/authors/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const profile = await communityService.getAuthorProfile(id);
+      if (!profile) {
+        res.status(404).json({ message: "Author not found" });
+        return;
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch author profile" });
+    }
+  });
+
+  // Create author profile
+  app.post("/api/marketplace/authors", async (req, res) => {
+    try {
+      const { userId, profile } = req.body;
+      // TODO: Get userId from authenticated user session
+      const author = await communityService.createAuthorProfile(
+        userId || "default-user",
+        profile
+      );
+      res.json(author);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create author profile" });
+    }
+  });
+
+  // Execute plugin/playbook in sandbox
+  app.post("/api/marketplace/execute", async (req, res) => {
+    try {
+      const { itemId, installationId, userId, permissions, config, input } = req.body;
+      // TODO: Get userId from authenticated user session
+      const result = await sandboxRuntime.execute({
+        itemId,
+        installationId: installationId || "default-installation",
+        userId: userId || "default-user",
+        permissions: permissions || [],
+        config: config || {},
+        input,
+        timeout: 30000,
+        maxMemory: 128 * 1024 * 1024,
+        maxCpuTime: 10000
+      });
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to execute item" });
+    }
+  });
+
+  // Get trending items
+  app.get("/api/marketplace/trending", async (req, res) => {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : 10;
+      const items = await marketplaceService.getTrendingItems(limit);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch trending items" });
+    }
+  });
+
+  // Get featured items
+  app.get("/api/marketplace/featured", async (req, res) => {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : 10;
+      const items = await communityService.getFeaturedItems(limit);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch featured items" });
+    }
+  });
+
+  // Get user installations
+  app.get("/api/marketplace/installations", async (req, res) => {
+    try {
+      const { userId } = req.query;
+      // TODO: Get userId from authenticated user session
+      const installations = await marketplaceService.getUserInstallations(
+        userId as string || "default-user"
+      );
+      res.json(installations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch installations" });
+    }
+  });
+
+  // Process purchase
+  app.post("/api/marketplace/purchase", async (req, res) => {
+    try {
+      const { itemId, userId, paymentDetails } = req.body;
+      // TODO: Get userId from authenticated user session
+      const result = await revenueService.processPurchase(
+        itemId,
+        userId || "default-user",
+        paymentDetails
+      );
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to process purchase" });
+    }
+  });
+
+  // Process subscription
+  app.post("/api/marketplace/subscription", async (req, res) => {
+    try {
+      const { itemId, userId, action } = req.body;
+      // TODO: Get userId from authenticated user session
+      const transaction = await revenueService.processSubscription(
+        itemId,
+        userId || "default-user",
+        action
+      );
+      res.json(transaction);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to process subscription" });
+    }
+  });
+
+  // Verify license
+  app.post("/api/marketplace/license/verify", async (req, res) => {
+    try {
+      const { licenseKey, itemId } = req.body;
+      const result = await revenueService.verifyLicense(licenseKey, itemId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to verify license" });
+    }
+  });
+
+  // Get collections
+  app.get("/api/marketplace/collections", async (req, res) => {
+    try {
+      const collections = await communityService.getCollections();
+      res.json(collections);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch collections" });
+    }
+  });
+
+  // Get top authors
+  app.get("/api/marketplace/authors/top", async (req, res) => {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : 10;
+      const authors = await communityService.getTopAuthors(limit);
+      res.json(authors);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch top authors" });
+    }
+  });
+
+  // Publish new version
+  app.post("/api/marketplace/items/:id/versions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { authorId, version } = req.body;
+      // TODO: Get authorId from authenticated user session
+      const newVersion = await marketplaceService.createVersion(
+        id,
+        authorId || "default-author",
+        version
+      );
+      res.json(newVersion);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create version" });
+    }
+  });
+
+  // Get versions for item
+  app.get("/api/marketplace/items/:id/versions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const versions = await storage.getMarketplaceVersions(id);
+      res.json(versions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch versions" });
+    }
+  });
+
+  // Report item
+  app.post("/api/marketplace/items/:id/report", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, reason, details } = req.body;
+      // TODO: Get userId from authenticated user session
+      await communityService.reportItem(
+        id,
+        userId || "default-user",
+        reason,
+        details
+      );
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to report item" });
+    }
+  });
+
+  // Moderate item (admin only)
+  app.post("/api/marketplace/items/:id/moderate", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { action, reason } = req.body;
+      // TODO: Check admin permissions
+      await communityService.moderateItem(id, action, reason);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to moderate item" });
+    }
+  });
+
   // Create HTTP server and WebSocket server
   const httpServer = createServer(app);
   
