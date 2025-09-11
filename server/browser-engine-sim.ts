@@ -68,6 +68,8 @@ export class NativeBrowserEngine extends EventEmitter {
   private tabs: Map<string, BrowserTab> = new Map();
   private contexts: Map<string, any> = new Map();
   private performance: Map<string, any> = new Map();
+  private tabHistory: Map<string, string[]> = new Map();
+  private tabHistoryIndex: Map<string, number> = new Map();
   
   constructor(engineType: BrowserEngineType = BrowserEngineType.CHROMIUM) {
     super();
@@ -105,8 +107,10 @@ export class NativeBrowserEngine extends EventEmitter {
       cpuUsage: Math.random() * 10
     };
     
-    // Store tab
+    // Store tab and initialize history
     this.tabs.set(tabId, tab);
+    this.tabHistory.set(tabId, [url || 'about:blank']);
+    this.tabHistoryIndex.set(tabId, 0);
     
     // Simulate tab creation events
     this.emit('tabCreated', tab);
@@ -134,7 +138,20 @@ export class NativeBrowserEngine extends EventEmitter {
       tab.url = url;
       tab.title = this.getTitleFromUrl(url);
       tab.favicon = this.getFaviconFromUrl(url);
-      tab.canGoBack = true;
+      
+      // Update history
+      const history = this.tabHistory.get(tabId) || [];
+      const currentIndex = this.tabHistoryIndex.get(tabId) || 0;
+      
+      // Remove forward history when navigating to new page
+      const newHistory = history.slice(0, currentIndex + 1);
+      newHistory.push(url);
+      
+      this.tabHistory.set(tabId, newHistory);
+      this.tabHistoryIndex.set(tabId, newHistory.length - 1);
+      
+      tab.canGoBack = newHistory.length > 1;
+      tab.canGoForward = false;
       
       this.simulatePageLoad(tabId, url);
     }
@@ -143,16 +160,44 @@ export class NativeBrowserEngine extends EventEmitter {
   // Go back (simulated)
   async goBack(tabId: string): Promise<void> {
     const tab = this.tabs.get(tabId);
-    if (tab && tab.canGoBack) {
-      this.emit('navigation', { tabId, direction: 'back' });
+    const history = this.tabHistory.get(tabId);
+    const currentIndex = this.tabHistoryIndex.get(tabId) || 0;
+    
+    if (tab && history && currentIndex > 0) {
+      const newIndex = currentIndex - 1;
+      const url = history[newIndex];
+      
+      this.tabHistoryIndex.set(tabId, newIndex);
+      tab.url = url;
+      tab.title = this.getTitleFromUrl(url);
+      tab.favicon = this.getFaviconFromUrl(url);
+      tab.canGoBack = newIndex > 0;
+      tab.canGoForward = true;
+      
+      this.simulatePageLoad(tabId, url);
+      this.emit('navigation', { tabId, direction: 'back', url });
     }
   }
 
   // Go forward (simulated)
   async goForward(tabId: string): Promise<void> {
     const tab = this.tabs.get(tabId);
-    if (tab && tab.canGoForward) {
-      this.emit('navigation', { tabId, direction: 'forward' });
+    const history = this.tabHistory.get(tabId);
+    const currentIndex = this.tabHistoryIndex.get(tabId) || 0;
+    
+    if (tab && history && currentIndex < history.length - 1) {
+      const newIndex = currentIndex + 1;
+      const url = history[newIndex];
+      
+      this.tabHistoryIndex.set(tabId, newIndex);
+      tab.url = url;
+      tab.title = this.getTitleFromUrl(url);
+      tab.favicon = this.getFaviconFromUrl(url);
+      tab.canGoBack = true;
+      tab.canGoForward = newIndex < history.length - 1;
+      
+      this.simulatePageLoad(tabId, url);
+      this.emit('navigation', { tabId, direction: 'forward', url });
     }
   }
 
@@ -174,15 +219,135 @@ export class NativeBrowserEngine extends EventEmitter {
     return null;
   }
 
-  // Take screenshot (simulated)
+  // Take screenshot (simulated) - returns iframe HTML for web rendering
   async screenshot(tabId: string, options?: any): Promise<Buffer> {
     const tab = this.tabs.get(tabId);
     if (tab) {
-      console.log(`Taking screenshot of tab ${tabId}`);
-      // Return a simulated screenshot buffer
-      return Buffer.from(`screenshot-${tabId}-${Date.now()}`, 'utf-8');
+      console.log(`Generating iframe content for tab ${tabId}`);
+      
+      // Generate iframe HTML content for actual web page display
+      const iframeContent = this.generateIframeContent(tab.url);
+      
+      // Return HTML content as buffer
+      return Buffer.from(iframeContent, 'utf-8');
     }
     throw new Error('Tab not found');
+  }
+  
+  // Generate iframe HTML content for displaying web pages
+  private generateIframeContent(url: string): string {
+    // For about: pages, return special content
+    if (url === 'about:blank' || url === 'about:home') {
+      return `
+        <html>
+        <head>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              margin: 0;
+              padding: 20px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              height: 100vh;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            h1 { font-size: 3rem; margin-bottom: 1rem; }
+            p { font-size: 1.2rem; opacity: 0.9; }
+            .quick-links {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 15px;
+              margin-top: 40px;
+              width: 100%;
+              max-width: 600px;
+            }
+            .quick-link {
+              background: rgba(255,255,255,0.2);
+              border: 1px solid rgba(255,255,255,0.3);
+              border-radius: 10px;
+              padding: 20px;
+              text-align: center;
+              color: white;
+              text-decoration: none;
+              transition: all 0.3s;
+            }
+            .quick-link:hover {
+              background: rgba(255,255,255,0.3);
+              transform: translateY(-2px);
+            }
+          </style>
+        </head>
+        <body>
+          <h1>🌐 Ny fane</h1>
+          <p>Velkommen til Mad Easy AI Browser</p>
+          <div class="quick-links">
+            <a href="https://google.com" class="quick-link">🔍<br>Google</a>
+            <a href="https://github.com" class="quick-link">💻<br>GitHub</a>
+            <a href="https://linkedin.com" class="quick-link">💼<br>LinkedIn</a>
+            <a href="https://replit.com" class="quick-link">⚡<br>Replit</a>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+    
+    // For regular URLs, return iframe with sandbox for security
+    return `
+      <html>
+      <head>
+        <style>
+          body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+          }
+          iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+          }
+          .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loading" id="loading">
+          <div class="loading-spinner"></div>
+          <div>Loading ${url}...</div>
+        </div>
+        <iframe 
+          src="${url}"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+          onload="document.getElementById('loading').style.display='none';"
+          onerror="document.getElementById('loading').innerHTML='<div>Unable to load page</div>';"
+        ></iframe>
+      </body>
+      </html>
+    `;
   }
 
   // Get page metrics (simulated)
@@ -287,5 +452,48 @@ export class NativeBrowserEngine extends EventEmitter {
     } catch {
       return undefined;
     }
+  }
+
+  // Clear cookies for a tab (simulated)
+  async clearCookies(tabId: string): Promise<void> {
+    console.log(`Clearing cookies for tab ${tabId}`);
+    this.emit('cookiesCleared', { tabId });
+  }
+
+  // Clear cache for a tab (simulated)
+  async clearCache(tabId: string): Promise<void> {
+    console.log(`Clearing cache for tab ${tabId}`);
+    this.emit('cacheCleared', { tabId });
+  }
+
+  // Set download behavior (simulated)
+  async setDownloadBehavior(tabId: string, downloadPath: string): Promise<void> {
+    console.log(`Setting download path for tab ${tabId}: ${downloadPath}`);
+    this.emit('downloadBehaviorSet', { tabId, downloadPath });
+  }
+
+  // Emulate device (simulated)
+  async emulateDevice(tabId: string, deviceName: string): Promise<void> {
+    console.log(`Emulating device ${deviceName} for tab ${tabId}`);
+    const tab = this.tabs.get(tabId);
+    if (tab) {
+      // Update viewport based on device
+      const deviceProfiles: Record<string, any> = {
+        'iPhone X': { width: 375, height: 812, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2 like Mac OS X)' },
+        'iPad': { width: 768, height: 1024, userAgent: 'Mozilla/5.0 (iPad; CPU OS 13_2 like Mac OS X)' },
+        'Pixel 5': { width: 393, height: 851, userAgent: 'Mozilla/5.0 (Linux; Android 11; Pixel 5)' },
+      };
+      
+      const profile = deviceProfiles[deviceName];
+      if (profile) {
+        this.emit('deviceEmulated', { tabId, device: deviceName, profile });
+      }
+    }
+  }
+
+  // Enable extensions (simulated)
+  async enableExtensions(extensions: string[]): Promise<void> {
+    console.log(`Enabling extensions: ${extensions.join(', ')}`);
+    this.emit('extensionsEnabled', { extensions });
   }
 }

@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { NativeBrowserEngine, BrowserEngineType, BrowserTab, BrowserContextOptions } from './browser-engine';
+// Use simulated browser engine for Replit environment
+import { NativeBrowserEngine, BrowserEngineType, BrowserTab, BrowserContextOptions } from './browser-engine-sim';
 import { randomUUID } from 'crypto';
 import { storage } from './storage';
 import type { InsertDownload } from '@shared/schema';

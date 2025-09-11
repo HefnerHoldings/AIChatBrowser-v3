@@ -14,13 +14,37 @@ interface BrowserViewportProps {
 export default function BrowserViewport({ currentTaskId, browserInstance, activeTab }: BrowserViewportProps) {
   const [screenshotData, setScreenshotData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [iframeHtml, setIframeHtml] = useState<string | null>(null);
   
-  // Hent screenshot fra backend hvis vi har en aktiv tab
-  const { data: screenshot, refetch } = useQuery({
+  // Hent screenshot/iframe content fra backend hvis vi har en aktiv tab
+  const { data: screenshotResponse, refetch } = useQuery({
     queryKey: [`/api/browser-engine/instance/${browserInstance?.id}/tab/${activeTab?.id}/screenshot`],
-    enabled: !!browserInstance?.id && !!activeTab?.id && activeTab?.url !== 'about:blank',
-    refetchInterval: 2000, // Oppdater hvert 2. sekund
+    enabled: !!browserInstance?.id && !!activeTab?.id,
+    refetchInterval: activeTab?.url && activeTab?.url !== 'about:blank' && activeTab?.url !== 'about:home' ? 5000 : false,
   });
+  
+  // Parse the screenshot response - it could be base64 image or HTML iframe content
+  useEffect(() => {
+    if (screenshotResponse) {
+      // The response is directly the base64 string, not an object
+      const content = screenshotResponse as string;
+      
+      // Check if it's base64 image data or HTML content
+      if (content.startsWith('data:image')) {
+        setScreenshotData(content);
+        setIframeHtml(null);
+      } else {
+        // Decode base64 HTML content from simulated engine
+        try {
+          const decodedHtml = atob(content);
+          setIframeHtml(decodedHtml);
+          setScreenshotData(null);
+        } catch (e) {
+          console.error('Failed to decode HTML content:', e);
+        }
+      }
+    }
+  }, [screenshotResponse]);
   return (
     <div className="flex-1 p-4">
       {/* Browser Navigation */}
@@ -50,16 +74,68 @@ export default function BrowserViewport({ currentTaskId, browserInstance, active
       
       {/* Browser Viewport */}
       <div className="border border-border rounded-lg overflow-hidden bg-white h-[calc(100vh-200px)] relative">
-        {activeTab && activeTab.url !== 'about:blank' ? (
-          screenshot ? (
-            // Vis faktisk screenshot fra Puppeteer
+        {activeTab ? (
+          // Check if we have iframe HTML content from simulated engine
+          iframeHtml ? (
+            // Display iframe HTML content from simulated engine
+            <iframe
+              srcDoc={iframeHtml}
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+              title="Browser Content"
+            />
+          ) : screenshotData ? (
+            // Display actual screenshot (from native engine)
             <img 
-              src={`data:image/png;base64,${screenshot}`}
+              src={screenshotData}
               alt="Browser content"
               className="w-full h-full object-contain bg-white"
             />
+          ) : activeTab.url === 'about:blank' || activeTab.url === 'about:home' ? (
+            // Ny fane eller about:blank
+            <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className="text-center space-y-4">
+                <div className="text-6xl text-gray-300">🌐</div>
+                <h2 className="text-2xl font-semibold text-gray-600">Ny fane</h2>
+                <p className="text-sm text-gray-500 max-w-md mx-auto">
+                  Skriv inn en URL i adressefeltet eller velg et bokmerke for å starte nettlesing
+                </p>
+                
+                {/* Hurtigtilgang */}
+                <div className="mt-8 grid grid-cols-4 gap-4 max-w-md mx-auto">
+                  <button 
+                    className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                    onClick={() => window.open('https://google.com', '_blank')}
+                  >
+                    <div className="text-2xl mb-1">🔍</div>
+                    <div className="text-xs text-gray-600">Google</div>
+                  </button>
+                  <button 
+                    className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                    onClick={() => window.open('https://github.com', '_blank')}
+                  >
+                    <div className="text-2xl mb-1">💻</div>
+                    <div className="text-xs text-gray-600">GitHub</div>
+                  </button>
+                  <button 
+                    className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                    onClick={() => window.open('https://linkedin.com', '_blank')}
+                  >
+                    <div className="text-2xl mb-1">💼</div>
+                    <div className="text-xs text-gray-600">LinkedIn</div>
+                  </button>
+                  <button 
+                    className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                    onClick={() => window.open('https://replit.com', '_blank')}
+                  >
+                    <div className="text-2xl mb-1">⚡</div>
+                    <div className="text-xs text-gray-600">Replit</div>
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
-            // Loading state
+            // Loading state for other URLs
             <div className="h-full flex items-center justify-center bg-gray-50">
               <div className="text-center space-y-4">
                 <Skeleton className="h-4 w-48 mx-auto" />
@@ -69,46 +145,11 @@ export default function BrowserViewport({ currentTaskId, browserInstance, active
             </div>
           )
         ) : (
-          // Ny fane eller about:blank
-          <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-            <div className="text-center space-y-4">
-              <div className="text-6xl text-gray-300">🌐</div>
-              <h2 className="text-2xl font-semibold text-gray-600">Ny fane</h2>
-              <p className="text-sm text-gray-500 max-w-md mx-auto">
-                Skriv inn en URL i adressefeltet eller velg et bokmerke for å starte nettlesing
-              </p>
-              
-              {/* Hurtigtilgang */}
-              <div className="mt-8 grid grid-cols-4 gap-4 max-w-md mx-auto">
-                <button 
-                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-                  onClick={() => window.open('https://google.com', '_blank')}
-                >
-                  <div className="text-2xl mb-1">🔍</div>
-                  <div className="text-xs text-gray-600">Google</div>
-                </button>
-                <button 
-                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-                  onClick={() => window.open('https://github.com', '_blank')}
-                >
-                  <div className="text-2xl mb-1">💻</div>
-                  <div className="text-xs text-gray-600">GitHub</div>
-                </button>
-                <button 
-                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-                  onClick={() => window.open('https://linkedin.com', '_blank')}
-                >
-                  <div className="text-2xl mb-1">💼</div>
-                  <div className="text-xs text-gray-600">LinkedIn</div>
-                </button>
-                <button 
-                  className="p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-                  onClick={() => window.open('https://replit.com', '_blank')}
-                >
-                  <div className="text-2xl mb-1">⚡</div>
-                  <div className="text-xs text-gray-600">Replit</div>
-                </button>
-              </div>
+          // No active tab
+          <div className="h-full flex items-center justify-center bg-gray-100">
+            <div className="text-center">
+              <div className="text-4xl text-gray-400 mb-2">📭</div>
+              <div className="text-gray-500">Ingen aktiv fane</div>
             </div>
           </div>
         )}
