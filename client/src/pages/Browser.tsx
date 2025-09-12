@@ -1197,6 +1197,11 @@ export default function Browser() {
           {/* Spacer to push tools to the right */}
           <div className="flex-1" />
           
+          {/* Credit Display - More prominent */}
+          <div className="mr-2">
+            <CreditDisplay inline />
+          </div>
+          
           {/* Tools and settings in top bar */}
           <Button 
             variant="ghost" 
