@@ -38,7 +38,15 @@ import {
   RefreshCw,
   Trash2,
   Download,
-  Settings
+  Settings,
+  Languages,
+  FileText,
+  DollarSign,
+  CheckSquare,
+  Wand2,
+  Heart,
+  TrendingUp,
+  Presentation
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -655,6 +663,276 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
             <Zap className="h-3 w-3 mr-1" />
             <span>Auto</span>
           </Button>
+        </div>
+
+        {/* AI-verktøy seksjon */}
+        <div className="mt-3 pt-2 border-t border-border/50">
+          <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            AI-verktøy
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const msg = "Oversett denne siden til norsk";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start"
+            >
+              <Languages className="h-3 w-3 mr-1" />
+              Oversett
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const msg = "Oppsummer denne artikkelen i punkter";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              Oppsummer
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const msg = "Finn priser og kostnader på denne siden";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start"
+            >
+              <DollarSign className="h-3 w-3 mr-1" />
+              Priser
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const msg = "Lag en todo-liste basert på innholdet";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start"
+            >
+              <CheckSquare className="h-3 w-3 mr-1" />
+              Todo
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const msg = "Foreslå forbedringer for denne siden";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start"
+            >
+              <Lightbulb className="h-3 w-3 mr-1" />
+              Forbedre
+            </Button>
+            
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const msg = "Generer lignende innhold som dette";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start"
+            >
+              <Wand2 className="h-3 w-3 mr-1" />
+              Generer
+            </Button>
+          </div>
+        </div>
+
+        {/* Avanserte AI-funksjoner */}
+        <div className="mt-2">
+          <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+            <Brain className="h-3 w-3" />
+            Avansert AI
+          </div>
+          <div className="space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const msg = "Analyser sentiment og tone i teksten";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start w-full"
+            >
+              <Heart className="h-3 w-3 mr-1" />
+              Sentiment analyse
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const msg = "Sammenlign med konkurrenter";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start w-full"
+            >
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Konkurranseanalyse
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const msg = "Lag en presentasjon basert på innholdet";
+                setInput(msg);
+                setTimeout(() => {
+                  const userMessage: ChatMessage = {
+                    id: Date.now().toString(),
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                    context: browserContext ? {
+                      url: browserContext.url,
+                      pageTitle: browserContext.title,
+                    } : undefined,
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  sendMessage.mutate(msg);
+                  setInput('');
+                }, 100);
+              }}
+              className="text-xs justify-start w-full"
+            >
+              <Presentation className="h-3 w-3 mr-1" />
+              Lag presentasjon
+            </Button>
+          </div>
         </div>
       </div>
     </div>
