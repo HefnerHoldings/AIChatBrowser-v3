@@ -595,7 +595,9 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
               <Volume2 className="h-3 w-3 mr-1" />
               Tekst til tale
             </Button>
+          </div>
 
+          <div className="mt-2">
             <Button
               variant="outline"
               size="sm"
@@ -608,7 +610,7 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
                   stopRecording();
                 }
               }}
-              className="flex-1"
+              className="w-full"
               data-testid="button-voice-to-voice"
             >
               <Headphones className="h-3 w-3 mr-1" />
