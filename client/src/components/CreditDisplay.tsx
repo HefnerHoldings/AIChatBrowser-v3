@@ -106,47 +106,6 @@ export function CreditDisplay({ inline = false }: { inline?: boolean }) {
     );
   }
 
-  // Default to inline version only
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.2 }}
-        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 rounded-lg border border-blue-500/30 cursor-pointer transition-all shadow-md hover:shadow-lg"
-        onClick={() => setShowPurchaseModal(true)}
-        data-testid="credit-display-inline"
-      >
-        <Coins className={`h-5 w-5 ${balance === 0 ? 'text-red-500 animate-pulse' : balance < 10 ? 'text-yellow-500' : 'text-blue-400'}`} />
-        <div className="flex flex-col items-start">
-          <div className="flex items-center gap-1">
-            <motion.span 
-              className={`font-bold text-lg ${balance === 0 ? 'text-red-500' : balance < 10 ? 'text-yellow-500' : 'text-white'}`}
-              key={animatedBalance}
-              initial={{ scale: 1 }}
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 0.2 }}
-            >
-              {Math.floor(animatedBalance).toLocaleString('nb-NO')}
-            </motion.span>
-            <span className="text-sm font-medium text-blue-200">kreditter</span>
-          </div>
-          {dailyFreeCredits && (
-            <span className="text-xs text-blue-300/80">
-              Gratis: {dailyFreeCredits.remaining}/{dailyFreeCredits.total}
-            </span>
-          )}
-        </div>
-        {balance < 10 && (
-          <AlertTriangle className="h-4 w-4 text-yellow-500 animate-pulse ml-2" />
-        )}
-      </motion.div>
-      
-      {/* Purchase Modal */}
-      <CreditPurchaseModal 
-        open={showPurchaseModal}
-        onClose={() => setShowPurchaseModal(false)}
-      />
-    </>
-  );
+  // Return nothing - credit display removed
+  return null;
 }
