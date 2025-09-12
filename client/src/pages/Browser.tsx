@@ -30,6 +30,8 @@ import { CollapsibleSidebar } from '@/components/sidebars/CollapsibleSidebar';
 import { BrowserStartPage } from '@/components/BrowserStartPage';
 import { AIChatOverlay } from '@/components/AIChatOverlay';
 import { MadEasyLogo } from '@/components/MadEasyLogo';
+import { CreditDisplay } from '@/components/CreditDisplay';
+import { AIModelSelector } from '@/components/AIModelSelector';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -156,6 +158,8 @@ export default function Browser() {
   const [showSecurity, setShowSecurity] = useState(false);
   const [showWebAPIs, setShowWebAPIs] = useState(false);
   const [showRenderingEngine, setShowRenderingEngine] = useState(false);
+  const [selectedAIModel, setSelectedAIModel] = useState('gpt-4o-mini');
+  const [showAIModelSelector, setShowAIModelSelector] = useState(false);
   
   // Check if current URL is bookmarked
   const checkBookmarkStatus = async (url: string) => {
@@ -2166,6 +2170,38 @@ export default function Browser() {
       
       {/* AI Chat Overlay - vises kun hvis ikke i sidemenyene */}
       <AIChatOverlay />
+      
+      {/* Credit Display - Always visible */}
+      <CreditDisplay />
+      
+      {/* AI Model Selector Modal */}
+      {showAIModelSelector && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-2xl overflow-hidden">
+            <div className="relative">
+              <Button
+                className="absolute top-4 right-4 z-10"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAIModelSelector(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <AIModelSelector
+                selectedModel={selectedAIModel}
+                onModelSelect={(modelId) => {
+                  setSelectedAIModel(modelId);
+                  setShowAIModelSelector(false);
+                  toast({
+                    title: 'AI-modell endret',
+                    description: `Byttet til ${modelId}`,
+                  });
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

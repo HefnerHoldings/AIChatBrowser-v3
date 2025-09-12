@@ -23,8 +23,13 @@ import {
   Sun,
   Monitor,
   AlertTriangle,
-  Info
+  Info,
+  Coins,
+  CreditCard
 } from 'lucide-react';
+import { CreditHistory } from '@/components/CreditHistory';
+import { CreditPurchaseModal } from '@/components/CreditPurchaseModal';
+import { useCredits } from '@/hooks/useCredits';
 
 interface BrowserSettings {
   general: {
@@ -52,6 +57,8 @@ interface BrowserSettings {
 
 export default function Settings() {
   const { toast } = useToast();
+  const { balance, subscription } = useCredits();
+  const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
   
   // Default settings
   const [settings, setSettings] = useState<BrowserSettings>({
@@ -178,7 +185,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general">
             <Globe className="w-4 h-4 mr-2" />
             Generelt
@@ -190,6 +197,10 @@ export default function Settings() {
           <TabsTrigger value="appearance">
             <Palette className="w-4 h-4 mr-2" />
             Utseende
+          </TabsTrigger>
+          <TabsTrigger value="credits">
+            <Coins className="w-4 h-4 mr-2" />
+            Kreditter
           </TabsTrigger>
           <TabsTrigger value="advanced">
             <Download className="w-4 h-4 mr-2" />
@@ -669,7 +680,84 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {/* Credits Settings */}
+        <TabsContent value="credits">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Kreditter</CardTitle>
+              <CardDescription>
+                Administrer dine AI-kreditter og abonnementer
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Balance */}
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-medium">Nåværende saldo</h3>
+                    <p className="text-sm text-muted-foreground">Kreditter tilgjengelig for AI-operasjoner</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-primary">
+                      {balance?.toLocaleString('nb-NO') || 0}
+                    </p>
+                    <p className="text-sm text-muted-foreground">kreditter</p>
+                  </div>
+                </div>
+                
+                {subscription && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{subscription.plan}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {subscription.creditsPerMonth} kreditter/måned
+                        </p>
+                      </div>
+                      <Badge variant="secondary">Aktiv</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Fornyes: {new Date(subscription.nextRenewal).toLocaleDateString('nb-NO')}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Purchase Credits Button */}
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Kjøp flere kreditter</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Få tilgang til flere AI-operasjoner
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => setShowCreditPurchaseModal(true)}
+                  data-testid="button-open-purchase"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Kjøp kreditter
+                </Button>
+              </div>
+              
+              <Separator />
+              
+              {/* Credit History */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Kreditthistorikk</h3>
+                <CreditHistory />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+      
+      {/* Credit Purchase Modal */}
+      <CreditPurchaseModal 
+        open={showCreditPurchaseModal}
+        onClose={() => setShowCreditPurchaseModal(false)}
+      />
 
       {/* Save Button */}
       <div className="flex justify-end gap-4 pt-4">
