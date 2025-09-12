@@ -362,56 +362,56 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
 
   return (
     <div className="h-full flex flex-col bg-background sidebar-responsive">
-      {/* Header */}
-      <div className="sidebar-card border-b border-border flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
-            <h2 className="sidebar-title truncate">AI Assistent</h2>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" data-testid="button-chat-settings">
-                <Settings className="h-4 w-4" />
+      {/* Chat-vindu fra topp til bunn */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Chat header */}
+        <div className="px-3 py-2 border-b flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-sm">AI Chat</h3>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearChat}
+                className="h-6 w-6"
+                data-testid="button-clear-chat"
+              >
+                <Trash2 className="h-3 w-3" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={clearChat}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Tøm chat
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadChat}>
-                <Download className="h-4 w-4 mr-2" />
-                Last ned historikk
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <div className="p-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="auto-speak" className="text-sm">Auto-opplesning</Label>
-                  <Switch
-                    id="auto-speak"
-                    checked={autoSpeak}
-                    onCheckedChange={setAutoSpeak}
-                  />
-                </div>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <Settings className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={downloadChat}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Last ned historikk
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className="p-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="auto-speak" className="text-xs">Auto-opplesning</Label>
+                      <Switch
+                        id="auto-speak"
+                        checked={autoSpeak}
+                        onCheckedChange={setAutoSpeak}
+                      />
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
 
-        {/* Kontekst-info */}
-        {browserContext && browserContext.url && (
-          <Card className="p-2 bg-muted/30">
-            <p className="sidebar-subtitle sidebar-text-clamp-1">
-              Analyserer: {browserContext.title || browserContext.url}
-            </p>
-          </Card>
-        )}
-      </div>
-
-      {/* Meldinger */}
-      <ScrollArea className="flex-1 overflow-hidden" ref={scrollAreaRef}>
-        <div className="px-3 pb-1 pt-2">
+        {/* Chat-meldinger */}
+        <ScrollArea className="flex-1" ref={scrollAreaRef}>
+          <div className="px-3 py-2 space-y-2">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
             <Bot className="h-12 w-12 text-muted-foreground mb-4" />
@@ -525,11 +525,13 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
         )}
         </div>
       </ScrollArea>
+      </div>
 
-      {/* Input-område */}
-      <div className="px-3 pb-2 pt-1 flex-shrink-0">
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
+      {/* Nedre kontrollseksjon */}
+      <div className="border-t flex-shrink-0">
+        {/* Input-område med send */}
+        <div className="p-3">
+          <div className="flex gap-2">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -539,49 +541,84 @@ For å aktivere AI-funksjoner, legg til OPENAI_API_KEY i miljøvariablene.`
                   handleSend();
                 }
               }}
-              placeholder="Skriv din melding her... (Shift+Enter for ny linje)"
-              className="min-h-[60px] pr-10 resize-none"
+              placeholder="Skriv din melding her..."
+              className="min-h-[50px] resize-none"
               data-testid="input-chat-message"
             />
             <Button
-              variant="ghost"
-              size="icon"
-              className="absolute bottom-2 right-2 h-8 w-8"
-              onClick={isRecording ? stopRecording : startRecording}
-              data-testid="button-voice-input"
-            >
-              {isRecording ? (
-                <MicOff className="h-4 w-4 text-destructive animate-pulse" />
-              ) : (
-                <Mic className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <Button
               onClick={handleSend}
               disabled={!input.trim() || sendMessage.isPending}
+              size="icon"
               data-testid="button-send-message"
             >
               <Send className="h-4 w-4" />
             </Button>
+          </div>
+
+          {/* Tale-kontroller */}
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={isRecording ? stopRecording : startRecording}
+              className="flex-1"
+              data-testid="button-voice-to-text"
+            >
+              {isRecording ? (
+                <>
+                  <MicOff className="h-3 w-3 mr-1" />
+                  Stopp opptak
+                </>
+              ) : (
+                <>
+                  <Mic className="h-3 w-3 mr-1" />
+                  Tale til tekst
+                </>
+              )}
+            </Button>
             
-            {isSpeaking && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={stopSpeaking}
-                data-testid="button-stop-speaking"
-              >
-                <VolumeX className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (messages.length > 0) {
+                  const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+                  if (lastAssistantMessage) {
+                    speakText(lastAssistantMessage.content);
+                  }
+                }
+              }}
+              disabled={!messages.some(m => m.role === 'assistant')}
+              className="flex-1"
+              data-testid="button-text-to-voice"
+            >
+              <Volume2 className="h-3 w-3 mr-1" />
+              Tekst til tale
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Voice to voice funksjonalitet
+                if (!isRecording) {
+                  setAutoSpeak(true);
+                  startRecording();
+                } else {
+                  stopRecording();
+                }
+              }}
+              className="flex-1"
+              data-testid="button-voice-to-voice"
+            >
+              <Headphones className="h-3 w-3 mr-1" />
+              Tale til tale
+            </Button>
           </div>
         </div>
 
         {/* AI-verktøy seksjon */}
-        <div className="mt-3 pt-2 border-t border-border/50">
+        <div className="px-3 pb-2">
           <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
             <Sparkles className="h-3 w-3" />
             AI-verktøy
