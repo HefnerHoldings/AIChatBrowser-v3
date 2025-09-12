@@ -424,6 +424,131 @@ export type InsertWorkflowAIChat = z.infer<typeof insertWorkflowAIChatSchema>;
 export type InsertWorkflowVoiceSession = z.infer<typeof insertWorkflowVoiceSessionSchema>;
 export type InsertWorkflowStepConfig = z.infer<typeof insertWorkflowStepConfigSchema>;
 
+// ========== Credit System Tables ==========
+
+// User Credits table - tracks user credit balance
+export const userCredits = pgTable("user_credits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(), // References user from auth system
+  balance: integer("balance").notNull().default(5), // Start with 5 free credits
+  totalPurchased: integer("total_purchased").notNull().default(0),
+  totalUsed: integer("total_used").notNull().default(0),
+  lastFreeReset: timestamp("last_free_reset").notNull().default(sql`now()`),
+  freeCreditsUsed: integer("free_credits_used").notNull().default(0),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Credit Transactions table - logs all credit changes
+export const creditTransactions = pgTable("credit_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  amount: integer("amount").notNull(), // Positive for additions, negative for usage
+  type: varchar("type", { length: 50 }).notNull(), // purchase, usage, refund, free_reset, bonus
+  description: text("description"),
+  stripePaymentId: varchar("stripe_payment_id"),
+  stripeSessionId: varchar("stripe_session_id"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Credit Packs table - defines purchasable credit packages
+export const creditPacks = pgTable("credit_packs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  displayName: varchar("display_name").notNull(),
+  credits: integer("credits").notNull(),
+  priceCents: integer("price_cents").notNull(),
+  stripePriceId: varchar("stripe_price_id"),
+  description: text("description"),
+  popularFlag: boolean("popular_flag").default(false),
+  active: boolean("active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Subscriptions table - tracks user subscriptions
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  plan: varchar("plan").notNull(), // pro, business, enterprise
+  stripeSubscriptionId: varchar("stripe_subscription_id").unique(),
+  stripePriceId: varchar("stripe_price_id"),
+  status: varchar("status").notNull(), // active, canceled, past_due, trialing
+  monthlyCredits: integer("monthly_credits").notNull(),
+  creditsRemainingThisPeriod: integer("credits_remaining_this_period").notNull(),
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// AI Usage Events table - logs AI API usage
+export const aiUsageEvents = pgTable("ai_usage_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  model: varchar("model").notNull(), // gpt-4o, gpt-4o-mini, claude-3-opus, etc.
+  provider: varchar("provider").notNull(), // openai, anthropic, google
+  inputTokens: integer("input_tokens").notNull(),
+  outputTokens: integer("output_tokens").notNull(),
+  totalTokens: integer("total_tokens").notNull(),
+  creditsUsed: integer("credits_used").notNull(),
+  costUsd: real("cost_usd"), // Actual cost in USD for tracking
+  requestType: varchar("request_type"), // chat, completion, embedding, etc.
+  responseTime: integer("response_time"), // milliseconds
+  success: boolean("success").notNull().default(true),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata").default({}), // Additional context
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+}, (table) => ({
+  userIdIdx: index("ai_usage_user_id_idx").on(table.userId),
+  createdAtIdx: index("ai_usage_created_at_idx").on(table.createdAt),
+}));
+
+// Insert schemas for credit system tables
+export const insertUserCreditsSchema = createInsertSchema(userCredits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastFreeReset: true,
+});
+
+export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCreditPackSchema = createInsertSchema(creditPacks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAiUsageEventSchema = createInsertSchema(aiUsageEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for credit system tables
+export type UserCredits = typeof userCredits.$inferSelect;
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
+export type CreditPack = typeof creditPacks.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type AiUsageEvent = typeof aiUsageEvents.$inferSelect;
+
+export type InsertUserCredits = z.infer<typeof insertUserCreditsSchema>;
+export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
+export type InsertCreditPack = z.infer<typeof insertCreditPackSchema>;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type InsertAiUsageEvent = z.infer<typeof insertAiUsageEventSchema>;
+
 // ========== Real-time Collaboration Tables ==========
 
 // Sync States table for managing document versions

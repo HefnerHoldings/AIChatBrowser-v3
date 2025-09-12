@@ -205,6 +205,20 @@ export interface IStorage {
   getWorkflowTemplates(): Promise<Workflow[]>;
   createWorkflowFromTemplate(templateId: string): Promise<Workflow>;
   
+  // Credit System
+  getCreditPacks(): Promise<any[]>;
+  getCreditPack(id: string): Promise<any | undefined>;
+  getUserCredits(userId: string): Promise<any | undefined>;
+  createUserCredits(userCredits: any): Promise<any>;
+  updateUserCredits(userId: string, updates: any): Promise<any | undefined>;
+  getCreditTransactions(userId: string, limit?: number): Promise<any[]>;
+  createCreditTransaction(transaction: any): Promise<any>;
+  getSubscription(userId: string): Promise<any | undefined>;
+  createSubscription(subscription: any): Promise<any>;
+  updateSubscription(userId: string, updates: any): Promise<any | undefined>;
+  createAIUsageEvent(event: any): Promise<any>;
+  getAIUsageEvents(userId: string, startDate?: Date, endDate?: Date): Promise<any[]>;
+  
   // Marketplace
   getMarketplaceItems(filters?: { type?: string; category?: string; search?: string; featured?: boolean }): Promise<MarketplaceItem[]>;
   getMarketplaceItem(id: string): Promise<MarketplaceItem | undefined>;
@@ -2379,6 +2393,122 @@ class MemStorage implements IStorage {
 
   async deleteWorkflowSchedule(id: string): Promise<boolean> {
     return this.workflowSchedules.delete(id);
+  }
+  
+  // Credit System (MemStorage stub implementations)
+  private creditPacks: Map<string, any> = new Map();
+  private userCredits: Map<string, any> = new Map();
+  private creditTransactions: Map<string, any> = new Map();
+  private subscriptions: Map<string, any> = new Map();
+  private aiUsageEvents: Map<string, any> = new Map();
+  
+  async getCreditPacks(): Promise<any[]> {
+    // Initialize default credit packs if empty
+    if (this.creditPacks.size === 0) {
+      const defaultPacks = [
+        { id: 'starter', name: 'Starter Pack', displayName: 'Starter Pack', credits: 1000, priceCents: 1000, description: '1,000 AI credits' },
+        { id: 'popular', name: 'Popular Pack', displayName: 'Popular Pack', credits: 3000, priceCents: 2500, description: '3,000 AI credits - Most popular!' },
+        { id: 'pro', name: 'Pro Pack', displayName: 'Pro Pack', credits: 10000, priceCents: 8000, description: '10,000 AI credits - Best value!' }
+      ];
+      defaultPacks.forEach(pack => this.creditPacks.set(pack.id, pack));
+    }
+    return Array.from(this.creditPacks.values());
+  }
+  
+  async getCreditPack(id: string): Promise<any | undefined> {
+    if (this.creditPacks.size === 0) {
+      await this.getCreditPacks(); // Initialize if needed
+    }
+    return this.creditPacks.get(id);
+  }
+  
+  async getUserCredits(userId: string): Promise<any | undefined> {
+    if (!this.userCredits.has(userId)) {
+      // Initialize user credits with default values
+      const userCredit = {
+        userId,
+        balance: 5, // Start with 5 free credits
+        dailyFree: 5,
+        dailyFreeUsed: 0,
+        totalPurchased: 0,
+        totalUsed: 0,
+        lastFreeReset: new Date(),
+        createdAt: new Date()
+      };
+      this.userCredits.set(userId, userCredit);
+      return userCredit;
+    }
+    return this.userCredits.get(userId);
+  }
+  
+  async createUserCredits(userCredits: any): Promise<any> {
+    this.userCredits.set(userCredits.userId, userCredits);
+    return userCredits;
+  }
+  
+  async updateUserCredits(userId: string, updates: any): Promise<any | undefined> {
+    const credits = this.userCredits.get(userId);
+    if (!credits) return undefined;
+    const updated = { ...credits, ...updates };
+    this.userCredits.set(userId, updated);
+    return updated;
+  }
+  
+  async getCreditTransactions(userId: string, limit: number = 50): Promise<any[]> {
+    const transactions = Array.from(this.creditTransactions.values())
+      .filter((t: any) => t.userId === userId)
+      .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+    return transactions;
+  }
+  
+  async createCreditTransaction(transaction: any): Promise<any> {
+    const id = randomUUID();
+    const txn = { id, ...transaction, createdAt: new Date() };
+    this.creditTransactions.set(id, txn);
+    return txn;
+  }
+  
+  async getSubscription(userId: string): Promise<any | undefined> {
+    return Array.from(this.subscriptions.values())
+      .find((s: any) => s.userId === userId && s.status === 'active');
+  }
+  
+  async createSubscription(subscription: any): Promise<any> {
+    const id = randomUUID();
+    const sub = { id, ...subscription, createdAt: new Date() };
+    this.subscriptions.set(id, sub);
+    return sub;
+  }
+  
+  async updateSubscription(userId: string, updates: any): Promise<any | undefined> {
+    const subscription = Array.from(this.subscriptions.values())
+      .find((s: any) => s.userId === userId);
+    if (!subscription) return undefined;
+    const updated = { ...subscription, ...updates };
+    this.subscriptions.set(subscription.id, updated);
+    return updated;
+  }
+  
+  async createAIUsageEvent(event: any): Promise<any> {
+    const id = randomUUID();
+    const usage = { id, ...event, createdAt: new Date() };
+    this.aiUsageEvents.set(id, usage);
+    return usage;
+  }
+  
+  async getAIUsageEvents(userId: string, startDate?: Date, endDate?: Date): Promise<any[]> {
+    let events = Array.from(this.aiUsageEvents.values())
+      .filter((e: any) => e.userId === userId);
+    
+    if (startDate) {
+      events = events.filter((e: any) => e.createdAt >= startDate);
+    }
+    if (endDate) {
+      events = events.filter((e: any) => e.createdAt <= endDate);
+    }
+    
+    return events.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 }
 

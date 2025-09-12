@@ -54,6 +54,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const workflowManager = createWorkflowManager(browserManager);
   await workflowManager.initialize();
   
+  // Register Credit System Routes
+  const { registerCreditRoutes } = await import('./credit/credit-routes');
+  registerCreditRoutes(app);
+  
   // Projects
   app.get("/api/projects", async (req, res) => {
     try {
@@ -3576,26 +3580,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ai-chat/message", async (req, res) => {
-    try {
-      const { aiService } = await import("./ai-service");
-      const { sessionId, message, context } = req.body;
-      
-      if (!message) {
-        return res.status(400).json({ error: "Message is required" });
+  // Import credit middleware at the top of this function
+  const { checkCredits, deductCredits } = await import('./middleware/credits');
+  
+  app.post("/api/ai-chat/message", 
+    checkCredits({ 
+      model: 'gpt-4o-mini', 
+      estimatedTokens: 1500,
+      allowFreeCredits: true 
+    }),
+    deductCredits(),
+    async (req, res) => {
+      try {
+        const { aiService } = await import("./ai-service");
+        const { sessionId, message, context } = req.body;
+        
+        if (!message) {
+          return res.status(400).json({ error: "Message is required" });
+        }
+
+        const response = await aiService.sendMessage(
+          sessionId || "default",
+          message,
+          context
+        );
+
+        res.json({ message: response });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      const response = await aiService.sendMessage(
-        sessionId || "default",
-        message,
-        context
-      );
-
-      res.json({ message: response });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   app.post("/api/ai-chat/speech-to-text", async (req, res) => {
     try {
