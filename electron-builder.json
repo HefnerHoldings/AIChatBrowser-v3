@@ -11,7 +11,24 @@
   ],
   "mac": {
     "category": "public.app-category.productivity",
-    "icon": "attached_assets/icon.icns"
+    "icon": "attached_assets/icon.icns",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "notarize": {
+      "teamId": "YOUR_TEAM_ID"
+    }
   },
   "win": {
     "target": "nsis",

@@ -27,6 +27,11 @@ const fs = require('fs');
 const crypto = require('crypto');
 const TabManager = require('./tab-manager');
 const AutoUpdaterManager = require('./auto-updater');
+const WindowsFeatures = require('../windows-features');
+const WindowsShortcuts = require('../windows-shortcuts');
+const WindowsPerformance = require('../windows-performance');
+const WindowsSecurity = require('../windows-security');
+const WindowsNotifications = require('../windows-notifications');
 
 // Global references
 let mainWindow;
@@ -38,6 +43,11 @@ let isDev = process.env.NODE_ENV === 'development';
 // Initialize managers
 const tabManager = new TabManager();
 const autoUpdaterManager = new AutoUpdaterManager();
+let windowsFeatures;
+let windowsShortcuts;
+let windowsPerformance;
+let windowsSecurity;
+let windowsNotifications;
 
 // Security settings
 const CORS_BYPASS_ENABLED = isDev; // Only enable in development by default
@@ -1009,6 +1019,26 @@ function createWindow() {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    
+    // Initialize Windows-specific features
+    if (process.platform === 'win32') {
+      windowsFeatures = new WindowsFeatures(mainWindow);
+      windowsFeatures.setupWindowsIPC();
+      windowsFeatures.setupPerformanceMonitoring();
+      windowsFeatures.setupThemeIntegration();
+      
+      // Initialize Windows shortcuts
+      windowsShortcuts = new WindowsShortcuts(mainWindow, tabManager);
+      
+      // Initialize Windows performance optimization
+      windowsPerformance = new WindowsPerformance(mainWindow);
+      
+      // Initialize Windows security
+      windowsSecurity = new WindowsSecurity(mainWindow);
+      
+      // Initialize Windows notifications
+      windowsNotifications = new WindowsNotifications(mainWindow);
+    }
   });
 
   // Handle window events
@@ -1521,6 +1551,9 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   // Cleanup
   globalShortcut.unregisterAll();
+  if (windowsShortcuts) {
+    windowsShortcuts.unregisterAllShortcuts();
+  }
   if (tray) {
     tray.destroy();
   }
