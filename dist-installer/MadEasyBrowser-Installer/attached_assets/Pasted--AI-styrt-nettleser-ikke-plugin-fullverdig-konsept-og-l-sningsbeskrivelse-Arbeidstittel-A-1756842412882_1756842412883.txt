@@ -1,0 +1,300 @@
+# AI-styrt nettleser (ikke plugin) – fullverdig konsept og løsningsbeskrivelse
+
+**Arbeidstittel:** Atlas Browser (standalone Windows-app, ikke en utvidelse)
+
+**Kort posisjonering:** Atlas er en selvstendig nettleser bygget fra bunnen av som kan forstå mål, planlegge neste steg, surfe og handle i sanntid, gjennomføre komplekse workflows, samle inn og strukturere data (f.eks. leads), og fungere som «prosjektleder» i utviklingsløp hvor den samhandler med dev-AI-er og verktøy som Lovable, Bolt og Replit. Ikke en plugin – en egen app med orkestrert AI og verktøysett.
+
+---
+
+## 1) Mål og kjerneevner
+
+**Overordnede mål**
+
+* Gjøre nettbaserte oppgaver for deg på en trygg, revisjonsbar måte – fra research til skjema-utfylling, innhenting av filer, og datarensing/eksport.
+* Forstå formål og definere delmål/akseptkriterier. Løpende foreslå «naturlig neste steg».
+* Lede utviklingsprosjekter ved å planlegge sprint-oppgaver, snakke med dev-AI-er, evaluere output opp mot målene, og dirigere neste handling.
+
+**Kjerneevner**
+
+1. **Autonom nett-navigasjon** (CDP/DOM + visuell gjenkjenning) med plan → handling → verifisering.
+2. **Workflow-motor** (DSL + no-code editor) for repeterbare oppskrifter med parametre og sjekkpunkter.
+3. **Datainnsamling & rensing** (scrape → parse → dedupe → valider → berik → eksporter). Innebygget lead-motor.
+4. **Dev/PM-modul**: les/reason over kode, start/veilede arbeidsflyt i Lovable/Bolt/Replit, åpne PR, kjøre tester, følge opp CI-flyt, koordinere med «dev bots» via en samtaleprotokoll.
+5. **Tillatelser & sikkerhet**: domene-scopes, secrets vault, personvernfilter i logger.
+6. **Observability**: skjermbilder, DOM-utdrag, nettverkslogg, rapport/PDF og replay.
+
+---
+
+## 2) Brukeropplevelse (UX)
+
+**A. Chat-first & planvisning**
+
+* Ett kommandofelt: *«Beskriv målet ditt.»*
+* Atlas svarer med **plan** (delmål, risiko, tillatelser den trenger) → du godkjenner hele planen eller trinnvis.
+* «Live Steps»-panel (naviger, klikk, fyll, vent, verifiser, last ned). Hvert kritisk steg får miniatyr-skjermbilde og forventet/observed resultat.
+
+**B. Autonomi-nivåer**
+
+* **Nivå 0 – Manuell:** Bare assistentforslag.
+* **Nivå 1 – Co-pilot:** Utfører steg etter eksplisitt OK.
+* **Nivå 2 – Autopilot (lav risiko):** Utfører innenfor scopes/domener du har tillatt.
+* **Nivå 3 – PM-modus:** Flertrinns prosjektledelse inkl. samhandling med dev-AI-er, PR, test, statusrapporter.
+
+**C. Etterarbeid**
+
+* Automatisk **Resultatrapport** (HTML/PDF) med: mål, oppnådde delmål, kilder, nedlastinger, avvik, forslag til neste iterasjon.
+* **Playbook-eksport** (YAML/JSON) – kjørbar med nye parametre.
+
+---
+
+## 3) Arkitektur (oversikt)
+
+**3.1 Desktop-runtime (Windows)**
+
+* **App-shell:** C# .NET 8 (WPF/WinUI 3) for ytelse og tett Windows-integrasjon.
+* **Render-motor:**
+
+  * **CEF (Chromium Embedded Framework)** anbefales for uavhengighet av Edge/OS. Alternativ: **WebView2** for lavere footprint og enkel distribusjon. Begge gir CDP-tilgang. Valg gjøres pr. produktstrategi; Atlas støtter begge via et adapterlag.
+* **Prosessmodell:** Hovedprosess (Orkestrator) + verktøy-prosesser (BrowserTool, VisionTool, CodeTool). Interprosess via gRPC/named pipes.
+
+**3.2 Agent-lag (Planner → Critic → Executor)**
+
+* **Planner**: Oversetter mål til plan (trinn, sjekkpunkter, forventninger, tillatelser, timeouts).
+* **Critic**: Sikkerhet/robusthet – vurderer risiko, velger selektorer, definerer asserts, stopper ved avvik.
+* **Executor**: Kjører handlinger via Tools, verifiserer resultater, oppdaterer state.
+* **PM Agent**: Egen «over-agent» for prosjektledelse: backlog, akseptkriterier, standup-status, koordinering med dev-AI-er.
+
+**3.3 Verktøy (Tools) – pluggbare capabilities**
+
+* **BrowserTool (CDP):** goto, click, type, select, wait, network capture, download/upload, cookies/profiler.
+* **VisionTool:** OCR + visuell matching når DOM ikke holder (canvas/Shadow DOM/captcha-hjelp uten å omgå sikkerhet).
+* **FormFiller:** Label→felt-kobling, datavalidering (regex/masker), pre-submit checks.
+* **Scrape/Parse:** DOM→JSON/CSV; tabelluttrekk; semantisk feltgjenkjenning; «anti-dup» og normalisering.
+* **FileTool:** Nedlastingskatalog, navngivingsregler, filkonvertering (CSV/XLSX/PDF), e-post-vedlegg.
+* **CodeTool:** Repo-lesing, AST/LLM-reasoning, testløp, diff/patch, PR-åpning, semver/vite-oppdatering, LLM-basert kodeforklaring.
+* **DevBridge:** Samhandling med Lovable/Bolt/Replit (via UI-automatisering + evt. offentlige API-er). Felles protokoll: «Work Order» → «Result Summary» → «Next Step».
+* **CRM/LeadTool:** Validering (e-postformat, MX-check via tredjepart-API ved behov), geonormalisering, berikelse, scoring, eksport til XLSX/HubSpot/Pipedrive.
+
+**3.4 Minne & kunnskap**
+
+* **Project Graph:** mål ↔ delmål ↔ artefakter (filer, repo, builds, rapporter) med versjoner.
+* **Vector Store:** embeddings av sider/kode/beskrivelser for rask gjenfinning.
+* **Secrets Vault:** DPAPI-beskyttet, nøkkel pr. profil, rotasjon, tilgangspolicy pr. tool/domain.
+
+---
+
+## 4) Workflow-DLS (kjørbar oppskrift)
+
+Humanlesbart YAML med sjekkpunkter og asserts. Eksempel:
+
+```yaml
+name: leads_cast_iron_eu
+inputs:
+  query: "cast iron cookware wholesaler EU"
+  take: 50
+  region: "EU"
+steps:
+  - goto: https://www.google.com
+  - search: ${query}
+  - paginate: { pages: 5, pause_ms: 1200 }
+  - scrape_results:
+      each_result:
+        - open
+        - extract:
+            fields: [company, url, email?, phone?, address?]
+            heuristics: [mailto, contact pages, schema.org, footer]
+        - validate:
+            email_format: true
+            phone_region: ${region}
+        - append_to_dataset: leads
+  - dedupe_dataset: leads by [email, phone, domain]
+  - enrich:
+      dataset: leads
+      rules:
+        - guess_email: { pattern: first.last@domain }
+        - website_category
+        - linkedin_lookup?
+  - score:
+      formula: "(has_email*3)+(has_phone*2)+(category_match*2)+(country in EU)"
+  - export:
+      dataset: leads
+      type: xlsx
+      path: C:/Atlas/exports/leads_${date}.xlsx
+  - report:
+      include: [summary, top10, gaps]
+```
+
+*Alle steg kan genereres fra en vellykket kjøring og redigeres i en no-code editor.*
+
+---
+
+## 5) Lead-motor (innebygget)
+
+* **Kilder:** Søkemotorer, kataloger, «About/Contact», schema.org «Organization», strukturert data, PDF/vedlegg.
+* **Metoder:** Regex + semantikk (LLM), MX/SMTP-«soft» validering (kun med uttrykkelig tillatelse), region-regler, språkdeteksjon.
+* **Scoring:** Fit (kategori/land) × Reach (kontaktdata) × Intent (språk/innholdsfunn) × Credibility (impressum, organisasjons-ID,
+  linkprofil-light).
+* **Output:** XLSX/CSV + pipeline mot CRM. Utdrag av funn + kildelenker i rapport.
+
+---
+
+## 6) Dev/PM-modul – «leder for utviklingsløp»
+
+**6.1 Målstyring**
+
+* Ta imot mål (f.eks. «Landingsside for Nordic Refined i Next.js med CTA + skjema»), oversette til akseptkriterier (page speed, formvalidering, CMS-integrasjon), definere deloppgaver.
+
+**6.2 Samhandling med Lovable/Bolt/Replit**
+
+* **Protokoll (DevBridge):**
+
+  * *Work Order*: kort mål + constraints + milepæler.
+  * *Context Pack*: relevante filer/kodeutdrag/URL-er + siste status.
+  * *Action*: «create project», «edit file», «run build/test», «deploy».
+  * *Result Summary*: logg, artefakter, urls.
+  * *Decision*: «accept», «request change», «next step».
+* Først UI-automatisering (sikker og synlig), evt. API når tilgjengelig.
+
+**6.3 Kodeforståelse & kvalitet**
+
+* AST/LLM-analyse av repo; finn anti-patterns, sikkerhetsluker (basis), dependency health.
+* Testløp (vitest/jest/pytest) i valgt miljø; fange konsoll/logg.
+* **Patch/PR-flyt**: generer diff, kjør lokalt i Replit/Bolt, opprett PR til GitHub/GitLab, auto-beskrivelse + checklist.
+
+**6.4 Prosjektledelse**
+
+* Backlog med «Definition of Done» pr. task.
+* Daglige standup-notater og statusrapport (automatisert basert på hva som faktisk ble bygget/testet/deployet).
+* Risiko-/blokkervisning med forslag til mitigasjon.
+
+---
+
+## 7) Sikkerhet, etikk og samsvar
+
+* **Domene-scopes** for handlingstyper (les/skriv/nedlast/opplast/login). Tydelige «chips» i UI viser aktive tillatelser.
+* **Secrets Vault** (DPAPI): nøkler lagres kryptert, kun frigitt til whitelisted verktøy/domener.
+* **Personvern i logger:** maskering av e-post/telefon/ID; mulighet for on-prem lagring.
+* **ToS/robots-respekt:** Hastighetsgrenser, menneskelignende timing, ikke omgå tilgangskontroller.
+* **2FA/TOTP:** Innebygd støtte + «pause for manuell verifisering» ved ukjent risiko.
+* **Revisjonsspor:** Hash-kjedet handlingslogg; replaybar i «tørrkjøring».
+
+---
+
+## 8) Observability & rapporter
+
+* Skjermbilde per kritisk steg + DOM-utdrag.
+* Nettverkslogg og feilstack.
+* PDF/HTML-rapport med resultatindikatorer, forslag til neste steg.
+* «Session Replay» – spiller av hendelser med tidsstempler.
+
+---
+
+## 9) Utvidelser & API
+
+* **Tool-API** (JSON schema) for nye capabilities, f.eks. `crm.push_lead`, `ci.trigger`, `ga4.fetch`.
+* **Event-bus**: `PLAN_CREATED`, `STEP_EXECUTED`, `ASSERT_FAILED`, `FILE_DOWNLOADED`, `PR_OPENED` – kan kobles til webhooker.
+* **Capability Manifest** per arbeidsområde: hvilke verktøy, hvilke domener, hvilke datatyper.
+
+**Eksempel Tool-API**
+
+```json
+{
+  "name": "browser.click",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "selector": {"type": "string"},
+      "assert": {"type": "string", "description": "Tilstand som skal være sann etter klikk"}
+    },
+    "required": ["selector"]
+  }
+}
+```
+
+---
+
+## 10) UI (hovedskisser)
+
+* **Venstre**: Chat + Plan (kort, akseptknapper, risikochips, scopes)
+* **Midten**: Live-nettleser (Atlas WebView) med overlay for markerte selektorer og asserts
+* **Høyre**: Tidslinje/logg med skjermbilde-miniatyrer, fil-hendelser, rapportlenker
+* **Topplinje**: Profil/prosjektvelger, Autonomi-nivå, «Tørrkjør/Kjør», Playbooks, Status
+* **Dev/PM-visning**: Repo-tre, diff/PR-panel, testlogg, CI-status, Work Orders til/fra dev-AI
+
+---
+
+## 11) Leveransefaser (MVP → V1)
+
+**MVP (funksjonsmål)**
+
+* Atlas-shell (CEF/WebView2), Profiler, Nedlastingsdir
+* Planner/Critic/Executor v1 + BrowserTool (goto/click/type/wait) + skjermbilde/rapport
+* Scrape/Parse + CSV/XLSX-eksport
+* Tillatelser v1 (domenevis: lese/klikk/skriv/nedlast)
+* Lead-motor v1 (e-post/telefon heuristikk, enkel scoring)
+
+**Alpha**
+
+* Workflow-editor (no-code) + YAML-generator
+* FormFiller med validering før submit
+* DevBridge v1 (Lovable/Bolt/Replit – start prosjekt, rediger fil, kjør build)
+* PM Agent v1 (backlog, akseptkriterier, statusrapport)
+
+**V1**
+
+* CodeTool (AST/LLM), testløp, PR-åpning
+* Secrets Vault GUI, 2FA/TOTP
+* Observability (session replay), event-bus, webhooks
+* CRM-integrasjoner (HubSpot/Pipedrive) + lead-berikelse
+
+---
+
+## 12) Eksempelscenarier (ende-til-ende)
+
+**A) Lead-innsamling for kjøkkenutstyr i EU**
+
+1. Bruker: «Finn 150 relevante forhandlere i EU, skaff e-post/telefon, eksporter XLSX, og lag 10-punkts innsikt.»
+2. Atlas: Plan + scopes → kjører søk, åpner topp 100–200 resultater/kataloger, henter data, validerer, deduper, scorer.
+3. Resultat: `leads_YYYYMMDD.xlsx` + rapport med funn, gap og forslag til outreach.
+
+**B) Bygg landingsside i Bolt med Next.js**
+
+1. Mål: «Next.js-landingsside med CTA og skjema, deploy på Vercel.»
+2. Atlas (PM): lager akseptkriterier, starter Bolt, init prosjekt, genererer seksjoner, kjører build, fanger feil.
+3. Atlas (CodeTool): patcher validering, kjører test, åpner PR; ved suksess → deploy-lenke i rapport.
+
+**C) Samtale med dev-AI om refaktorering**
+
+1. Atlas oppsummerer kodeproblemer (bundle size, duplikatkomponenter).
+2. Sender **Work Order** til Lovable/Replit: «reduser bundle, fjerne duplikater, måltall: -30%.»
+3. Leser svar, verifiserer måltall med egen build, foreslår neste steg eller godkjenner.
+
+---
+
+## 13) Ikke-funksjonelle krav
+
+* **Robusthet:** retry/backoff, tidouts, failsafe til manuell.
+* **Ytelse:** parallell «open & extract» med ressursgrenser.
+* **Tilgjengelighet:** tastaturnavigasjon, skjermleser-etiketter, fargekontrast.
+* **Lokaliserbarhet:** UI-strenger i ressursfiler.
+
+---
+
+## 14) Risikoer & mitigasjoner
+
+* **Skjøre DOM-er/anti-bot:** Kombiner CSS/ARIA/tekst-heuristikk + visuell matching; respekt for ToS/robots; pace-limit.
+* **Innlogging/2FA:** Alltid eksplisitt samtykke + vault-policy; pause ved ukjente flows.
+* **Dev-AI uforutsigbarhet:** Strict Work Order-format, asserts, måltall, «reject & retry».
+* **Data-kvalitet i leads:** Dedupe/valideringsregler, sampling/kvalitetssjekk i rapport.
+
+---
+
+## 15) Lisens & utrulling
+
+* **Standalone MSI/EXE** m/ auto-oppdaterer (Squirrel/ClickOnce)
+* **Profiler pr. klient/prosjekt**; eksport/import av Playbooks
+* Valgbar motor (CEF/WebView2) ved installasjon.
+
+---
+
+**Oppsummering:** Atlas er en selvstendig, sikker og forklarbar AI-nettleser som ikke bare surfer og skraper – den leder arbeidet videre. Den kan gjennomføre lead-arbeid i stor skala **og** være prosjektleder i utviklingsløp ved å samhandle med dev-AI-er og verktøy, verifisere resultater mot mål, og planlegge neste steg.
