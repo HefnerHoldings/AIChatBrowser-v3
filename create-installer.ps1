@@ -4,10 +4,10 @@
 param(
     [string]$OutputDir = ".\dist-installer",
     [string]$Version = "3.0.0",
-    [switch]$IncludeNodeJS = $true,
-    [switch]$CreatePortable = $true,
-    [switch]$CreateMSI = $true,
-    [switch]$SignInstaller = $false
+    [switch]$IncludeNodeJS,
+    [switch]$CreatePortable,
+    [switch]$CreateMSI,
+    [switch]$SignInstaller
 )
 
 $ErrorActionPreference = "Stop"
@@ -467,4 +467,3 @@ if ($openDir -eq "" -or $openDir -eq "Y" -or $openDir -eq "y") {
 }
 
 Write-Host "Installation package creation completed! 🎊" -ForegroundColor Green
-"@

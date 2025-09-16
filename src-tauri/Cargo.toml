@@ -11,11 +11,12 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = ["shell-open", "fs-all", "window-all", "dialog-all", "clipboard-all", "http-all"] }
+tauri = { version = "1.5", features = ["shell-open", "fs-all", "window-all", "dialog-all", "clipboard-all", "http-all", "system-tray", "notification-all"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json", "stream"] }
 tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [features]
 default = ["custom-protocol"]

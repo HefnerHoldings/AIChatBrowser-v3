@@ -2,11 +2,11 @@
 # Requires PowerShell 5.0+ and Administrator privileges
 
 param(
-    [switch]$Silent = $false,
-    [switch]$PortableInstall = $false,
+    [switch]$Silent,
+    [switch]$PortableInstall,
     [string]$InstallPath = "$env:LOCALAPPDATA\MadEasy\Browser",
-    [switch]$SetAsDefault = $false,
-    [switch]$CreateShortcuts = $true
+    [switch]$SetAsDefault,
+    [switch]$CreateShortcuts
 )
 
 # Check if running as administrator
@@ -152,8 +152,6 @@ function Set-DefaultBrowser {
     }
     
     Write-Host "Setting as default browser..." -ForegroundColor Yellow
-    
-    $exePath = Join-Path $AppPath "MadEasyBrowser.exe"
     
     # Register browser
     $browserPath = "HKLM:\SOFTWARE\Clients\StartMenuInternet\MadEasyBrowser"

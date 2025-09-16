@@ -7,7 +7,11 @@ console.log('🍎 Building MadEasy Browser for macOS...\n');
 // Check if we're on macOS
 if (process.platform !== 'darwin') {
     console.log('⚠️  Warning: This script is designed for macOS builds.');
-    console.log('   You can still build for macOS on Windows using cross-compilation.\n');
+    console.log('   Cross-compilation from Windows is supported via Electron Builder.\n');
+    console.log('📋 To build for macOS from Windows:');
+    console.log('   1. Ensure you have the necessary certificates');
+    console.log('   2. Use: npm run build:mac');
+    console.log('   3. Or: npx electron-builder --mac --publish=never\n');
 }
 
 // Build steps
