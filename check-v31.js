@@ -6,7 +6,9 @@ console.log('🔍 Checking for v31 files...\n');
 const possiblePaths = [
   '/workspace/v31-source',
   '/workspace/v31',
-  '/workspace/AIChatBrowser-v3.01'
+  '/workspace/AIChatBrowser-v3.01',
+  '/mnt/c/Users/User/AIChatBrowser-v3/v31',
+  '/mnt/c/Users/User/AIChatBrowser-v3'
 ];
 
 let foundPath = null;
