@@ -1,7 +1,11 @@
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+import { execSync } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('🧪 MadEasy Browser - Comprehensive Platform Testing Suite\n');
 console.log('====================================================\n');

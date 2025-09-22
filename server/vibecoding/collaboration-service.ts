@@ -177,7 +177,7 @@ interface Change {
 interface Comment {
   id: string;
   userId: string;
-  fileP…: string;
+  filePath: string;
   line: number;
   text: string;
   resolved: boolean;
