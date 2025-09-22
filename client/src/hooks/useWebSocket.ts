@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
@@ -605,10 +605,10 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     debug: process.env.NODE_ENV === 'development',
   });
 
-  return (
-    <WebSocketContext.Provider value={ws}>
-      {children}
-    </WebSocketContext.Provider>
+  return React.createElement(
+    WebSocketContext.Provider,
+    { value: ws },
+    children
   );
 }
 
