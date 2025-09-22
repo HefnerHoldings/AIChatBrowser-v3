@@ -1,6 +1,6 @@
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { execSync } from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
 console.log('🦀 Building MadEasy Browser with Tauri (Rust)...\n');
 

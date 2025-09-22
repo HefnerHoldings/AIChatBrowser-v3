@@ -50,29 +50,29 @@ export function BrowserStartPage({
   const quickActions: QuickAction[] = [
     {
       icon: Workflow,
-      title: 'Opprett workflow',
-      description: 'Bygg automatiserte oppgaver',
+      title: 'Multi-Agent Orchestration',
+      description: 'AI-agenter som samarbeider',
       action: () => onStartWorkflow?.(),
       color: 'from-purple-500/60 to-pink-500/60'
     },
     {
       icon: Bot,
-      title: 'AI Assistent',
-      description: 'Få hjelp fra AI',
+      title: 'QA Suite Pro',
+      description: 'Lighthouse & Visual Testing',
       action: () => {},
       color: 'from-blue-500/60 to-cyan-500/60'
     },
     {
       icon: Video,
-      title: 'Ta opp handlinger',
-      description: 'Spill inn og automatiser',
+      title: 'Vibecoding Platform',
+      description: 'Gamified Development',
       action: () => {},
       color: 'from-red-500/60 to-orange-500/60'
     },
     {
       icon: Mic,
-      title: 'Talekommandoer',
-      description: 'Kontroller med stemmen',
+      title: 'Collaborative Mode',
+      description: 'Real-time samarbeid',
       action: () => {},
       color: 'from-green-500/60 to-emerald-500/60'
     }
@@ -89,28 +89,28 @@ export function BrowserStartPage({
   
   const suggestedWorkflows: SuggestedWorkflow[] = [
     {
-      title: 'Web Scraping',
-      description: 'Hent data fra nettsider automatisk',
+      title: 'Multi-Agent Workflow',
+      description: 'AI-agenter samarbeider om komplekse oppgaver',
       icon: Database,
-      steps: 5
+      steps: 8
     },
     {
-      title: 'Form Filler',
-      description: 'Fyll ut skjemaer automatisk',
+      title: 'QA Testing Suite',
+      description: 'Automatisk testing med Lighthouse',
       icon: FileText,
-      steps: 3
+      steps: 6
     },
     {
-      title: 'Daily Report',
-      description: 'Generer daglige rapporter',
+      title: 'Outreach Campaign',
+      description: 'Multi-channel markedsføring',
       icon: Calendar,
-      steps: 7
+      steps: 10
     },
     {
-      title: 'Data Monitor',
-      description: 'Overvåk endringer på nettsider',
+      title: 'Watched Workflows',
+      description: 'Overvåk og automatiser endringer',
       icon: TrendingUp,
-      steps: 4
+      steps: 5
     }
   ];
   
@@ -164,26 +164,34 @@ export function BrowserStartPage({
           </div>
           
           <p className="text-muted-foreground/60 text-sm font-light max-w-2xl mx-auto leading-relaxed">
-            Fremtidens nettleser med innebygget AI-intelligens, automatisering og avanserte workflows
+            MadEasy Browser V3.00 - Den mest avanserte AI-drevne nettleseren med komplett cross-platform støtte, multi-agent orkestrering, og enterprise-klar automatisering
           </p>
           
           {/* Feature badges - clean and minimal */}
           <div className="flex justify-center gap-2 flex-wrap">
             <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
               <Sparkles className="h-2.5 w-2.5 mr-1 text-primary/50" />
-              AI-drevet
+              Multi-Agent AI
             </Badge>
             <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
               <Shield className="h-2.5 w-2.5 mr-1 text-primary/50" />
-              CORS-fri
+              Enterprise Security
             </Badge>
             <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
               <Workflow className="h-2.5 w-2.5 mr-1 text-primary/50" />
-              Automatisering
+              Vibecoding Platform
             </Badge>
             <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
               <Zap className="h-2.5 w-2.5 mr-1 text-primary/50" />
-              Produktivitet
+              8 Plattformer
+            </Badge>
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
+              <Bot className="h-2.5 w-2.5 mr-1 text-primary/50" />
+              QA Suite Pro
+            </Badge>
+            <Badge variant="outline" className="px-2.5 py-0.5 text-[10px] border-border/30">
+              <Users className="h-2.5 w-2.5 mr-1 text-primary/50" />
+              Collaboration
             </Badge>
           </div>
           
@@ -378,10 +386,9 @@ export function BrowserStartPage({
                         <Rocket className="h-2.5 w-2.5 text-blue-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Hurtigtaster</p>
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">V3.00 Features</p>
                         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+T</kbd> ny fane • 
-                          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono ml-1">Ctrl+W</kbd> lukk fane
+                          Multi-Agent AI • QA Suite Pro • Vibecoding • 8 Plattformer
                         </p>
                       </div>
                     </div>
@@ -393,9 +400,9 @@ export function BrowserStartPage({
                         <Shield className="h-2.5 w-2.5 text-green-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Privat modus</p>
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Enterprise Security</p>
                         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                          Surf inkognito med beskyttet data og ingen sporing
+                          Windows Defender • Site Isolation • Certificate Pinning
                         </p>
                       </div>
                     </div>
@@ -407,9 +414,9 @@ export function BrowserStartPage({
                         <Target className="h-2.5 w-2.5 text-purple-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">AI-automatisering</p>
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Vibecoding Platform</p>
                         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                          Ta opp handlinger og la AI lage workflows automatisk
+                          Gamified development med AI-recommendations og goal tracking
                         </p>
                       </div>
                     </div>
@@ -421,9 +428,9 @@ export function BrowserStartPage({
                         <Code2 className="h-2.5 w-2.5 text-orange-500/60" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Utviklermodus</p>
+                        <p className="font-normal text-[11px] mb-0.5 text-foreground/70">Cross-Platform</p>
                         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                          Inspiser elementer og test API-er direkte
+                          Windows • macOS • Linux • iOS • Android • Tauri • Extensions
                         </p>
                       </div>
                     </div>
